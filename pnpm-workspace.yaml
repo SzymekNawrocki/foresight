@@ -1,0 +1,13 @@
+packages:
+  - apps/*
+  - packages/*
+
+# Higiena łańcucha dostaw npm
+# Nie instaluj wersji młodszych niż 7 dni (czas na wykrycie złośliwej publikacji).
+minimumReleaseAge: 10080
+# Skrypty instalacyjne zależności zablokowane; każdy pakiet ze skryptem musi być tu jawnie
+# rozstrzygnięty (true = uruchom, false = pomiń), inaczej instalacja kończy się błędem.
+strictDepBuilds: true
+allowBuilds:
+  # postinstall esbuild tylko weryfikuje binarkę; binarka i tak przychodzi z paczki platformowej
+  esbuild: false
