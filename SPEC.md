@@ -10,7 +10,7 @@ Słownik domeny: `CONTEXT.md`. Decyzje trudne do odwrócenia: `docs/adr/`.
 
 1. **0 zł bez limitu czasu.** Tylko usługi „always free" i darmowe tiery bez terminu.
    Pilnowane w CI regułą kosztową (lista dozwolonych typów zasobów `aws_*`). Bez wyjątków.
-2. **Zero stałych kluczy.** Człowiek: SSO (IAM Identity Center). CI i HCP Terraform: OIDC.
+2. **Zero stałych kluczy.** Człowiek: użytkownik IAM z MFA, CLI przez `aws login` (krótkie poświadczenia), bez SSO — [ADR 0005](docs/adr/0005-free-plan-bez-organizations.md). CI i HCP Terraform: OIDC.
 3. **Ostatni odpowiedzialny moment.** Decyzję podejmujemy, gdy blokuje najbliższy plaster.
 4. **Walking skeleton najpierw.** Zero funkcji produktu, dopóki pipeline nie dowiezie
    „hello world" na produkcję.
@@ -73,7 +73,7 @@ EventBridge Scheduler ─► Lambda "ingest" ─► RSS
 
 | Warstwa | Wybór |
 |---|---|
-| Konto | AWS, darmowy plan; MFA na root, root nieużywany; alarm budżetowy |
+| Konto | AWS, Free plan (bez Organizations — ADR 0005); MFA na root, root nieużywany; alarm budżetowy |
 | Regiony | `eu-central-1` obciążenia; `us-east-1` CloudFront/WAF/plan cenowy; role z warunkiem `aws:RequestedRegion` |
 | Wejście | CloudFront, flat-rate plan Free (`aws_pricingplanmanager_subscription` — sprawdzić w wydanym providerze) |
 | Obliczenia | Lambda, paczki ZIP (nie obrazy — prywatny ECR nie jest „always free") |
@@ -101,7 +101,7 @@ EventBridge Scheduler ─► Lambda "ingest" ─► RSS
 
 | Tożsamość | Kto ufa | Może |
 |---|---|---|
-| Człowiek (SSO) | IAM Identity Center | praca operacyjna, krótkie poświadczenia |
+| Człowiek | użytkownik IAM + MFA, `aws login` | praca operacyjna, krótkie poświadczenia |
 | `plan` | OIDC z HCP Terraform (workspace) | tylko odczyt |
 | `apply` | OIDC z HCP Terraform (workspace, faza apply) | zmiany infrastruktury w 2 regionach |
 | `deploy` | OIDC z GitHub (repo, `main`, Environment) | tylko `UpdateFunctionCode` / `PublishVersion` / `UpdateAlias` dla funkcji projektu |
