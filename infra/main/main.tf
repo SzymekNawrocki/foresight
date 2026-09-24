@@ -2,6 +2,8 @@
 # widać w jednym miejscu, co Foresight postawił w regionie.
 resource "aws_resourcegroups_group" "project" {
   name = "foresight-${var.environment}"
+  # AWS przyjmuje tu tylko litery ASCII, cyfry, spacje oraz _ . -
+  description = "Foresight ${var.environment} resources managed by Terraform"
 
   resource_query {
     query = jsonencode({
