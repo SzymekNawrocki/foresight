@@ -9,6 +9,10 @@ updates:
     groups:
       npm:
         patterns: ["*"]
+    # TS 7 (typescript-go) — typescript-eslint jeszcze go nie wspiera; zdjąć, gdy doda wsparcie.
+    ignore:
+      - dependency-name: typescript
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: github-actions
     directory: /
     schedule:
