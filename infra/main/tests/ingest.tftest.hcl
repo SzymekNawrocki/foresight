@@ -47,3 +47,36 @@ run "ingest_runs_hourly_without_retries" {
     error_message = "The ingest Lambda writes to the events table."
   }
 }
+
+run "web_reads_only_the_latest_index" {
+  command = plan
+
+  # The table ARN is computed; give it a fixed value already at plan time.
+  override_resource {
+    target          = aws_dynamodb_table.events
+    override_during = plan
+    values = {
+      arn = "arn:aws:dynamodb:eu-central-1:123456789012:table/foresight-prod-events"
+    }
+  }
+
+  assert {
+    condition     = aws_lambda_function.web.environment[0].variables.EVENTS_TABLE_NAME == aws_dynamodb_table.events.name
+    error_message = "The web Lambda reads from the events table."
+  }
+
+  assert {
+    condition     = length(data.aws_iam_policy_document.web_events.statement) == 1
+    error_message = "The web role gets exactly one DynamoDB statement."
+  }
+
+  assert {
+    condition     = data.aws_iam_policy_document.web_events.statement[0].actions == toset(["dynamodb:Query"])
+    error_message = "The web role may only Query — no Scan, GetItem or writes."
+  }
+
+  assert {
+    condition     = data.aws_iam_policy_document.web_events.statement[0].resources == toset(["${aws_dynamodb_table.events.arn}/index/latest"])
+    error_message = "The web role may only read the `latest` index, not the base table."
+  }
+}
