@@ -42,7 +42,7 @@ run "deploy_role_trusts_only_production_environment" {
   }
 }
 
-run "deploy_role_touches_only_web_function_code" {
+run "deploy_role_touches_only_app_function_code" {
   command = plan
 
   assert {
@@ -57,7 +57,8 @@ run "deploy_role_touches_only_web_function_code" {
   assert {
     condition = toset(data.aws_iam_policy_document.github_deploy.statement[0].resources) == toset([
       "arn:aws:lambda:eu-central-1:123456789012:function:foresight-prod-web",
+      "arn:aws:lambda:eu-central-1:123456789012:function:foresight-prod-ingest",
     ])
-    error_message = "The deploy role must be scoped to the foresight-prod-web function only."
+    error_message = "The deploy role must be scoped to the web and ingest functions only."
   }
 }

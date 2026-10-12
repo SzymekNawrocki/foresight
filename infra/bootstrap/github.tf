@@ -2,7 +2,8 @@ locals {
   github_host        = "token.actions.githubusercontent.com"
   github_audience    = "sts.amazonaws.com"
   github_environment = "repo:SzymekNawrocki@129281704/foresight@1383949825:environment:production"
-  web_function_name  = "foresight-prod-web"
+  # Lambdas whose code the pipeline ships (infra/main creates them).
+  app_functions = ["foresight-prod-web", "foresight-prod-ingest"]
 }
 
 data "aws_caller_identity" "current" {}
@@ -56,13 +57,14 @@ data "aws_iam_policy_document" "github_deploy" {
       "lambda:PublishVersion",
     ]
     resources = [
-      "arn:aws:lambda:${data.aws_region.current.region}:${data.aws_caller_identity.current.account_id}:function:${local.web_function_name}",
+      for name in local.app_functions :
+      "arn:aws:lambda:${data.aws_region.current.region}:${data.aws_caller_identity.current.account_id}:function:${name}"
     ]
   }
 }
 
 resource "aws_iam_role_policy" "github_deploy" {
-  name   = "deploy-web"
+  name   = "deploy-app"
   role   = aws_iam_role.github_deploy.id
   policy = data.aws_iam_policy_document.github_deploy.json
 }
