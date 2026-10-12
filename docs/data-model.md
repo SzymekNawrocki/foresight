@@ -21,7 +21,7 @@ Schema: `Event` in `packages/shared/src/event.ts`.
 | Pattern | How |
 |---|---|
 | Store an Event once | `PutItem` with `attribute_not_exists(id)`; a failed condition = duplicate |
-| Latest N Events (02c) | Query GSI `latest` (`kind = EVENT`, sort key `publishedAt`), `ScanIndexForward = false`, `Limit = N` |
+| Latest N Events (02c) | Query GSI `latest` (`kind = EVENT`, sort key `publishedAt`), `ScanIndexForward = false`, `Limit = N`. The web role may `dynamodb:Query` on `…/index/latest` only. |
 
 ### Capacity — 0 PLN
 

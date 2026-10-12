@@ -4,6 +4,14 @@ name: Deploy
 on:
   push:
     branches: [main]
+    # Only what can change a ZIP; docs-only or infra-only merges do not redeploy.
+    paths:
+      - "apps/**"
+      - "packages/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - ".github/workflows/deploy.yml"
   workflow_dispatch:
 
 permissions:
