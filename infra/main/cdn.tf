@@ -22,6 +22,11 @@ locals {
   web_origin_id     = "lambda-web"
 }
 
+# Zaakceptowane przez tech leada (PR #14): WAF przychodzi w 01b-5 z planem Free CloudFronta.
+#trivy:ignore:AWS-0011
+# Bez własnej domeny certyfikat *.cloudfront.net nie pozwala podnieść minimalnej wersji TLS;
+# domena odłożona (0 zł).
+# nosemgrep: terraform.aws.security.aws-cloudfront-insecure-tls.aws-insecure-cloudfront-distribution-tls-version
 resource "aws_cloudfront_distribution" "web" {
   enabled         = true
   is_ipv6_enabled = true

@@ -20,6 +20,8 @@ data "archive_file" "web_placeholder" {
   }
 }
 
+# Zaakceptowane (PR #14): logi i tak szyfruje klucz AWS; własny KMS to ~1 USD/mies. — łamie 0 zł.
+# nosemgrep: terraform.aws.security.aws-cloudwatch-log-group-unencrypted.aws-cloudwatch-log-group-unencrypted
 resource "aws_cloudwatch_log_group" "web" {
   name              = "/aws/lambda/${local.web_function_name}"
   retention_in_days = 7
@@ -55,6 +57,9 @@ resource "aws_iam_role_policy" "web_logs" {
   policy = data.aws_iam_policy_document.web_logs.json
 }
 
+# Zaakceptowane (PR #14): X-Ray czeka na decyzję o obserwowalności — bez WAF publiczny ruch
+# mógłby wybić ślady ponad darmowy limit.
+# nosemgrep: terraform.aws.security.aws-lambda-x-ray-tracing-not-active.aws-lambda-x-ray-tracing-not-active
 resource "aws_lambda_function" "web" {
   function_name = local.web_function_name
   role          = aws_iam_role.web.arn
