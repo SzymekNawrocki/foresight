@@ -57,7 +57,7 @@ resource "aws_iam_role_policy" "ingest" {
   policy = data.aws_iam_policy_document.ingest.json
 }
 
-# nosemgrep: terraform.aws.security.aws-lambda-x-ray-tracing-not-active.aws-lambda-x-ray-tracing-not-active, terraform.aws.security.aws-lambda-environment-unencrypted.aws-lambda-environment-unencrypted
+# nosemgrep: terraform.aws.security.aws-lambda-x-ray-tracing-not-active.aws-lambda-x-ray-tracing-not-active
 resource "aws_lambda_function" "ingest" {
   #checkov:skip=CKV_AWS_50:X-Ray waits for the observability decision (PR #14)
   #checkov:skip=CKV_AWS_115:Account concurrency limit is 10 and AWS keeps 10 unreserved, so nothing can be reserved (ADR 0006)
@@ -76,6 +76,8 @@ resource "aws_lambda_function" "ingest" {
   filename         = data.archive_file.ingest_placeholder.output_path
   source_code_hash = data.archive_file.ingest_placeholder.output_base64sha256
 
+  # TABLE_NAME is not a secret; AWS-managed key encrypts it at rest.
+  # nosemgrep: terraform.aws.security.aws-lambda-environment-unencrypted.aws-lambda-environment-unencrypted
   environment {
     variables = {
       TABLE_NAME = aws_dynamodb_table.events.name
