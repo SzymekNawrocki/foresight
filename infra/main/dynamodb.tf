@@ -30,10 +30,18 @@ resource "aws_dynamodb_table" "events" {
   # Latest N Events: kind = EVENT, newest publishedAt first.
   global_secondary_index {
     name            = "latest"
-    hash_key        = "kind"
-    range_key       = "publishedAt"
     projection_type = "ALL"
     read_capacity   = 5
     write_capacity  = 5
+
+    key_schema {
+      attribute_name = "kind"
+      key_type       = "HASH"
+    }
+
+    key_schema {
+      attribute_name = "publishedAt"
+      key_type       = "RANGE"
+    }
   }
 }

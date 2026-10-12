@@ -59,6 +59,20 @@ resource "aws_iam_role_policy" "web_logs" {
   policy = data.aws_iam_policy_document.web_logs.json
 }
 
+# GET /api/events: Query on the `latest` index only — no base table, no Scan, no writes.
+data "aws_iam_policy_document" "web_events" {
+  statement {
+    actions   = ["dynamodb:Query"]
+    resources = ["${aws_dynamodb_table.events.arn}/index/latest"]
+  }
+}
+
+resource "aws_iam_role_policy" "web_events" {
+  name   = "read-latest-events"
+  role   = aws_iam_role.web.id
+  policy = data.aws_iam_policy_document.web_events.json
+}
+
 # Zaakceptowane (PR #14): X-Ray czeka na decyzję o obserwowalności — bez WAF publiczny ruch
 # mógłby wybić ślady ponad darmowy limit.
 # nosemgrep: terraform.aws.security.aws-lambda-x-ray-tracing-not-active.aws-lambda-x-ray-tracing-not-active
@@ -68,6 +82,7 @@ resource "aws_lambda_function" "web" {
   #checkov:skip=CKV_AWS_116:Invoked synchronously through the Function URL; a DLQ only applies to async invocations
   #checkov:skip=CKV_AWS_117:No private resources to reach; a VPC with outbound internet needs a paid NAT gateway (0 PLN)
   #checkov:skip=CKV_AWS_272:The ZIP is signed with cosign and verified in deploy.yml before upload (#18)
+  #checkov:skip=CKV_AWS_173:EVENTS_TABLE_NAME is not a secret; AWS encrypts environment variables at rest by default
   function_name = local.web_function_name
   role          = aws_iam_role.web.arn
   runtime       = "nodejs24.x"
@@ -79,6 +94,14 @@ resource "aws_lambda_function" "web" {
   filename         = data.archive_file.web_placeholder.output_path
   source_code_hash = data.archive_file.web_placeholder.output_base64sha256
 
+  # EVENTS_TABLE_NAME is not a secret; AWS-managed key encrypts it at rest.
+  # nosemgrep: terraform.aws.security.aws-lambda-environment-unencrypted.aws-lambda-environment-unencrypted
+  environment {
+    variables = {
+      EVENTS_TABLE_NAME = aws_dynamodb_table.events.name
+    }
+  }
+
   logging_config {
     log_format = "Text"
     log_group  = aws_cloudwatch_log_group.web.name
@@ -88,7 +111,7 @@ resource "aws_lambda_function" "web" {
     ignore_changes = [filename, source_code_hash]
   }
 
-  depends_on = [aws_iam_role_policy.web_logs]
+  depends_on = [aws_iam_role_policy.web_logs, aws_iam_role_policy.web_events]
 }
 
 # AWS_IAM = bez podpisu SigV4 Function URL odpowiada 403; podpisuje tylko CloudFront (OAC).

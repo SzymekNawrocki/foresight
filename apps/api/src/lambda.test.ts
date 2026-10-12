@@ -1,7 +1,11 @@
 import { HealthResponse } from "@foresight/shared";
 import type { LambdaContext } from "hono/aws-lambda";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { handler } from "./lambda.js";
+
+vi.hoisted(() => {
+  process.env.EVENTS_TABLE_NAME = "test-events";
+});
 
 // Zdarzenie Function URL (payload 2.0) — tak CloudFront przez OAC woła Lambdę.
 function functionUrlEvent(method: string, path: string) {
