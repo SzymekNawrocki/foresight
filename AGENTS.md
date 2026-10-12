@@ -18,7 +18,8 @@ Merge robi człowiek.
 
 ## Stos i komendy
 
-pnpm workspaces: `apps/web` (Vite + React), `apps/api` (Hono), `packages/shared` (schematy Zod).
+pnpm workspaces: `apps/web` (Vite + React), `apps/api` (Hono), `apps/ingest` (RSS → Zdarzenia),
+`packages/shared` (schematy Zod).
 
 ```
 pnpm install      # zależności (skrypty instalacyjne zablokowane)
