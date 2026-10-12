@@ -13,7 +13,7 @@ AI-native SDLC.
 
 ## Uruchomienie lokalne
 
-Wymaga Node.js 22+ i pnpm (`corepack enable pnpm`).
+Wymaga Node.js 24+ i pnpm (`corepack enable pnpm`).
 
 ```
 pnpm install
