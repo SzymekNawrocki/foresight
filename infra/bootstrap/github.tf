@@ -1,7 +1,7 @@
 locals {
   github_host        = "token.actions.githubusercontent.com"
   github_audience    = "sts.amazonaws.com"
-  github_environment = "repo:SzymekNawrocki/foresight:environment:production"
+  github_environment = "repo:SzymekNawrocki@129281704/foresight@1383949825:environment:production"
   web_function_name  = "foresight-prod-web"
 }
 
@@ -31,7 +31,8 @@ data "aws_iam_policy_document" "github_deploy_trust" {
     }
 
     # Only jobs running in the `production` Environment of this repo — a PR or
-    # another branch gets a different `sub` and is denied.
+    # another branch gets a different `sub` and is denied. The repo uses immutable
+    # subjects (owner@id/repo@id), so a renamed or re-created repo cannot match.
     condition {
       test     = "StringEquals"
       variable = "${local.github_host}:sub"
