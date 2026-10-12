@@ -74,11 +74,11 @@ EventBridge Scheduler ─► Lambda "ingest" ─► RSS
 | Warstwa | Wybór |
 |---|---|
 | Konto | AWS, Free plan (bez Organizations — ADR 0005); MFA na root, root nieużywany; alarm budżetowy |
-| Regiony | `eu-central-1` obciążenia; `us-east-1` CloudFront/WAF/plan cenowy; role z warunkiem `aws:RequestedRegion` |
-| Wejście | CloudFront, flat-rate plan Free (`aws_pricingplanmanager_subscription` — sprawdzić w wydanym providerze) |
+| Regiony | `eu-central-1` obciążenia; `us-east-1` zasoby globalne CloudFronta; role z warunkiem `aws:RequestedRegion` |
+| Wejście | CloudFront, pay-as-you-go w ramach always free (1 TB, 10 mln żądań); bez WAF — ADR 0006 |
 | Obliczenia | Lambda, paczki ZIP (nie obrazy — prywatny ECR nie jest „always free") |
 | Wydania | wersje + alias `live`; rollback = przestawienie aliasu |
-| Dane | DynamoDB (model danych — w plastrze ingestu) |
+| Dane | DynamoDB, tryb provisioned (always free: 25 GB, 25 RCU/25 WCU łącznie; on-demand nie jest darmowy) |
 | Harmonogram | EventBridge Scheduler |
 | Sekrety | SSM Parameter Store, SecureString (standard tier), klucz zarządzany przez AWS |
 | AI | Groq, `openai/gpt-oss-20b`, Zero Data Retention włączone |
@@ -149,6 +149,23 @@ Gotowe, gdy:
 - Function URL nie odpowiada z pominięciem CloudFrontu (OAC),
 - jedna zmiana przeszła drogę PR → bramki → merge → deploy przez wszystkie zatwierdzenia,
 - stan w HCP Terraform, zero stałych kluczy w GitHubie i lokalnie.
+
+## Plaster 02 — ingest
+
+Pierwsza funkcja produktu: appka sama zbiera Zdarzenia ze Źródeł i pokazuje je na stronie.
+Bez LLM — Scenariusze to plaster 03.
+
+Źródła (sprawdzone 2026-10-12, publiczne RSS; zapisujemy tylko tytuł, link, datę i Źródło,
+nie treść artykułu): BBC World, Al Jazeera, CNBC World, Notes from Poland.
+
+- **02a — rdzeń ingestu lokalnie** (TDD, bez AWS): pobranie i parsowanie RSS, normalizacja
+  do Zdarzenia, deduplikacja, zapis przez port; model danych DynamoDB; lekki STRIDE.
+- **02b — ingest w chmurze**: tabela DynamoDB, Lambda `ingest`, EventBridge Scheduler (co 1 h),
+  deploy obu Lambd z pipeline’u.
+- **02c — Zdarzenia na stronie**: `GET /api/events` + lista na dashboardzie.
+
+Gotowe, gdy pod `xxxx.cloudfront.net` widać najnowsze Zdarzenia z czterech Źródeł,
+dopisywane co godzinę bez duplikatów, a koszt na koncie dalej wynosi 0 zł.
 
 ## Odłożone (decyzja w plastrze, który tego potrzebuje)
 

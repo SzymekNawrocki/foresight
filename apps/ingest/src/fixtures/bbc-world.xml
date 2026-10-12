@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?><rss xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:atom="http://www.w3.org/2005/Atom" version="2.0" xmlns:media="http://search.yahoo.com/mrss/">
+    <channel>
+        <title><![CDATA[BBC News]]></title>
+        <description><![CDATA[BBC News - World]]></description>
+        <link>https://www.bbc.co.uk/news/world</link>
+        
+        <generator>RSS for Node</generator>
+        <lastBuildDate>Mon, 12 Oct 2026 17:40:35 GMT</lastBuildDate>
+        <atom:link href="https://feeds.bbci.co.uk/news/world/rss.xml" rel="self" type="application/rss+xml"/>
+        <copyright><![CDATA[Copyright: (C) British Broadcasting Corporation, see https://www.bbc.co.uk/usingthebbc/terms-of-use/#15metadataandrssfeeds for terms and conditions of reuse.]]></copyright>
+        <language><![CDATA[en-gb]]></language>
+        <ttl>15</ttl>
+        <item>
+            <title><![CDATA[Six Ukrainian energy sites hit by Russia since Trump announced ceasefire, Zelensky says]]></title>
+            <description>(trimmed)</description>
+            <link>https://www.bbc.co.uk/news/articles/cvlyd4pdlwkxo?at_medium=RSS&amp;at_campaign=rss</link>
+            <guid isPermaLink="false">https://www.bbc.co.uk/news/articles/cvlyd4pdlwkxo#0</guid>
+            <pubDate>Mon, 12 Oct 2026 17:32:13 GMT</pubDate>
+        </item>
+<item>
+            <title><![CDATA[Documents falsified to evade tax on Abramovich's wealth, BBC finds]]></title>
+            <description>(trimmed)</description>
+            <link>https://www.bbc.co.uk/news/articles/c64g1l5389kvo?at_medium=RSS&amp;at_campaign=rss</link>
+            <guid isPermaLink="false">https://www.bbc.co.uk/news/articles/c64g1l5389kvo#0</guid>
+            <pubDate>Mon, 12 Oct 2026 05:00:52 GMT</pubDate>
+        </item>
+<item>
+            <title><![CDATA[Saudi minister vows 'serious response' to Houthi attacks on airports]]></title>
+            <description>(trimmed)</description>
+            <link>https://www.bbc.co.uk/news/articles/cjly0zqq27e4o?at_medium=RSS&amp;at_campaign=rss</link>
+            <guid isPermaLink="false">https://www.bbc.co.uk/news/articles/cjly0zqq27e4o#0</guid>
+            <pubDate>Mon, 12 Oct 2026 14:00:03 GMT</pubDate>
+        </item>
+</channel>
+</rss>

@@ -8,10 +8,12 @@ je na Scenariusze, a gracz stawia Tezy i jest rozliczany z trafności.
 **Źródło**:
 Publiczny kanał wiadomości (RSS), z którego pobierane są Zdarzenia.
 _Avoid_: feed, provider
+_W kodzie_: `Source`
 
 **Zdarzenie**:
 Pojedyncza wiadomość geopolityczna lub rynkowa pobrana ze Źródła, która może wpłynąć na rynki.
 _Avoid_: news, event, artykuł, wpis
+_W kodzie_: `Event` (po angielsku w kodzie; w tekstach po polsku „Zdarzenie”)
 
 ## Analiza
 
