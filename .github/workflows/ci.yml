@@ -75,3 +75,24 @@ jobs:
           severity: HIGH,CRITICAL
           ignore-unfixed: true
           exit-code: "1"
+
+  checkov:
+    name: IaC (Checkov)
+    runs-on: ubuntu-latest
+    # Image pinned by digest (3.3.17) — a tag can be re-pushed.
+    container:
+      image: bridgecrew/checkov:3.3.17@sha256:41c4701c6a56d8952e5aba7a420f871c8b70b57da94eb4f142dcdf7295bb0be3
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: checkov --directory infra --framework terraform --compact --quiet
+
+  zero-cost:
+    name: Zero-cost rule
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: bash scripts/check-free-tier.sh
