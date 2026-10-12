@@ -61,7 +61,7 @@ Lekcja HTML (teoria + 10 ABCD) tylko dla zupełnie nowego tematu i na prośbę.
 Przeglądarka
    │ HTTPS
    ▼
-CloudFront (plan Free: WAF + DDoS, nagłówki CSP/HSTS)      [us-east-1 — zasoby globalne]
+CloudFront (bez WAF — ADR 0006; Shield Std, nagłówki HSTS) [us-east-1 — zasoby globalne]
    │ OAC (podpisane żądania)
    ▼
 Lambda "web" — Function URL (auth: AWS_IAM)                [eu-central-1]

@@ -26,4 +26,9 @@ run "lambda_reachable_only_through_cloudfront" {
     condition     = aws_cloudfront_distribution.web.default_cache_behavior[0].viewer_protocol_policy == "redirect-to-https"
     error_message = "Viewer ma dostawać tylko HTTPS."
   }
+
+  assert {
+    condition     = aws_cloudfront_distribution.web.default_cache_behavior[0].response_headers_policy_id == data.aws_cloudfront_response_headers_policy.security_headers.id
+    error_message = "Responses must carry the managed security headers (HSTS, X-Frame-Options, nosniff)."
+  }
 }
