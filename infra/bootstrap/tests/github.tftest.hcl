@@ -28,7 +28,7 @@ run "deploy_role_trusts_only_production_environment" {
     condition = anytrue([
       for c in data.aws_iam_policy_document.github_deploy_trust.statement[0].condition :
       c.test == "StringEquals" && c.variable == "token.actions.githubusercontent.com:sub"
-      && toset(c.values) == toset(["repo:SzymekNawrocki/foresight:environment:production"])
+      && toset(c.values) == toset(["repo:SzymekNawrocki@129281704/foresight@1383949825:environment:production"])
     ])
     error_message = "Only the production Environment of this repo may assume the deploy role."
   }
