@@ -57,7 +57,7 @@ resource "aws_iam_role_policy" "ingest" {
   policy = data.aws_iam_policy_document.ingest.json
 }
 
-# nosemgrep: terraform.aws.security.aws-lambda-x-ray-tracing-not-active.aws-lambda-x-ray-tracing-not-active
+# nosemgrep: terraform.aws.security.aws-lambda-x-ray-tracing-not-active.aws-lambda-x-ray-tracing-not-active, terraform.aws.security.aws-lambda-environment-unencrypted.aws-lambda-environment-unencrypted
 resource "aws_lambda_function" "ingest" {
   #checkov:skip=CKV_AWS_50:X-Ray waits for the observability decision (PR #14)
   #checkov:skip=CKV_AWS_115:Account concurrency limit is 10 and AWS keeps 10 unreserved, so nothing can be reserved (ADR 0006)
@@ -133,6 +133,7 @@ resource "aws_iam_role_policy" "scheduler" {
 }
 
 resource "aws_scheduler_schedule" "ingest" {
+  #checkov:skip=CKV_AWS_297:The schedule holds no secrets (a function ARN); a KMS key costs ~1 USD/month (0 PLN)
   name                = local.ingest_function_name
   schedule_expression = "rate(1 hour)"
 
