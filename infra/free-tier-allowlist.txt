@@ -5,6 +5,7 @@
 aws_cloudfront_distribution            # always free: 1 TB out + 10M requests / month
 aws_cloudfront_origin_access_control   # configuration only, no charge
 aws_cloudwatch_log_group               # always free: 5 GB ingestion + storage / month
+aws_dynamodb_table                     # always free: 25 GB + 25 RCU / 25 WCU, PROVISIONED mode only (docs/data-model.md)
 aws_iam_openid_connect_provider        # IAM is free
 aws_iam_role                           # IAM is free
 aws_iam_role_policy                    # IAM is free
@@ -13,3 +14,4 @@ aws_lambda_function                    # always free: 1M requests + 400k GB-s / 
 aws_lambda_function_url                # no charge beyond Lambda invocations
 aws_lambda_permission                  # configuration only, no charge
 aws_resourcegroups_group               # Resource Groups are free
+aws_scheduler_schedule                 # EventBridge Scheduler: 14M invocations / month free; hourly = ~720

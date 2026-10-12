@@ -9,7 +9,7 @@
   "scripts": {
     "dev": "pnpm --parallel --filter @foresight/api --filter @foresight/web dev",
     "build": "pnpm -r build",
-    "build:lambda": "pnpm --filter @foresight/web build && pnpm --filter @foresight/api build:lambda",
+    "build:lambda": "pnpm --filter @foresight/web build && pnpm --filter @foresight/api build:lambda && pnpm --filter @foresight/ingest build:lambda",
     "test": "pnpm -r test",
     "typecheck": "pnpm -r typecheck",
     "lint": "eslint ."
