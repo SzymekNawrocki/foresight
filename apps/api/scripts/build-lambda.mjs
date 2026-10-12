@@ -19,6 +19,8 @@ if (!statSync(join(webDist, "index.html"), { throwIfNoEntry: false })) {
 const bundle = await build({
   entryPoints: [join(apiDir, "src", "lambda.ts")],
   bundle: true,
+  // Some AWS SDK dependencies still call require(); give the ESM bundle one.
+  banner: { js: "import { createRequire } from 'node:module'; const require = createRequire(import.meta.url);" },
   platform: "node",
   format: "esm",
   target: "node24",
