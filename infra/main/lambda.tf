@@ -23,6 +23,8 @@ data "archive_file" "web_placeholder" {
 # Zaakceptowane (PR #14): logi i tak szyfruje klucz AWS; własny KMS to ~1 USD/mies. — łamie 0 zł.
 # nosemgrep: terraform.aws.security.aws-cloudwatch-log-group-unencrypted.aws-cloudwatch-log-group-unencrypted
 resource "aws_cloudwatch_log_group" "web" {
+  #checkov:skip=CKV_AWS_158:Customer-managed KMS key costs ~1 USD/month (0 PLN); logs are encrypted with an AWS key anyway
+  #checkov:skip=CKV_AWS_338:7-day retention keeps storage inside the always-free 5 GB
   name              = "/aws/lambda/${local.web_function_name}"
   retention_in_days = 7
 }
@@ -61,6 +63,11 @@ resource "aws_iam_role_policy" "web_logs" {
 # mógłby wybić ślady ponad darmowy limit.
 # nosemgrep: terraform.aws.security.aws-lambda-x-ray-tracing-not-active.aws-lambda-x-ray-tracing-not-active
 resource "aws_lambda_function" "web" {
+  #checkov:skip=CKV_AWS_50:X-Ray waits for the observability decision (PR #14)
+  #checkov:skip=CKV_AWS_115:Account concurrency limit is 10 and AWS keeps 10 unreserved, so nothing can be reserved; the account limit caps it (ADR 0006)
+  #checkov:skip=CKV_AWS_116:Invoked synchronously through the Function URL; a DLQ only applies to async invocations
+  #checkov:skip=CKV_AWS_117:No private resources to reach; a VPC with outbound internet needs a paid NAT gateway (0 PLN)
+  #checkov:skip=CKV_AWS_272:The ZIP is signed with cosign and verified in deploy.yml before upload (#18)
   function_name = local.web_function_name
   role          = aws_iam_role.web.arn
   runtime       = "nodejs24.x"

@@ -54,6 +54,7 @@ resource "aws_iam_role_policy_attachment" "plan" {
 # apply: na start pełne uprawnienia; osłona to zaufanie (jeden workspace, faza apply)
 # i ręczne zatwierdzenie apply w HCP. Zawężenie do faktycznie używanych akcji — issue `later`.
 resource "aws_iam_role_policy_attachment" "apply" {
+  #checkov:skip=CKV_AWS_274:Broad on purpose until #5 narrows it; trust limited to one workspace and the apply phase
   role       = aws_iam_role.hcp["apply"].name
   policy_arn = "arn:aws:iam::aws:policy/AdministratorAccess"
 }
