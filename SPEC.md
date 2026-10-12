@@ -153,6 +153,8 @@ Gotowe, gdy:
 ## Odłożone (decyzja w plastrze, który tego potrzebuje)
 
 - Uwierzytelnianie — przed plastrem z zapisem Tez (appka pod publicznym adresem).
+- Zapis Tez (POST/PUT) przez OAC: klient musi wysłać SHA-256 body w nagłówku
+  `x-amz-content-sha256` (frontend liczy przez WebCrypto) — inaczej Lambda za OAC odrzuci żądanie.
 - Model danych DynamoDB — plaster ingestu.
 - Threat model STRIDE — przed pierwszym plastrem z danymi.
 - Obserwowalność i alarmy, szczegóły strategii testów.
