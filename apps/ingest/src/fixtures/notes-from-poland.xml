@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"
+	xmlns:content="http://purl.org/rss/1.0/modules/content/"
+	xmlns:wfw="http://wellformedweb.org/CommentAPI/"
+	xmlns:dc="http://purl.org/dc/elements/1.1/"
+	xmlns:atom="http://www.w3.org/2005/Atom"
+	xmlns:sy="http://purl.org/rss/1.0/modules/syndication/"
+	xmlns:slash="http://purl.org/rss/1.0/modules/slash/"
+	>
+
+<channel>
+	<title>Notes From Poland</title>
+	<atom:link href="https://notesfrompoland.com/feed/" rel="self" type="application/rss+xml" />
+	<link>https://notesfrompoland.com</link>
+	<description>regular summaries of news from Poland</description>
+	<lastBuildDate>Mon, 12 Oct 2026 13:50:07 +0000</lastBuildDate>
+	<language>en-US</language>
+	<sy:updatePeriod>
+	hourly	</sy:updatePeriod>
+	<sy:updateFrequency>
+	1	</sy:updateFrequency>
+	<generator>https://wordpress.org/?v=6.9</generator>
+
+ 
+	<item>
+		<title>Four go on trial in Warsaw over arson attacks carried out on Russian orders</title>
+		<link>https://notesfrompoland.com/2026/10/12/four-go-on-trial-in-warsaw-over-arson-attacks-carried-out-on-russian-orders/</link>
+		<dc:creator><![CDATA[Alicja Ptak]]></dc:creator>
+		<pubDate>Mon, 12 Oct 2026 13:25:22 +0000</pubDate>
+				<category><![CDATA[Defence]]></category>
+		<category><![CDATA[Law]]></category>
+		<category><![CDATA[News]]></category>
+		<category><![CDATA[arson]]></category>
+		<category><![CDATA[hybrid]]></category>
+		<category><![CDATA[latvia]]></category>
+		<category><![CDATA[lithuania]]></category>
+		<category><![CDATA[Marywilska 44]]></category>
+		<category><![CDATA[Russia]]></category>
+		<category><![CDATA[sabotage]]></category>
+		<category><![CDATA[war]]></category>
+		<guid isPermaLink="false">https://notesfrompoland.com/?p=103850</guid>
+					<description>(trimmed)</description>
+			</item>
+<item>
+		<title>Israeli producer had access to data harvested by Poland using Pegasus spyware, say prosecutors</title>
+		<link>https://notesfrompoland.com/2026/10/12/israeli-producer-had-access-to-data-harvested-by-poland-using-pegasus-spyware-say-prosecutors/</link>
+		<dc:creator><![CDATA[Daniel Tilles]]></dc:creator>
+		<pubDate>Mon, 12 Oct 2026 12:27:25 +0000</pubDate>
+				<category><![CDATA[Law]]></category>
+		<category><![CDATA[News]]></category>
+		<category><![CDATA[Politics]]></category>
+		<category><![CDATA[donald tusk]]></category>
+		<category><![CDATA[israel]]></category>
+		<category><![CDATA[pegasus]]></category>
+		<category><![CDATA[spyware]]></category>
+		<guid isPermaLink="false">https://notesfrompoland.com/?p=105380</guid>
+					<description>(trimmed)</description>
+			</item>
+<item>
+		<title>US wants Poland to join G20 &#8220;as soon as possible&#8221;</title>
+		<link>https://notesfrompoland.com/2026/10/12/us-wants-poland-to-join-g20-as-soon-as-possible/</link>
+		<dc:creator><![CDATA[Leo Greenberg]]></dc:creator>
+		<pubDate>Mon, 12 Oct 2026 11:45:34 +0000</pubDate>
+				<category><![CDATA[Business]]></category>
+		<category><![CDATA[Featured]]></category>
+		<category><![CDATA[Politics]]></category>
+		<category><![CDATA[Donald Trump]]></category>
+		<category><![CDATA[G20]]></category>
+		<category><![CDATA[marco rubio]]></category>
+		<category><![CDATA[state department]]></category>
+		<category><![CDATA[united states]]></category>
+		<guid isPermaLink="false">https://notesfrompoland.com/?p=105375</guid>
+					<description>(trimmed)</description>
+			</item>
+</channel>
+</rss>
