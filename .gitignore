@@ -9,3 +9,6 @@ coverage/
 *.tfstate
 *.tfstate.*
 .DS_Store
+
+# zip zaślepki Lambdy generowany przez archive_file
+infra/main/.build/
