@@ -4,11 +4,12 @@
   "type": "module",
   "packageManager": "pnpm@12.5.1",
   "engines": {
-    "node": ">=22"
+    "node": ">=24"
   },
   "scripts": {
     "dev": "pnpm --parallel --filter @foresight/api --filter @foresight/web dev",
     "build": "pnpm -r build",
+    "build:lambda": "pnpm --filter @foresight/web build && pnpm --filter @foresight/api build:lambda",
     "test": "pnpm -r test",
     "typecheck": "pnpm -r typecheck",
     "lint": "eslint ."

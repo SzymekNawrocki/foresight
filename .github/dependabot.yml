@@ -13,6 +13,9 @@ updates:
     ignore:
       - dependency-name: typescript
         update-types: ["version-update:semver-major"]
+      # Typy Node na wersji runtime'u Lambdy (nodejs24.x) — podbijać razem z runtime'em.
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: github-actions
     directory: /
     schedule:
