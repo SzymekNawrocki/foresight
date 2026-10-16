@@ -1,4 +1,4 @@
-import { type Event, EventsResponse, HealthResponse } from "@foresight/shared";
+import { type Event, EventsResponse, HealthResponse, RecentResponse } from "@foresight/shared";
 import { describe, expect, it } from "vitest";
 import { createApi } from "./app.js";
 import { InMemoryEventReader } from "./events.js";
@@ -72,5 +72,27 @@ describe("GET /api/events", () => {
     const res = await api().request(`/api/events?limit=${limit}`);
 
     expect(res.status).toBe(400);
+  });
+});
+
+describe("GET /api/recent", () => {
+  const now = new Date("2026-10-12T12:00:00.000Z");
+  const recentApi = (events: Event[]) => createApi({ events: new InMemoryEventReader(events), now: () => now });
+
+  it("returns the Events of the last 72 hours, newest first", async () => {
+    const tooOld = event(3, "2026-10-09T11:59:59.000Z");
+    const res = await recentApi([older, tooOld, newer]).request("/api/recent");
+
+    expect(res.status).toBe(200);
+    expect(RecentResponse.parse(await res.json())).toEqual({
+      since: "2026-10-09T12:00:00.000Z",
+      events: [newer, older],
+    });
+  });
+
+  it("lets browsers and CloudFront cache it for a few minutes", async () => {
+    const res = await recentApi([]).request("/api/recent");
+
+    expect(res.headers.get("cache-control")).toBe("public, max-age=300");
   });
 });
