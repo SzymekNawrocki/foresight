@@ -1,9 +1,12 @@
-# Foresight — SPEC v0.2
+# Foresight — SPEC v0.3
 
-Nazwa: Foresight (dawniej robocza „WarRoom”, zmieniona 2026-09-23). Ustalenia z sesji grillingu 2026-09-15 (zastępują szkic v0.1).
+Nazwa: Foresight (dawniej robocza „WarRoom”, zmieniona 2026-09-23). Ustalenia z sesji grillingu
+2026-09-15; kierunek produktu zmieniony w grillingu 2026-10-13 ([ADR 0007](docs/adr/0007-intelligence-hub-not-just-a-game.md)).
 
-Appka jest **pojazdem treningowym**: ma być mała, a cały ciężar idzie w proces — Faza 8
-Ścieżki 01 (IaC + chmura) z Mapy DevSecOps, budowana procesem Ścieżki 05 (AI Native SDLC).
+Appka jest **prywatnym centrum analitycznym geostrategii**: codzienny Briefing na mapie świata,
+Baza wiedzy po Regionach i Tematach oraz trening inwestycyjny na Tezach rozliczanych przez rynek.
+Zarazem pozostaje **pojazdem treningowym** Fazy 8 Ścieżki 01 (IaC + chmura) z Mapy DevSecOps,
+budowanym procesem Ścieżki 05 (AI Native SDLC).
 Słownik domeny: `CONTEXT.md`. Decyzje trudne do odwrócenia: `docs/adr/`.
 
 ## Zasady nadrzędne
@@ -19,17 +22,38 @@ Słownik domeny: `CONTEXT.md`. Decyzje trudne do odwrócenia: `docs/adr/`.
 
 ## Produkt — zakres MVP
 
-Geopolityczno-rynkowa gra strategiczna na realnych danych:
+Przecięcie trzech osi: **geostrategia × tech × inwestycje**. Główna czynność: rano czytasz
+Briefing, przy Zdarzeniu, które cię ruszyło, stawiasz Tezę, a rynek ją rozlicza.
 
-1. **Ingest** — cron pobiera kilka RSS-ów, zapisuje nowe Zdarzenia.
-2. **Scenariusze** — dla nowego Zdarzenia jedno wywołanie LLM: 2 Gałęzie (eskalacja /
-   deeskalacja) + klasa aktywów. Zdarzenia przetwarzane po kolei z pauzami (limity Groq).
-3. **Tezy** — użytkownik loguje Tezę pod Zdarzeniem: kierunek + Horyzont.
-4. **Rozstrzygnięcie i Wynik** — po Horyzoncie ręczne Rozstrzygnięcie, ranking trafności.
-5. **Dashboard** — jeden widok.
+1. **Ingest** — co godzinę pobiera Zdarzenia z najlepszych dostępnych Źródeł (ogólne serwisy
+   światowe + branżowe; liczbę ogranicza limit Groq).
+2. **Analiza AI** — dla nowego Zdarzenia jedno wywołanie LLM, odpowiedź po polsku:
+   Regiony, Tematy, Waga (1–3), „dlaczego ważne” (2 zdania) i Scenariusz z 2 Gałęziami
+   (eskalacja / deeskalacja, każda z Klasą aktywów i kierunkiem). Zdarzenia przetwarzane
+   po kolei z pauzami (limity Groq).
+3. **Briefing (dashboard)** — ciemna mapa świata; 7 Regionów + Globalne jako przyciski
+   z licznikiem Zdarzeń z Wagą ≥ 2 z ostatnich 24 h.
+4. **Baza wiedzy** — automatyczne strony Regionów i Tematów: Zdarzenia (od najnowszych, z Wagą),
+   Tezy właściciela w tym obszarze i jego trafność w tym obszarze.
+5. **Tezy** — właściciel stawia Tezę pod Zdarzeniem: Instrument z krótkiej listy (~20, głównie
+   ETF-y sektorowe i surowce) + Kierunek + Horyzont + Uzasadnienie.
+6. **Rozstrzygnięcie i Wynik** — po Horyzoncie automat porównuje cenę Instrumentu z ceną przy
+   postawieniu Tezy; ruch w granicach ±2% = „bez zmian”. Wynik: trafność ogólna, per Temat,
+   per Region. Warunek: darmowe i legalne źródło cen dziennych — jeśli go nie ma, Rozstrzygnięcie
+   ręczne.
 
-Poza zakresem MVP: automatyczne rozstrzyganie danymi rynkowymi, wielu użytkowników,
-powiadomienia, wiele modeli, rozbudowany UI.
+**Tematy (8, stała lista):** Cyber, AI, Pole walki, Kosmos, Półprzewodniki, Surowce, Energia,
+Sankcje i handel. Zdarzenie bez Tematu to szum — nie liczy się na mapie.
+
+**Regiony (7 + Globalne):** Ameryka Północna, Ameryka Łacińska, Europa, Rosja i Eurazja,
+Bliski Wschód, Afryka, Azja-Pacyfik; Globalne — Zdarzenia bez jednego miejsca.
+
+**Widoczność:** Briefing i Baza wiedzy publiczne (tylko odczyt); Tezy i Wynik prywatne —
+jedno konto, właściciela, bez rejestracji dla innych.
+
+Poza zakresem MVP: wielu użytkowników, publiczne statystyki, publikacja na Facebooku
+(appka jest warsztatem — posty właściciel pisze sam), własne notatki w Bazie wiedzy,
+cotygodniowe podsumowania AI, powiadomienia, wiele modeli.
 
 ## Role i proces (Ścieżka 05)
 
@@ -105,7 +129,7 @@ EventBridge Scheduler ─► Lambda "ingest" ─► RSS
 | `plan` | OIDC z HCP Terraform (workspace) | tylko odczyt |
 | `apply` | OIDC z HCP Terraform (workspace, faza apply) | zmiany infrastruktury w 2 regionach |
 | `deploy` | OIDC z GitHub (repo, `main`, Environment) | tylko `UpdateFunctionCode` / `PublishVersion` / `UpdateAlias` dla funkcji projektu |
-| Lambda `web` | — | odczyt/zapis tabel projektu |
+| Lambda `web` | — | `Query` na indeksie `latest` tabeli Zdarzeń (02c); zapis Tez od plastra 06 |
 | Lambda `ingest` | — | zapis Zdarzeń i Scenariuszy, odczyt jednego parametru SSM (klucz Groq) |
 
 ## Pipeline
@@ -167,12 +191,25 @@ nie treść artykułu): BBC World, Al Jazeera, CNBC World, Notes from Poland.
 Gotowe, gdy pod `xxxx.cloudfront.net` widać najnowsze Zdarzenia z czterech Źródeł,
 dopisywane co godzinę bez duplikatów, a koszt na koncie dalej wynosi 0 zł.
 
+**Zamknięty 2026-10-12** (#23, #25, #28). Lista jest chronologiczna, więc rzadko piszące Źródło
+(Notes from Poland) może nie mieścić się w top 20 — widok per Źródło: #30 (`later`).
+
+## Plastry 03–07 — od listy do centrum analitycznego
+
+Kolejność ustalona 2026-10-13: po każdym plastrze na stronie widać coś nowego.
+
+| Plaster | Zdolność produktowa | Zdolność DevSecOps | Do sprawdzenia w źródłach przed startem |
+|---|---|---|---|
+| **03 Analiza AI** | Nowe Zdarzenia dostają Regiony, Tematy, Wagę, „dlaczego ważne”, Scenariusz | Klucz Groq jako sekret w AWS (nie w repo), obrona przed prompt injection, Zod na odpowiedzi | Limity darmowego Groq; structured outputs dla modelu; koszt przechowania sekretu = 0 zł |
+| **04 Mapa i Baza wiedzy** | Ciemna mapa 7 Regionów + Globalne z licznikami; strony Regionów i Tematów | Testy UI, dostępność | Kolor przewodni — warianty do wyboru na żywo |
+| **05 Lepsze Źródła** | Najlepsze Źródła branżowe (research → akceptacja właściciela) | Wolumen pod limity Groq | RSS i warunki każdego Źródła |
+| **06 Logowanie i Tezy** | Jedno konto; Teza = Instrument + Kierunek + Horyzont + Uzasadnienie | Uwierzytelnianie, autoryzacja zapisu, zapis przez OAC | Darmowe logowanie dla jednego konta |
+| **07 Rozstrzygnięcie i Wynik** | Ceny Instrumentów, automatyczne Rozstrzygnięcie, trafność ogólna / per Temat / per Region | Drugi harmonogram, zewnętrzne API cen | Darmowe i legalne źródło cen dziennych |
+
 ## Odłożone (decyzja w plastrze, który tego potrzebuje)
 
-- Uwierzytelnianie — przed plastrem z zapisem Tez (appka pod publicznym adresem).
 - Zapis Tez (POST/PUT) przez OAC: klient musi wysłać SHA-256 body w nagłówku
   `x-amz-content-sha256` (frontend liczy przez WebCrypto) — inaczej Lambda za OAC odrzuci żądanie.
-- Model danych DynamoDB — plaster ingestu.
-- Threat model STRIDE — przed pierwszym plastrem z danymi.
+- Retencja Zdarzeń (TTL) — gdy tabela zacznie rosnąć.
 - Obserwowalność i alarmy, szczegóły strategii testów.
 - Środowisko dev i promocja zmian.
