@@ -13,6 +13,16 @@ const event = {
   publishedAt: "2026-10-12T16:44:07.000Z",
   fetchedAt: "2026-10-12T18:00:00.000Z",
 };
+const analysis = {
+  regions: ["europe"],
+  topics: ["energy"],
+  weight: 2,
+  whyItMatters: "Zdanie pierwsze. Zdanie drugie.",
+  scenario: {
+    escalation: { path: "Eskalacja.", assetClass: "gaz", direction: "up" },
+    deescalation: { path: "Deeskalacja.", assetClass: "gaz", direction: "down" },
+  },
+};
 
 describe("DynamoEventReader", () => {
   beforeEach(() => ddb.reset());
@@ -41,6 +51,18 @@ describe("DynamoEventReader", () => {
 
   it("drops items that do not match the Event contract", async () => {
     ddb.on(QueryCommand).resolves({ Items: [{ ...event, url: "javascript:alert(1)" }, event] });
+
+    await expect(reader().latest(20)).resolves.toEqual([event]);
+  });
+
+  it("returns the Analysis with the Event when it has one", async () => {
+    ddb.on(QueryCommand).resolves({ Items: [{ ...event, kind: "EVENT", analysis }] });
+
+    await expect(reader().latest(20)).resolves.toEqual([{ ...event, analysis }]);
+  });
+
+  it("keeps the Event but drops an Analysis that breaks the contract", async () => {
+    ddb.on(QueryCommand).resolves({ Items: [{ ...event, analysis: { ...analysis, weight: 7 } }] });
 
     await expect(reader().latest(20)).resolves.toEqual([event]);
   });

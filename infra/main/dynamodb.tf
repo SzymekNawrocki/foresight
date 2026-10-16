@@ -27,6 +27,11 @@ resource "aws_dynamodb_table" "events" {
     type = "S"
   }
 
+  attribute {
+    name = "pending"
+    type = "S"
+  }
+
   # Latest N Events: kind = EVENT, newest publishedAt first.
   global_secondary_index {
     name            = "latest"
@@ -36,6 +41,25 @@ resource "aws_dynamodb_table" "events" {
 
     key_schema {
       attribute_name = "kind"
+      key_type       = "HASH"
+    }
+
+    key_schema {
+      attribute_name = "publishedAt"
+      key_type       = "RANGE"
+    }
+  }
+
+  # Events waiting for their AI Analysis (slice 03). Sparse: only items with `pending` are
+  # indexed, and saving the Analysis removes the attribute, so the index is the queue itself.
+  global_secondary_index {
+    name            = "pending"
+    projection_type = "ALL"
+    read_capacity   = 5
+    write_capacity  = 5
+
+    key_schema {
+      attribute_name = "pending"
       key_type       = "HASH"
     }
 

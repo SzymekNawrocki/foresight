@@ -1,6 +1,6 @@
 # Data model
 
-## `events` table (DynamoDB, slice 02)
+## `events` table (DynamoDB, slices 02–03)
 
 One item per Event. Created in 02b as `foresight-<environment>-events`.
 
@@ -13,6 +13,8 @@ One item per Event. Created in 02b as `foresight-<environment>-events`.
 | `publishedAt` | S | ISO 8601 UTC; fetch time if the feed gives no readable date |
 | `fetchedAt` | S | ISO 8601 UTC |
 | `kind` | S | Always `EVENT`; partition key of the `latest` index |
+| `pending` | S | `EVENT` while the Event waits for its AI Analysis; partition key of the sparse `pending` index. Written only for new Events, removed when the Analysis is saved (slice 03). |
+| `analysis` | M | The AI Analysis (`Analysis` in `packages/shared/src/analysis.ts`); absent until analyzed. |
 
 Schema: `Event` in `packages/shared/src/event.ts`.
 
@@ -22,6 +24,8 @@ Schema: `Event` in `packages/shared/src/event.ts`.
 |---|---|
 | Store an Event once | `PutItem` with `attribute_not_exists(id)`; a failed condition = duplicate |
 | Latest N Events (02c) | Query GSI `latest` (`kind = EVENT`, sort key `publishedAt`), `ScanIndexForward = false`, `Limit = N`. The web role may `dynamodb:Query` on `…/index/latest` only. |
+| Events waiting for Analysis (03) | Query GSI `pending` (`pending = EVENT`, sort key `publishedAt`), newest first, `Limit = 10`. Ingest role only. |
+| Save an Analysis (03) | `UpdateItem`: `SET analysis REMOVE pending`, condition `attribute_exists(id)`. One write takes the Event off the queue. |
 
 ### Capacity — 0 PLN
 
@@ -31,7 +35,8 @@ DynamoDB is always free only in **provisioned** mode: 25 RCU + 25 WCU and 25 GB 
 |---|---|---|
 | Table | 5 | 5 |
 | GSI `latest` | 5 | 5 |
-| **Total** (limit 25 / 25) | 10 | 10 |
+| GSI `pending` | 5 | 5 |
+| **Total** (limit 25 / 25) | 15 | 15 |
 
 Load: ~100 puts per hourly run (one WCU each, item < 1 KB, a failed condition still consumes it); a few reads per page view. ~400 B per item → well under 1 GB per year. A single `kind` partition on the GSI is fine at this volume.
 

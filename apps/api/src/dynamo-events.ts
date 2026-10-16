@@ -1,5 +1,5 @@
 import { type DynamoDBDocumentClient, QueryCommand } from "@aws-sdk/lib-dynamodb";
-import { Event } from "@foresight/shared";
+import { Analysis, type AnalyzedEvent, Event } from "@foresight/shared";
 import type { EventReader } from "./events.js";
 
 // Data model: docs/data-model.md → "Latest N Events". The web role may Query only this index.
@@ -21,10 +21,13 @@ export class DynamoEventReader implements EventReader {
         Limit: limit,
       }),
     );
-    // Items came from feeds (untrusted): only what still matches the contract reaches the page.
-    return Items.flatMap((item) => {
-      const parsed = Event.safeParse(item);
-      return parsed.success ? [parsed.data] : [];
+    // Items came from feeds and the LLM (untrusted): only what still matches the contract reaches
+    // the page. A broken Analysis is dropped on its own, so the Event still shows.
+    return Items.flatMap((item): AnalyzedEvent[] => {
+      const event = Event.safeParse(item);
+      if (!event.success) return [];
+      const analysis = Analysis.safeParse(item.analysis);
+      return [analysis.success ? { ...event.data, analysis: analysis.data } : event.data];
     });
   }
 }

@@ -12,6 +12,17 @@ const event = {
   fetchedAt: "2026-10-12T18:00:00.000Z",
 };
 
+const analysis = {
+  regions: ["middle-east", "europe"],
+  topics: ["energy", "sanctions-trade"],
+  weight: 3,
+  whyItMatters: "Ormuz to wąskie gardło dla ropy. Każde zakłócenie od razu trafia w ceny.",
+  scenario: {
+    escalation: { path: "Blokada cieśniny na kilka dni.", assetClass: "ropa", direction: "up" },
+    deescalation: { path: "Rozmowy uspokajają rynek.", assetClass: "ropa", direction: "down" },
+  },
+};
+
 function renderWithApi(response: Response) {
   const fetchMock = vi.fn().mockResolvedValue(response);
   vi.stubGlobal("fetch", fetchMock);
@@ -48,6 +59,32 @@ describe("EventList", () => {
     renderWithApi(Response.json({ events: [{ ...event, title }] }));
 
     expect(await screen.findByText(title)).toBeInTheDocument();
+    expect(document.querySelector("img")).toBeNull();
+  });
+
+  it("shows the Analysis in Polish: Weight, Regions, Topics, why it matters and both Branches", async () => {
+    renderWithApi(Response.json({ events: [{ ...event, analysis }] }));
+
+    expect(await screen.findByText("Waga 3 · przełomowe")).toBeInTheDocument();
+    expect(screen.getByText("Bliski Wschód, Europa")).toBeInTheDocument();
+    expect(screen.getByText("Energia, Sankcje i handel")).toBeInTheDocument();
+    expect(screen.getByText(analysis.whyItMatters)).toBeInTheDocument();
+    expect(screen.getByText("Eskalacja: ropa ↑")).toBeInTheDocument();
+    expect(screen.getByText("Deeskalacja: ropa ↓")).toBeInTheDocument();
+    expect(screen.getByText(analysis.scenario.escalation.path)).toBeInTheDocument();
+  });
+
+  it("marks an Event that is still waiting for its Analysis", async () => {
+    renderWithApi(Response.json({ events: [event] }));
+
+    expect(await screen.findByText("Analiza w kolejce")).toBeInTheDocument();
+  });
+
+  it("renders LLM text as text, never as HTML", async () => {
+    const whyItMatters = '<img src=x onerror="alert(1)">';
+    renderWithApi(Response.json({ events: [{ ...event, analysis: { ...analysis, whyItMatters } }] }));
+
+    expect(await screen.findByText(whyItMatters)).toBeInTheDocument();
     expect(document.querySelector("img")).toBeNull();
   });
 

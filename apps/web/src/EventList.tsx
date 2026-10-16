@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { Analysis } from "./Analysis.js";
 import { fetchEvents } from "./api.js";
 
 // Czas zawsze po polsku, niezależnie od strefy przeglądarki — Zdarzenia porównujemy między sobą.
@@ -26,6 +27,7 @@ export function EventList() {
           <small>
             <span>{event.source}</span> · <time dateTime={event.publishedAt}>{time.format(new Date(event.publishedAt))}</time>
           </small>
+          {event.analysis ? <Analysis analysis={event.analysis} /> : <p><small>Analiza w kolejce</small></p>}
         </li>
       ))}
     </ol>

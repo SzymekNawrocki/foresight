@@ -4,12 +4,14 @@
   "type": "module",
   "scripts": {
     "dev": "tsx src/dev.ts",
+    "analyze": "tsx src/analyze-dev.ts",
     "build:lambda": "node scripts/build-lambda.mjs",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@aws-sdk/client-dynamodb": "~3.1142.0",
+    "@aws-sdk/client-ssm": "~3.1142.0",
     "@aws-sdk/lib-dynamodb": "~3.1142.0",
     "@foresight/shared": "workspace:*",
     "fast-xml-parser": "^5.11.1"
