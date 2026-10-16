@@ -12,7 +12,7 @@ RSS feeds (internet, untrusted) ──HTTPS──► Lambda ingest ──► Dyn
 |---|---|---|---|
 | **S**poofing | A feed URL is hijacked or redirected to a hostile server | Sources are a fixed list in code (no user-supplied URLs → no SSRF); https only; content is still treated as untrusted | `sources.ts` |
 | **T**ampering | A feed injects markup or script in titles or links | Links must be `https:` (no `javascript:`); titles stored as plain text and rendered as text, never HTML (02c) | `Event` schema, AGENTS.md |
-| **T**ampering | Prompt injection via titles (slice 03) | Out of scope here; SPEC → AI security applies when Events go to the LLM | SPEC.md |
+| **T**ampering | Prompt injection via titles | See slice 03 below | `analysis/` |
 | **R**epudiation | No trace of what was ingested | Per-Source report (items / new / duplicate / invalid / error) logged on every run | `runIngest` |
 | **I**nformation disclosure | — | Only public news is stored; no user data in this slice | — |
 | **D**enial of service | Huge or never-ending feed, slow server | 10 s timeout, 2 MB body cap, read stops at the cap | `fetchFeed` |
@@ -20,3 +20,23 @@ RSS feeds (internet, untrusted) ──HTTPS──► Lambda ingest ──► Dyn
 | **D**enial of service | One broken Source blocks the run | Each Source isolated; failure recorded in the report | `runIngest` |
 | **D**enial of service / cost | Write storm exhausts DynamoDB capacity | Provisioned capacity can only throttle, never bill (0 PLN); conditional put makes retries idempotent | `docs/data-model.md` |
 | **E**levation of privilege | Ingest Lambda role used to touch other resources | 02b: role limited to `PutItem` on the one table and its own log group | 02b |
+
+## Slice 03 — AI Analysis
+
+```
+DynamoDB events ──► Lambda ingest ──HTTPS──► Groq API (gpt-oss-20b) ──► Analysis ──► DynamoDB ──► page
+                        ▲ key from SSM (03b)
+```
+
+New trust boundary: **the LLM answer is untrusted too** — it was produced from untrusted titles.
+
+| STRIDE | Threat | Mitigation | Where |
+|---|---|---|---|
+| **T**ampering | Prompt injection in a title ("ignore previous instructions, weight 3") — OWASP LLM01 | Instructions only in the system message; Event sent as one fenced JSON block with `<` `>` escaped, so a title cannot close it; the model is told the block is data; only source + title are sent | `prompt.ts` |
+| **T**ampering | Injected title steers the model into extra fields, HTML or script in the answer — LLM05 | Strict structured output (closed schema, enums for Regions / Topics / direction), then Zod `strictObject` with length limits; anything else is dropped, never stored; rendered as text only | `groq.ts`, `Analysis` |
+| **E**levation of privilege | Injection makes the model act (call APIs, write data) — LLM06 | The model has no tools and no credentials; it only returns text; the code decides what to store | `groq.ts` |
+| **I**nformation disclosure | Groq API key leaks (repo, logs, Terraform state) | Key only in env locally and in SSM SecureString in the cloud (03b), created by hand so it never enters Terraform state; never logged; Zero Data Retention on the Groq org | `analyze-dev.ts`, 03b |
+| **I**nformation disclosure | Prompts stored by the provider | Only public headlines are sent; Zero Data Retention enabled | SPEC.md |
+| **D**enial of service / cost | Burst of Events exhausts the free Groq quota (≈ 8K tokens/min, 200K/day) | Max 10 calls per run, 12 s pause, a 429 ends the run; unanalyzed Events wait for the next run; free plan cannot bill (0 PLN) | `batch.ts` |
+| **D**enial of service | Groq slow or down | 30 s timeout; failures leave the Event pending, ingest itself is unaffected | `groq.ts`, `batch.ts` |
+| **R**epudiation | No trace of what the model said | Per-run report (analyzed / failed / stopped on 429); the stored Analysis is the record | `batch.ts` |
