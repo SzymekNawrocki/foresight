@@ -6,6 +6,7 @@ import { fetchRecent } from "./api.js";
 import { EventCard } from "./EventCard.js";
 import { briefing } from "./intel.js";
 import { REGION_LABEL, TOPIC_LABEL } from "./labels.js";
+import { accuracy, score, type Tally } from "./score.js";
 import { ThesisList, useTheses } from "./theses.js";
 import { WorldMap } from "./WorldMap.js";
 import { useSession } from "./session.js";
@@ -127,7 +128,7 @@ function Dossier({ kind, name, events, inArea }: { kind: string; name: string; e
         </p>
       </div>
       {token && (
-        <Panel title="Moje Tezy w tym obszarze">
+        <Panel title="Moje Tezy w tym obszarze" aside={theses.data ? `trafność ${accuracy(score(theses.data.theses.filter(inArea)).overall)}` : undefined}>
           {theses.data ? <ThesisList theses={theses.data.theses.filter(inArea)} empty="Brak Tez w tym obszarze." /> : <p className="label">Wczytuję Tezy…</p>}
         </Panel>
       )}
@@ -193,6 +194,7 @@ export function ThesesPage() {
         <h1 className="font-display text-4xl font-bold tracking-[0.1em] uppercase">Moje Tezy</h1>
         <p className="mt-1 text-dim">Tezę stawiasz pod Zdarzeniem — przyciskiem „Postaw Tezę” na jego aktach.</p>
       </div>
+      {theses.data && <ScorePanel theses={theses.data.theses} />}
       <Panel title="Tezy · od najnowszych">
         {theses.isError ? (
           <p className="label text-alert">Nie udało się pobrać Tez.</p>
@@ -203,5 +205,53 @@ export function ThesesPage() {
         )}
       </Panel>
     </div>
+  );
+}
+
+function TallyRows<K extends string>({ title, tallies, label }: { title: string; tallies: Record<K, Tally>; label: Record<K, string> }) {
+  const rows = (Object.entries(tallies) as [K, Tally][]).filter(([, t]) => t.resolved + t.open > 0);
+  return (
+    <div>
+      <h3 className="label mb-2 text-fg">{title}</h3>
+      {rows.length === 0 ? (
+        <p className="label">—</p>
+      ) : (
+        <table className="w-full text-left">
+          <tbody>
+            {rows.map(([key, t]) => (
+              <tr key={key} className="border-b border-line/60">
+                <th scope="row" className="py-1.5 font-normal">
+                  {label[key]}
+                </th>
+                <td className="py-1.5 text-right text-dim">
+                  {t.hits}/{t.resolved}
+                </td>
+                <td className="w-16 py-1.5 text-right font-bold">{accuracy(t)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </div>
+  );
+}
+
+function ScorePanel({ theses }: { theses: Thesis[] }) {
+  const s = score(theses);
+  return (
+    <Panel title="Wynik" aside="Trafione / Rozstrzygnięte">
+      <dl className="grid grid-cols-3 gap-2">
+        <div className="border border-line px-3 py-2">
+          <dt className="label text-[10px]">Trafność</dt>
+          <dd className="font-display text-3xl font-bold text-alert">{accuracy(s.overall)}</dd>
+        </div>
+        <Stat label="Rozstrzygnięte" value={s.overall.resolved} />
+        <Stat label="Otwarte" value={s.overall.open} tone="text-amber" />
+      </dl>
+      <div className="mt-4 grid gap-6 md:grid-cols-2">
+        <TallyRows title="Per Temat" tallies={s.topics} label={TOPIC_LABEL} />
+        <TallyRows title="Per Region" tallies={s.regions} label={REGION_LABEL} />
+      </div>
+    </Panel>
   );
 }

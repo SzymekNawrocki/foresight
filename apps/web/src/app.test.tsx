@@ -209,6 +209,17 @@ describe("Theses", () => {
     });
   });
 
+  it("shows the Score: overall, per Topic and per Region", async () => {
+    signInAsOwner();
+    renderApp("/theses");
+
+    const panel = (await screen.findByRole("heading", { name: /Wynik/ })).closest("section");
+    if (!panel) throw new Error("no panel");
+    expect(within(panel).getByText("Trafność").nextSibling).toHaveTextContent("—");
+    expect(within(panel).getByRole("rowheader", { name: "Energia" })).toBeInTheDocument();
+    expect(within(panel).getByRole("rowheader", { name: "Bliski Wschód" })).toBeInTheDocument();
+  });
+
   it("shows the owner's Theses on their page and in the matching Region dossier", async () => {
     signInAsOwner();
     renderApp("/theses");

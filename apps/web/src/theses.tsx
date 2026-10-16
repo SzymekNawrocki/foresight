@@ -106,9 +106,23 @@ export function ThesisForm({ event }: { event: AnalyzedEvent }) {
   );
 }
 
+const price = new Intl.NumberFormat("pl-PL", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const percent = new Intl.NumberFormat("pl-PL", { style: "percent", minimumFractionDigits: 1, maximumFractionDigits: 1, signDisplay: "always" });
+
 function Outcome({ thesis }: { thesis: Thesis }) {
   if (thesis.status === "open") return <span className="label text-amber">Otwarta · rozstrzygnięcie {date.format(new Date(thesis.resolveAt))}</span>;
   return thesis.hit ? <span className="label text-ok">Trafiona</span> : <span className="label text-alert">Nietrafiona</span>;
+}
+
+function Prices({ thesis }: { thesis: Thesis }) {
+  const { entryPrice, exitPrice, actual } = thesis;
+  if (entryPrice === undefined) return null;
+  if (exitPrice === undefined || !actual) return <p className="mt-1 text-[12px] text-dim">Cena wejścia: {price.format(entryPrice)} USD</p>;
+  return (
+    <p className="mt-1 text-[12px] text-dim">
+      {price.format(entryPrice)} → {price.format(exitPrice)} USD ({percent.format(exitPrice / entryPrice - 1)}) · rynek: {THESIS_DIRECTION_LABEL[actual]}
+    </p>
+  );
 }
 
 export function ThesisList({ theses, empty }: { theses: Thesis[]; empty: string }) {
@@ -127,6 +141,7 @@ export function ThesisList({ theses, empty }: { theses: Thesis[]; empty: string 
             </span>
           </div>
           <p className="mt-1 text-[12px] text-dim">Zdarzenie: {t.eventTitle}</p>
+          <Prices thesis={t} />
           <p className="mt-1">{t.rationale}</p>
         </li>
       ))}
