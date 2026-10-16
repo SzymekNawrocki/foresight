@@ -132,8 +132,21 @@ run "ingest_role_is_scoped_to_the_analysis_queue_and_one_key" {
   }
 
   assert {
-    condition     = endswith(one(data.aws_iam_policy_document.ingest.statement[2].resources), ":parameter/foresight/prod/groq-api-key")
-    error_message = "Ingest may read exactly one parameter: the Groq key."
+    condition = (
+      length(data.aws_iam_policy_document.ingest.statement[2].resources) == 2 &&
+      alltrue([for r in data.aws_iam_policy_document.ingest.statement[2].resources : can(regex(":parameter/foresight/prod/(groq|tiingo)-api-key$", r))])
+    )
+    error_message = "Ingest may read exactly two parameters: the Groq and Tiingo keys."
+  }
+
+  assert {
+    condition     = data.aws_iam_policy_document.ingest.statement[3].actions == toset(["dynamodb:Scan", "dynamodb:UpdateItem"])
+    error_message = "Resolve may read Theses and write their outcome — never create or delete one."
+  }
+
+  assert {
+    condition     = aws_scheduler_schedule.resolve.schedule_expression == "cron(0 6 * * ? *)" && jsondecode(aws_scheduler_schedule.resolve.target[0].input).task == "resolve"
+    error_message = "Rozstrzygnięcie runs once a day at 06:00 UTC with the resolve task."
   }
 
   assert {

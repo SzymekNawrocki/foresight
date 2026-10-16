@@ -59,3 +59,19 @@ browser ──PKCE──► Cognito managed login ──code──► browser �
 | **I**nformation disclosure | Token stolen via XSS | All feed / LLM text rendered as text; token only in this tab's `sessionStorage`, valid ≤ 1 h. Accepted risk: no CSP yet (a later hardening issue) | `session.ts` |
 | **T**ampering | Request body changed between CloudFront and Lambda | OAC signs every origin request; the browser sends the body's SHA-256 (`x-amz-content-sha256`), which the signature covers | `session.ts`, `cdn.tf` |
 | **E**levation of privilege | Web role abused to read or wipe data | Events: Query on `latest` + GetItem only; Theses: Query + PutItem only — no Scan, no Delete (tested) | `lambda.tf` |
+
+## Slice 07 — Rozstrzygnięcie
+
+```
+EventBridge Scheduler (daily) ──► Lambda ingest {task: resolve} ──HTTPS──► Tiingo ──► DynamoDB theses
+                                        ▲ key from SSM
+```
+
+| STRIDE | Threat | Mitigation | Where |
+|---|---|---|---|
+| **T**ampering | A Thesis is scored on a price that was already known when it was written | Entry and exit = first close after the moment; from 20:00 UTC the next trading day counts | `resolve.ts` |
+| **T**ampering | Malformed or hostile price data | Every row validated (date, positive number); bad rows dropped; HTTP errors fail that Instrument only | `tiingo.ts`, `run.ts` |
+| **T**ampering | A resolved Thesis gets rewritten | `UpdateItem` only while `status = open`; the role has no PutItem / DeleteItem on Theses | `dynamo.ts`, `ingest.tf` |
+| **I**nformation disclosure | Tiingo key leaks via URLs or logs | Key in SSM SecureString (created by hand), sent in a header, never in the query string, never logged | `tiingo.ts` |
+| **I**nformation disclosure | Theses sent to a third party | Only Instrument tickers and dates go to Tiingo — never the rationale or the owner | `run.ts` |
+| **D**enial of service / cost | Price API quota exhausted | ≤ 20 requests a day (one per due Instrument); free plan cannot bill | `run.ts` |

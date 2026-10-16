@@ -61,3 +61,22 @@ One item per Thesis (CONTEXT.md: Teza). Private to the owner.
 | Place a Thesis | `PutItem` with `attribute_not_exists(id)` (web role) |
 | Owner's Theses, newest first | `Query owner = :sub`, `ScanIndexForward = false` (web role) |
 | Read one Event when placing | `GetItem` on `events` (web role; no Scan) |
+
+### Rozstrzygnięcie (slice 07)
+
+Set on the same item by the daily resolve run (the `ingest` Lambda with `{"task":"resolve"}`, 06:00 UTC):
+
+| Attribute | Type | Notes |
+|---|---|---|
+| `entryPrice` | N | First US close after `createdAt` (from 20:00 UTC on, the next trading day — no peeking at a known close). |
+| `exitPrice` | N | First US close after `resolveAt`, same rule. |
+| `actual` | S | `up` / `down` / `flat` — `flat` when the move is within ±2% of `entryPrice`. |
+| `hit` | BOOL | `actual == direction`. |
+| `status`, `resolvedAt` | S | `resolved` + time of the run. |
+
+| Pattern | How |
+|---|---|
+| Open Theses of every owner | `Scan` with `status = open` (ingest role; tiny table, once a day) |
+| Write the outcome | `UpdateItem` `SET …` with condition `status = open` — a resolved Thesis is never rewritten |
+
+Prices: Tiingo end-of-day API (free Starter plan, personal use: 50 requests/hour, 1,000/day, 500 symbols/month). One request per Instrument with something due — at most 20 a day.

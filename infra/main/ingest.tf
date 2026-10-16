@@ -6,6 +6,10 @@ locals {
   # Created by hand as a SecureString (aws/ssm key), so the value never enters Terraform state:
   # aws ssm put-parameter --name /foresight/prod/groq-api-key --type SecureString --value <key>
   groq_key_parameter = "/foresight/${var.environment}/groq-api-key"
+
+  # Same, for the Tiingo price key (slice 07):
+  # aws ssm put-parameter --name /foresight/prod/tiingo-api-key --type SecureString --value <key>
+  tiingo_key_parameter = "/foresight/${var.environment}/tiingo-api-key"
 }
 
 data "archive_file" "ingest_placeholder" {
@@ -57,8 +61,18 @@ data "aws_iam_policy_document" "ingest" {
 
   # The aws/ssm key policy lets account principals decrypt through SSM, so no kms:Decrypt here.
   statement {
-    actions   = ["ssm:GetParameter"]
-    resources = ["arn:aws:ssm:${data.aws_region.current.region}:${data.aws_caller_identity.current.account_id}:parameter${local.groq_key_parameter}"]
+    actions = ["ssm:GetParameter"]
+    resources = [
+      for name in [local.groq_key_parameter, local.tiingo_key_parameter] :
+      "arn:aws:ssm:${data.aws_region.current.region}:${data.aws_caller_identity.current.account_id}:parameter${name}"
+    ]
+  }
+
+  # Daily Rozstrzygnięcie (slice 07): read open Theses of every owner, write their outcome.
+  # No PutItem, no DeleteItem — it can never create or remove a Thesis.
+  statement {
+    actions   = ["dynamodb:Scan", "dynamodb:UpdateItem"]
+    resources = [aws_dynamodb_table.theses.arn]
   }
 
   statement {
@@ -97,8 +111,10 @@ resource "aws_lambda_function" "ingest" {
   # nosemgrep: terraform.aws.security.aws-lambda-environment-unencrypted.aws-lambda-environment-unencrypted
   environment {
     variables = {
-      TABLE_NAME         = aws_dynamodb_table.events.name
-      GROQ_KEY_PARAMETER = local.groq_key_parameter
+      TABLE_NAME           = aws_dynamodb_table.events.name
+      GROQ_KEY_PARAMETER   = local.groq_key_parameter
+      THESES_TABLE_NAME    = aws_dynamodb_table.theses.name
+      TIINGO_KEY_PARAMETER = local.tiingo_key_parameter
     }
   }
 
@@ -168,6 +184,28 @@ resource "aws_scheduler_schedule" "ingest" {
     role_arn = aws_iam_role.scheduler.arn
 
     # A failed run waits for the next hour; retries would only hammer the feeds.
+    retry_policy {
+      maximum_retry_attempts = 0
+    }
+  }
+}
+
+# Daily Rozstrzygnięcie of Theses (slice 07): the same Lambda with {"task":"resolve"}.
+# 06:00 UTC — the previous US session's prices are final by then (Tiingo: ~20:00 New York).
+resource "aws_scheduler_schedule" "resolve" {
+  #checkov:skip=CKV_AWS_297:The schedule holds no secrets (a function ARN and a task name); a KMS key costs ~1 USD/month (0 PLN)
+  name                = "foresight-${var.environment}-resolve"
+  schedule_expression = "cron(0 6 * * ? *)"
+
+  flexible_time_window {
+    mode = "OFF"
+  }
+
+  target {
+    arn      = aws_lambda_function.ingest.arn
+    role_arn = aws_iam_role.scheduler.arn
+    input    = jsonencode({ task = "resolve" })
+
     retry_policy {
       maximum_retry_attempts = 0
     }
