@@ -1,7 +1,8 @@
 # Foresight
 
-Prywatne centrum analityczne geostrategii: świat dostarcza Zdarzenia, AI osadza je w Regionach
-i Tematach i rozpisuje na Scenariusze, a właściciel stawia Tezy, które rozlicza rynek.
+Publiczne narzędzie do śledzenia sytuacji geopolitycznych: świat dostarcza Zdarzenia, AI osadza je
+w Regionach, Tematach i Wątkach, a dla każdego Wątku pisze Raport sytuacyjny — co to znaczy dla
+rynków i relacji międzynarodowych.
 
 ## Świat
 
@@ -36,61 +37,60 @@ _Avoid_: priorytet, ważność, score
 _W kodzie_: `Weight`
 
 **Scenariusz**:
-Wygenerowany przez AI rozpis możliwego rozwoju jednego Zdarzenia, złożony z Gałęzi.
+Możliwy rozwój Wątku w Raporcie sytuacyjnym: eskalacja, status quo albo deeskalacja,
+każdy z Sygnałami ostrzegawczymi.
 _Avoid_: analiza, prognoza, predykcja
 
-**Gałąź**:
-Jedna ścieżka rozwoju w Scenariuszu (eskalacja albo deeskalacja) wraz z Klasą aktywów, której
-dotyczy, i kierunkiem jej ruchu.
-_Avoid_: wariant, opcja, branch
-
 **Klasa aktywów**:
-Grupa instrumentów, na którą wpływa Gałąź (np. ropa, złoto, półprzewodniki, indeksy akcji).
+Grupa instrumentów, na którą wpływa Scenariusz (np. ropa, złoto, półprzewodniki, indeksy akcji).
 _Avoid_: asset, rynek
 
 ## Widoki
 
 **Briefing**:
-Dashboard — ciemna mapa świata, na której każdy Region pokazuje liczbę Zdarzeń z Wagą ≥ 2
-z ostatnich 24 h.
+Strona główna: Wątki z ruchem w ostatnich 24 h (z jednym zdaniem „co się zmieniło”), ciemna
+mapa z liczbą aktywnych Wątków per Region i — dla właściciela — liczba Nowych sytuacji.
 _Avoid_: feed, strona główna, przegląd
 
 **Baza wiedzy**:
-Automatyczne strony Regionów i Tematów: Zdarzenia z tego obszaru, Tezy właściciela w tym obszarze
-i jego trafność w tym obszarze.
+Automatyczne strony Regionów, Tematów i Aktorów: Wątki i Zdarzenia z tego obszaru; u Aktora
+także, z kim najczęściej występuje w jednym Zdarzeniu.
 _Avoid_: wiki, notatki, encyklopedia
 
-## Gra
+**Strumień**:
+Surowa lista wszystkich Zdarzeń, od najnowszych — dla tych, którzy chcą zajrzeć pod Wątki.
+_Avoid_: feed, timeline
 
-**Instrument**:
-Konkretny, notowany walor z krótkiej listy (głównie ETF-y sektorowe i surowce), którego dotyczy
-Teza, np. SOXX, ITA, Brent.
-_Avoid_: ticker, spółka, aktywo
-_W kodzie_: `Instrument`
+## Sytuacje
 
-**Teza**:
-Stanowisko właściciela wobec Zdarzenia: Kierunek zmiany ceny Instrumentu w obrębie Horyzontu,
-z Uzasadnieniem.
-_Avoid_: zakład, typ, prognoza, zlecenie
+**Wątek**:
+Trwająca sytuacja geopolityczna (np. „Cieśnina Ormuz”, „Tajwan i półprzewodniki”) z osią czasu
+Zdarzeń i Raportem sytuacyjnym. Aktywny, gdy miał Zdarzenie w ostatnich 14 dniach; potem
+uśpiony; zarchiwizowany ręcznie przez właściciela.
+_Avoid_: temat (to oś Tematów), historia, sprawa, story
+_W kodzie_: `Thread`
 
-**Kierunek**:
-Oczekiwany ruch ceny Instrumentu w Tezie: wzrost, spadek albo bez zmian (ruch w granicach ±2%).
-_Avoid_: pozycja, long/short
+**Nowa sytuacja**:
+Propozycja nowego Wątku od AI, gdy istotne Zdarzenie (Waga ≥ 2) nie pasuje do żadnego
+aktywnego Wątku. Czeka na decyzję właściciela: akceptuj, połącz z istniejącym albo odrzuć.
+_Avoid_: sugestia, draft
+_W kodzie_: `ThreadProposal`
 
-**Horyzont**:
-Czas, po którym Teza podlega Rozstrzygnięciu.
-_Avoid_: termin, deadline, timeframe
+**Raport sytuacyjny**:
+Pisany przez AI obraz Wątku: stan teraz, Aktorzy i ich interesy, Scenariusze z Sygnałami
+ostrzegawczymi, narażone Klasy aktywów, wpływ na relacje międzynarodowe, co się zmieniło
+i najbardziej prawdopodobny Scenariusz. Odświeżany najwyżej raz dziennie; każda wersja
+zostaje jako dziennik sytuacji.
+_Avoid_: podsumowanie, summary, analiza
+_W kodzie_: `SituationReport`
 
-**Uzasadnienie**:
-Krótki tekst właściciela: dlaczego tak uważa. Po Rozstrzygnięciu pozwala ocenić, czy trafił
-z dobrego powodu.
-_Avoid_: notatka, komentarz, opis
+**Sygnał ostrzegawczy**:
+Obserwowalna oznaka, że sytuacja idzie w stronę danego Scenariusza („po czym to poznasz”).
+_Avoid_: wskaźnik, trigger, alert
+_W kodzie_: `WarningSignal`
 
-**Rozstrzygnięcie**:
-Werdykt po upływie Horyzontu, czy Teza okazała się trafna — liczony automatycznie z ceny
-Instrumentu przy postawieniu Tezy i po Horyzoncie.
-_Avoid_: rozliczenie, settlement, ocena
-
-**Wynik**:
-Trafność właściciela liczona z Rozstrzygniętych Tez: ogólna, per Temat i per Region.
-_Avoid_: score, ranking, punkty
+**Aktor**:
+Państwo albo organizacja z ustalonej listy (~40, np. USA, Chiny, Iran, NATO, UE, OPEC),
+którego dotyczy Zdarzenie; do 4 na Zdarzenie.
+_Avoid_: kraj (Aktor może być organizacją), strona, gracz
+_W kodzie_: `Actor`
