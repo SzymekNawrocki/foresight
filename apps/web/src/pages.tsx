@@ -1,4 +1,4 @@
-import type { AnalyzedEvent, Region, Topic } from "@foresight/shared";
+import type { AnalyzedEvent, Region, Thesis, Topic } from "@foresight/shared";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
@@ -6,7 +6,9 @@ import { fetchRecent } from "./api.js";
 import { EventCard } from "./EventCard.js";
 import { briefing } from "./intel.js";
 import { REGION_LABEL, TOPIC_LABEL } from "./labels.js";
+import { ThesisList, useTheses } from "./theses.js";
 import { WorldMap } from "./WorldMap.js";
+import { useSession } from "./session.js";
 
 function useRecent() {
   return useQuery({ queryKey: ["recent"], queryFn: fetchRecent, refetchInterval: 5 * 60_000 });
@@ -111,7 +113,9 @@ export function BriefingPage() {
   );
 }
 
-function Dossier({ kind, name, events }: { kind: string; name: string; events: AnalyzedEvent[] }) {
+function Dossier({ kind, name, events, inArea }: { kind: string; name: string; events: AnalyzedEvent[]; inArea: (t: Thesis) => boolean }) {
+  const token = useSession();
+  const theses = useTheses();
   const significant = events.filter((e) => (e.analysis?.weight ?? 0) >= 2).length;
   return (
     <div className="grid gap-6">
@@ -122,6 +126,11 @@ function Dossier({ kind, name, events }: { kind: string; name: string; events: A
           {events.length} Zdarzeń z 72 h, w tym {significant} z Wagą ≥ 2.
         </p>
       </div>
+      {token && (
+        <Panel title="Moje Tezy w tym obszarze">
+          {theses.data ? <ThesisList theses={theses.data.theses.filter(inArea)} empty="Brak Tez w tym obszarze." /> : <p className="label">Wczytuję Tezy…</p>}
+        </Panel>
+      )}
       <Panel title="Zdarzenia · od najnowszych">
         <EventStream events={events} empty="Brak Zdarzeń w tym obszarze w ostatnich 72 h." />
       </Panel>
@@ -134,7 +143,12 @@ export function RegionPage({ region }: { region: Region }) {
   return (
     <Status query={recent}>
       {(events) => (
-        <Dossier kind="Region" name={REGION_LABEL[region]} events={events.filter((e) => e.analysis?.regions.includes(region))} />
+        <Dossier
+          kind="Region"
+          name={REGION_LABEL[region]}
+          events={events.filter((e) => e.analysis?.regions.includes(region))}
+          inArea={(t) => t.regions.includes(region)}
+        />
       )}
     </Status>
   );
@@ -145,7 +159,12 @@ export function TopicPage({ topic }: { topic: Topic }) {
   return (
     <Status query={recent}>
       {(events) => (
-        <Dossier kind="Temat" name={TOPIC_LABEL[topic]} events={events.filter((e) => e.analysis?.topics.includes(topic))} />
+        <Dossier
+          kind="Temat"
+          name={TOPIC_LABEL[topic]}
+          events={events.filter((e) => e.analysis?.topics.includes(topic))}
+          inArea={(t) => t.topics.includes(topic)}
+        />
       )}
     </Status>
   );
@@ -159,6 +178,30 @@ export function NotFoundPage() {
       <Link to="/" className="mt-3 inline-block">
         ← Wróć do Briefingu
       </Link>
+    </div>
+  );
+}
+
+export function ThesesPage() {
+  const token = useSession();
+  const theses = useTheses();
+  if (!token) return <p className="label">Zaloguj się, żeby zobaczyć swoje Tezy.</p>;
+  return (
+    <div className="grid gap-6">
+      <div>
+        <p className="label text-alert">Ściśle prywatne</p>
+        <h1 className="font-display text-4xl font-bold tracking-[0.1em] uppercase">Moje Tezy</h1>
+        <p className="mt-1 text-dim">Tezę stawiasz pod Zdarzeniem — przyciskiem „Postaw Tezę” na jego aktach.</p>
+      </div>
+      <Panel title="Tezy · od najnowszych">
+        {theses.isError ? (
+          <p className="label text-alert">Nie udało się pobrać Tez.</p>
+        ) : theses.data ? (
+          <ThesisList theses={theses.data.theses} empty="Nie masz jeszcze żadnej Tezy." />
+        ) : (
+          <p className="label">Wczytuję Tezy…</p>
+        )}
+      </Panel>
     </div>
   );
 }
