@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { Event } from "./event.js";
 
 // The AI Analysis of one Event (CONTEXT.md: Region, Temat, Waga, Scenariusz, Gałąź).
 // The answer comes from an LLM that reads untrusted feed titles, so every field is bounded
@@ -72,3 +73,7 @@ function toStrict(node: unknown): unknown {
 }
 
 export const analysisJsonSchema = toStrict(z.toJSONSchema(Analysis)) as Record<string, unknown>;
+
+// An Event as the page sees it: the Analysis is absent until the LLM has processed the Event.
+export const AnalyzedEvent = Event.extend({ analysis: Analysis.optional() });
+export type AnalyzedEvent = z.infer<typeof AnalyzedEvent>;
