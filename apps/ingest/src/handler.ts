@@ -1,6 +1,7 @@
 import type { AnalysisQueue, Analyzer } from "./analysis/analyzer.js";
 import { analyzeBatch, type BatchReport } from "./analysis/batch.js";
 import { type IngestInput, runIngest, type SourceReport } from "./ingest.js";
+import type { ResolveReport } from "./resolve/run.js";
 
 export interface AnalysisDeps {
   queue: AnalysisQueue;
@@ -13,6 +14,8 @@ export interface AnalysisDeps {
 export interface HandlerDeps extends Omit<IngestInput, "now"> {
   log: (line: string) => void;
   analysis?: AnalysisDeps;
+  /** Daily Rozstrzygnięcie of Theses (slice 07), run by its own schedule. */
+  resolve?: () => Promise<ResolveReport>;
 }
 
 export interface HandlerReport {
@@ -22,8 +25,16 @@ export interface HandlerReport {
 
 // Failures stay in the report (and the log); throwing would only make Lambda retry the feeds.
 // The Analysis runs after the ingest, so a Groq or key problem never costs us new Events.
-export function createHandler({ log, analysis, ...deps }: HandlerDeps) {
-  return async (): Promise<HandlerReport> => {
+export function createHandler({ log, analysis, resolve, ...deps }: HandlerDeps) {
+  return async (event?: { task?: string }): Promise<HandlerReport | { resolve: ResolveReport | { error: string } }> => {
+    if (event?.task === "resolve") {
+      const report = resolve
+        ? await resolve().catch((error: unknown) => ({ error: error instanceof Error ? error.message : String(error) }))
+        : { error: "resolve is not configured" };
+      log(JSON.stringify({ msg: "resolve finished", report }));
+      return { resolve: report };
+    }
+
     const report: HandlerReport = { ingest: await runIngest({ ...deps, now: () => new Date() }) };
     if (analysis) report.analysis = await analyzePending(analysis);
     log(JSON.stringify({ msg: "ingest finished", report }));
