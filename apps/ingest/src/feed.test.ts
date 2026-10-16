@@ -1,12 +1,13 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { FeedError, fetchFeed, parseFeed } from "./feed.js";
+import { SOURCES } from "./sources.js";
 
 const fixture = (name: string) => readFileSync(new URL(`./fixtures/${name}.xml`, import.meta.url), "utf8");
 
 describe("parseFeed", () => {
-  it.each(["bbc-world", "al-jazeera", "cnbc-world", "notes-from-poland"])(
-    "reads title, link and date of every item in %s",
+  it.each(SOURCES.map((s) => s.id))(
+    "reads title, link and date of every item in %s (every Source has a fixture)",
     (name) => {
       const items = parseFeed(fixture(name));
 
