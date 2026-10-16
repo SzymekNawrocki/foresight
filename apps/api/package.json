@@ -13,6 +13,7 @@
     "@aws-sdk/lib-dynamodb": "~3.1142.0",
     "@foresight/shared": "workspace:*",
     "@hono/node-server": "^2.1.1",
+    "aws-jwt-verify": "^5.2.1",
     "hono": "^4.13.8"
   },
   "devDependencies": {

@@ -1,4 +1,4 @@
-import { DynamoDBDocumentClient, QueryCommand } from "@aws-sdk/lib-dynamodb";
+import { DynamoDBDocumentClient, GetCommand, QueryCommand } from "@aws-sdk/lib-dynamodb";
 import { mockClient } from "aws-sdk-client-mock";
 import { beforeEach, describe, expect, it } from "vitest";
 import { DynamoEventReader } from "./dynamo-events.js";
@@ -84,6 +84,18 @@ describe("DynamoEventReader", () => {
       ScanIndexForward: false,
     });
     expect(calls[1]?.ExclusiveStartKey).toEqual({ id: "x" });
+  });
+
+  it("reads one Event by id", async () => {
+    ddb.on(GetCommand, { TableName: "events", Key: { id: event.id } }).resolves({ Item: { ...event, kind: "EVENT" } });
+
+    await expect(reader().get(event.id)).resolves.toEqual(event);
+  });
+
+  it("returns null for a missing Event", async () => {
+    ddb.on(GetCommand).resolves({});
+
+    await expect(reader().get("f".repeat(32))).resolves.toBeNull();
   });
 
   it("returns an empty list when the query has no Items", async () => {

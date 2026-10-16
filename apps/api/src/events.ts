@@ -5,6 +5,8 @@ export interface EventReader {
   latest(limit: number): Promise<AnalyzedEvent[]>;
   /** Events published at or after `since` (ISO), newest first, at most `max`. */
   since(since: string, max: number): Promise<AnalyzedEvent[]>;
+  /** One Event by id, or null. */
+  get(id: string): Promise<AnalyzedEvent | null>;
 }
 
 export class InMemoryEventReader implements EventReader {
@@ -16,5 +18,9 @@ export class InMemoryEventReader implements EventReader {
 
   async since(since: string, max: number) {
     return (await this.latest(this.events.length)).filter((e) => e.publishedAt >= since).slice(0, max);
+  }
+
+  async get(id: string) {
+    return this.events.find((e) => e.id === id) ?? null;
   }
 }
