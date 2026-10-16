@@ -1,4 +1,4 @@
-# Contract of slice 06 without AWS: owner login and the Theses table.
+# Contract of slice 06 without AWS: the owner login.
 mock_provider "aws" {
   mock_data "aws_iam_policy_document" {
     defaults = {
@@ -53,22 +53,5 @@ run "web_client_is_a_public_pkce_client" {
   assert {
     condition     = aws_cognito_user_pool_client.web.access_token_validity <= 1
     error_message = "Access tokens live at most an hour."
-  }
-}
-
-run "all_tables_together_stay_in_always_free" {
-  command = plan
-
-  assert {
-    condition = (
-      aws_dynamodb_table.events.read_capacity + sum([for g in aws_dynamodb_table.events.global_secondary_index : g.read_capacity]) + aws_dynamodb_table.theses.read_capacity <= 25 &&
-      aws_dynamodb_table.events.write_capacity + sum([for g in aws_dynamodb_table.events.global_secondary_index : g.write_capacity]) + aws_dynamodb_table.theses.write_capacity <= 25
-    )
-    error_message = "All tables and indexes together must stay within the always-free 25 RCU / 25 WCU."
-  }
-
-  assert {
-    condition     = aws_dynamodb_table.theses.deletion_protection_enabled && aws_dynamodb_table.theses.billing_mode == "PROVISIONED"
-    error_message = "Theses: provisioned (free) and protected from deletion."
   }
 }

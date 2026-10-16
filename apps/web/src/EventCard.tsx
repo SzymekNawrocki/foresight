@@ -1,7 +1,6 @@
 import type { AnalyzedEvent, Branch } from "@foresight/shared";
 import { Link } from "@tanstack/react-router";
 import { DIRECTION_ARROW, REGION_LABEL, TOPIC_LABEL, WEIGHT_LABEL } from "./labels.js";
-import { ThesisForm } from "./theses.js";
 
 // Czas zawsze po polsku, niezależnie od strefy przeglądarki — Zdarzenia porównujemy między sobą.
 const time = new Intl.DateTimeFormat("pl-PL", {
@@ -67,7 +66,6 @@ export function EventCard({ event }: { event: AnalyzedEvent }) {
             <BranchItem name="Eskalacja" branch={analysis.scenario.escalation} />
             <BranchItem name="Deeskalacja" branch={analysis.scenario.deescalation} />
           </ul>
-          <ThesisForm event={event} />
         </>
       )}
     </article>

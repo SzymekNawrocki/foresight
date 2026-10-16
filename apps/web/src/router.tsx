@@ -7,7 +7,7 @@ import {
   type RouterHistory,
 } from "@tanstack/react-router";
 import { AuthCallbackPage } from "./auth-ui.js";
-import { BriefingPage, NotFoundPage, RegionPage, ThesesPage, TopicPage } from "./pages.js";
+import { BriefingPage, NotFoundPage, RegionPage, TopicPage } from "./pages.js";
 import { Shell } from "./Shell.js";
 
 const rootRoute = createRootRoute({ component: Shell, notFoundComponent: NotFoundPage });
@@ -47,10 +47,9 @@ const topicRoute = createRoute({
   },
 });
 
-const thesesRoute = createRoute({ getParentRoute: () => rootRoute, path: "/theses", component: ThesesPage });
 const callbackRoute = createRoute({ getParentRoute: () => rootRoute, path: "/auth/callback", component: AuthCallbackPage });
 
-const routeTree = rootRoute.addChildren([briefingRoute, regionRoute, topicRoute, thesesRoute, callbackRoute]);
+const routeTree = rootRoute.addChildren([briefingRoute, regionRoute, topicRoute, callbackRoute]);
 
 export function createAppRouter(history?: RouterHistory) {
   return createRouter({ routeTree, ...(history && { history }) });

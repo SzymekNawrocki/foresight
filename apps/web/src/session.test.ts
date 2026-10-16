@@ -65,7 +65,7 @@ describe("authedFetch", () => {
     const fetchMock = vi.fn(async () => new Response("{}", { status: 201 }));
     vi.stubGlobal("fetch", fetchMock);
 
-    await authedFetch("/api/theses", { method: "POST", body: "{}" });
+    await authedFetch("/api/example", { method: "POST", body: "{}" });
 
     const headers = new Headers((fetchMock.mock.calls[0] as unknown as [string, RequestInit])[1].headers);
     expect(headers.get("x-foresight-token")).toBe("access-1");

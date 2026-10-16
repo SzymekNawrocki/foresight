@@ -4,7 +4,6 @@ import { Link, Outlet } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { fetchHealth } from "./api.js";
 import { AuthButton } from "./auth-ui.js";
-import { useSession } from "./session.js";
 import { TOPIC_LABEL } from "./labels.js";
 
 const clock = new Intl.DateTimeFormat("pl-PL", {
@@ -38,7 +37,6 @@ function LinkStatus() {
 }
 
 export function Shell() {
-  const token = useSession();
   return (
     <div className="mx-auto min-h-screen max-w-7xl px-4 pb-16">
       <header className="flex flex-wrap items-end gap-x-6 gap-y-2 border-b border-alert/70 pt-5 pb-3">
@@ -65,11 +63,6 @@ export function Shell() {
         <Link to="/" className="label no-underline hover:text-alert" activeProps={{ className: "text-alert" }} activeOptions={{ exact: true }}>
           Briefing
         </Link>
-        {token && (
-          <Link to="/theses" className="label no-underline hover:text-alert" activeProps={{ className: "text-alert" }}>
-            Moje Tezy
-          </Link>
-        )}
         <span className="text-faint" aria-hidden>
           //
         </span>

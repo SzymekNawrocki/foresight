@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { fetchConfig } from "./api.js";
+import { fetchConfig, fetchMe } from "./api.js";
 import { completeSignIn, signIn, signOut, useSession } from "./session.js";
 
 export function useAuthConfig() {
@@ -15,14 +15,24 @@ export function AuthButton() {
   if (!auth) return null;
   const origin = window.location.origin;
   return token ? (
-    <button type="button" onClick={() => signOut(auth, origin)} className="label hover:text-alert">
-      Wyloguj
-    </button>
+    <span className="flex gap-3">
+      <OwnerBadge token={token} />
+      <button type="button" onClick={() => signOut(auth, origin)} className="label hover:text-alert">
+        Wyloguj
+      </button>
+    </span>
   ) : (
     <button type="button" onClick={() => void signIn(auth, origin)} className="label text-fg hover:text-alert">
       Zaloguj
     </button>
   );
+}
+
+// Confirms the token against the API, so a stale or forged session shows as such.
+function OwnerBadge({ token }: { token: string }) {
+  const me = useQuery({ queryKey: ["me", token], queryFn: fetchMe, retry: false });
+  if (me.isPending) return null;
+  return me.isSuccess ? <span className="label text-ok">Właściciel</span> : <span className="label text-alert">Sesja nieważna</span>;
 }
 
 /** /auth/callback — Cognito odsyła tu kod; wymieniamy go na token i wracamy do Briefingu. */
@@ -37,7 +47,7 @@ export function AuthCallbackPage() {
     if (!auth || started.current) return;
     started.current = true;
     completeSignIn(auth, window.location.origin, window.location.href)
-      .then(() => navigate({ to: "/theses", replace: true }))
+      .then(() => navigate({ to: "/", replace: true }))
       .catch(() => setError("Logowanie nie powiodło się. Spróbuj ponownie."));
   }, [config.data, navigate]);
 

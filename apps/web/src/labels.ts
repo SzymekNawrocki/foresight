@@ -1,4 +1,4 @@
-import type { Branch, Direction, Region, Topic, Weight } from "@foresight/shared";
+import type { Branch, Region, Topic, Weight } from "@foresight/shared";
 
 // Nazwy z CONTEXT.md — kod trzyma identyfikatory po angielsku, strona mówi po polsku.
 export const REGION_LABEL: Record<Region, string> = {
@@ -26,5 +26,3 @@ export const TOPIC_LABEL: Record<Topic, string> = {
 export const WEIGHT_LABEL: Record<Weight, string> = { 1: "szum", 2: "istotne", 3: "przełomowe" };
 
 export const DIRECTION_ARROW: Record<Branch["direction"], string> = { up: "↑", down: "↓" };
-
-export const THESIS_DIRECTION_LABEL: Record<Direction, string> = { up: "Wzrost", down: "Spadek", flat: "Bez zmian (±2%)" };

@@ -1,7 +1,7 @@
 import type { AnalyzedEvent } from "@foresight/shared";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createMemoryHistory, RouterProvider } from "@tanstack/react-router";
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createAppRouter } from "./router.js";
 
@@ -37,21 +37,6 @@ const pending: AnalyzedEvent = {
   fetchedAt: hoursAgo(0),
 };
 
-const storedThesis = {
-  id: "2026-10-16T12:00:00.000Z#0a1b2c3d",
-  eventId: "0123456789abcdef0123456789abcdef",
-  eventTitle: "Iran threatens to close the Strait of Hormuz",
-  instrument: "BNO",
-  direction: "up",
-  horizonDays: 30,
-  rationale: "Ormuz to wąskie gardło, ryzyko podbije Brenta.",
-  regions: ["middle-east"],
-  topics: ["energy"],
-  createdAt: "2026-10-16T12:00:00.000Z",
-  resolveAt: "2026-11-15T12:00:00.000Z",
-  status: "open",
-};
-
 const signInAsOwner = () =>
   sessionStorage.setItem("foresight.session", JSON.stringify({ accessToken: "access-1", expiresAt: Date.now() + 3_600_000 }));
 
@@ -59,8 +44,7 @@ function renderApp(path: string, recent: unknown = { since: hoursAgo(72), events
   const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
     if (url === "/api/health") return Response.json({ status: "ok" });
     if (url === "/api/config") return Response.json({ auth: { domain: "https://login.example.com", clientId: "client-1" } });
-    if (url === "/api/theses" && init?.method === "POST") return Response.json({ ...JSON.parse(String(init.body)), ...storedThesis }, { status: 201 });
-    if (url === "/api/theses") return Response.json({ theses: [storedThesis] });
+    if (url === "/api/me") return new Headers(init?.headers).get("x-foresight-token") === "access-1" ? Response.json({ signedIn: true }) : new Response("{}", { status: 401 });
     if (url === "/api/recent") return status === 200 ? Response.json(recent) : new Response("boom", { status });
     return new Response("not found", { status: 404 });
   });
@@ -172,49 +156,20 @@ describe("Knowledge base", () => {
   });
 });
 
-describe("Theses", () => {
+describe("Login", () => {
   afterEach(() => sessionStorage.clear());
 
-  it("offers no Thesis form to a visitor, only a login button", async () => {
-    renderApp("/region/middle-east");
+  it("offers a login button to a visitor", async () => {
+    renderApp("/");
 
     expect(await screen.findByRole("button", { name: "Zaloguj" })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Postaw Tezę" })).toBeNull();
-    expect(screen.queryByRole("link", { name: "Moje Tezy" })).toBeNull();
   });
 
-  it("lets the owner place a Thesis under an Event and sends it with the token and body hash", async () => {
+  it("confirms the owner session against the API and offers logout", async () => {
     signInAsOwner();
-    const { fetchMock } = renderApp("/region/middle-east");
+    renderApp("/");
 
-    fireEvent.click(await screen.findByRole("button", { name: "Postaw Tezę" }));
-    const form = screen.getByRole("form", { name: "Nowa Teza" });
-    fireEvent.change(within(form).getByLabelText("Instrument"), { target: { value: "BNO" } });
-    fireEvent.click(within(form).getByLabelText("Wzrost"));
-    fireEvent.change(within(form).getByLabelText("Horyzont"), { target: { value: "30" } });
-    fireEvent.change(within(form).getByLabelText("Uzasadnienie"), { target: { value: "Ormuz to wąskie gardło, ryzyko podbije Brenta." } });
-    fireEvent.click(within(form).getByRole("button", { name: "Zapisz Tezę" }));
-
-    expect(await screen.findByRole("button", { name: /Teza zapisana/ })).toBeInTheDocument();
-    const post = fetchMock.mock.calls.find(([url, init]) => url === "/api/theses" && init?.method === "POST");
-    const headers = new Headers(post?.[1]?.headers);
-    expect(headers.get("x-foresight-token")).toBe("access-1");
-    expect(headers.get("x-amz-content-sha256")).toMatch(/^[a-f0-9]{64}$/);
-    expect(JSON.parse(String(post?.[1]?.body))).toEqual({
-      eventId: hormuz.id,
-      instrument: "BNO",
-      direction: "up",
-      horizonDays: 30,
-      rationale: "Ormuz to wąskie gardło, ryzyko podbije Brenta.",
-    });
-  });
-
-  it("shows the owner's Theses on their page and in the matching Region dossier", async () => {
-    signInAsOwner();
-    renderApp("/theses");
-
-    expect(await screen.findByRole("heading", { name: "Moje Tezy" })).toBeInTheDocument();
-    expect(await screen.findByText("Ropa Brent (BNO)")).toBeInTheDocument();
-    expect(screen.getByText(/Otwarta · rozstrzygnięcie/)).toBeInTheDocument();
+    expect(await screen.findByText("Właściciel")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Wyloguj" })).toBeInTheDocument();
   });
 });

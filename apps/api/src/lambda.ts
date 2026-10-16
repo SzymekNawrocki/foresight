@@ -6,7 +6,6 @@ import { handle } from "hono/aws-lambda";
 import { createApi } from "./app.js";
 import { cognitoVerifier } from "./auth.js";
 import { DynamoEventReader } from "./dynamo-events.js";
-import { DynamoThesisStore } from "./dynamo-theses.js";
 import { createWebApp } from "./web.js";
 
 const env = (name: string) => {
@@ -22,7 +21,6 @@ const clientId = env("USER_POOL_CLIENT_ID");
 
 const api = createApi({
   events: new DynamoEventReader(ddb, env("EVENTS_TABLE_NAME")),
-  theses: new DynamoThesisStore(ddb, env("THESES_TABLE_NAME")),
   auth: {
     verifier: cognitoVerifier(env("USER_POOL_ID"), clientId),
     config: { domain: env("AUTH_DOMAIN"), clientId },

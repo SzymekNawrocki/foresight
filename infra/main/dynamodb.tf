@@ -70,28 +70,3 @@ resource "aws_dynamodb_table" "events" {
   }
 }
 
-# Theses of the owner (slice 06). Private: only the web Lambda reads and writes them, always
-# under the caller's Cognito `sub`. Model: docs/data-model.md.
-# nosemgrep: terraform.aws.security.aws-dynamodb-table-unencrypted.aws-dynamodb-table-unencrypted
-resource "aws_dynamodb_table" "theses" {
-  #checkov:skip=CKV_AWS_28:Point-in-time recovery is billed per GB (0 PLN); see docs/data-model.md for the backup trade-off
-  #checkov:skip=CKV_AWS_119:Customer-managed KMS key costs ~1 USD/month (0 PLN); data is encrypted with an AWS-owned key anyway
-  #checkov:skip=CKV2_AWS_16:Auto scaling creates CloudWatch alarms; fixed capacity is sized for always free
-  name                        = "foresight-${var.environment}-theses"
-  billing_mode                = "PROVISIONED"
-  read_capacity               = 3
-  write_capacity              = 3
-  hash_key                    = "owner"
-  range_key                   = "id"
-  deletion_protection_enabled = true
-
-  attribute {
-    name = "owner"
-    type = "S"
-  }
-
-  attribute {
-    name = "id"
-    type = "S"
-  }
-}

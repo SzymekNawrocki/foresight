@@ -5,7 +5,6 @@ import { handler } from "./lambda.js";
 
 vi.hoisted(() => {
   process.env.EVENTS_TABLE_NAME = "test-events";
-  process.env.THESES_TABLE_NAME = "test-theses";
   process.env.USER_POOL_ID = "eu-central-1_test";
   process.env.USER_POOL_CLIENT_ID = "test-client";
   process.env.AUTH_DOMAIN = "https://login.example.com";

@@ -1,4 +1,4 @@
-import { ConfigResponse, EventsResponse, HealthResponse, type NewThesis, RecentResponse, ThesesResponse, Thesis } from "@foresight/shared";
+import { ConfigResponse, EventsResponse, HealthResponse, MeResponse, RecentResponse } from "@foresight/shared";
 import { authedFetch } from "./session.js";
 
 export async function fetchHealth(): Promise<HealthResponse> {
@@ -25,14 +25,8 @@ export async function fetchConfig(): Promise<ConfigResponse> {
   return ConfigResponse.parse(await res.json());
 }
 
-export async function fetchTheses(): Promise<ThesesResponse> {
-  const res = await authedFetch("/api/theses");
-  if (!res.ok) throw new Error(`GET /api/theses → ${res.status}`);
-  return ThesesResponse.parse(await res.json());
-}
-
-export async function postThesis(thesis: NewThesis): Promise<Thesis> {
-  const res = await authedFetch("/api/theses", { method: "POST", body: JSON.stringify(thesis) });
-  if (!res.ok) throw new Error(`POST /api/theses → ${res.status}`);
-  return Thesis.parse(await res.json());
+export async function fetchMe(): Promise<MeResponse> {
+  const res = await authedFetch("/api/me");
+  if (!res.ok) throw new Error(`GET /api/me → ${res.status}`);
+  return MeResponse.parse(await res.json());
 }
