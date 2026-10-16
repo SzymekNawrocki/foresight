@@ -41,3 +41,4 @@ DynamoDB is always free only in **provisioned** mode: 25 RCU + 25 WCU and 25 GB 
 Load: ~100 puts per hourly run (one WCU each, item < 1 KB, a failed condition still consumes it); a few reads per page view. ~400 B per item → well under 1 GB per year. A single `kind` partition on the GSI is fine at this volume.
 
 No auto scaling (it creates CloudWatch alarms). Retention / TTL is out of scope for 02.
+

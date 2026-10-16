@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link, Outlet } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { fetchHealth } from "./api.js";
+import { AuthButton } from "./auth-ui.js";
 import { TOPIC_LABEL } from "./labels.js";
 
 const clock = new Intl.DateTimeFormat("pl-PL", {
@@ -51,7 +52,10 @@ export function Shell() {
         </span>
         <div className="flex flex-col items-end gap-1 text-[11px] text-dim">
           <UtcClock />
-          <LinkStatus />
+          <span className="flex gap-4">
+            <LinkStatus />
+            <AuthButton />
+          </span>
         </div>
       </header>
 

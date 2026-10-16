@@ -1,4 +1,5 @@
 export { Analysis, AnalyzedEvent, analysisJsonSchema, Branch, Region, Scenario, Topic, Weight } from "./analysis.js";
+export { ConfigResponse, MeResponse } from "./config.js";
 export { Event } from "./event.js";
 export { EventsResponse } from "./events-response.js";
 export { HealthResponse } from "./health.js";

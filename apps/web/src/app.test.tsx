@@ -2,7 +2,7 @@ import type { AnalyzedEvent } from "@foresight/shared";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createMemoryHistory, RouterProvider } from "@tanstack/react-router";
 import { render, screen, within } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { createAppRouter } from "./router.js";
 
 const hoursAgo = (h: number) => new Date(Date.now() - h * 3_600_000).toISOString();
@@ -37,9 +37,14 @@ const pending: AnalyzedEvent = {
   fetchedAt: hoursAgo(0),
 };
 
+const signInAsOwner = () =>
+  sessionStorage.setItem("foresight.session", JSON.stringify({ accessToken: "access-1", expiresAt: Date.now() + 3_600_000 }));
+
 function renderApp(path: string, recent: unknown = { since: hoursAgo(72), events: [hormuz, pending] }, status = 200) {
-  const fetchMock = vi.fn(async (url: string) => {
+  const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
     if (url === "/api/health") return Response.json({ status: "ok" });
+    if (url === "/api/config") return Response.json({ auth: { domain: "https://login.example.com", clientId: "client-1" } });
+    if (url === "/api/me") return new Headers(init?.headers).get("x-foresight-token") === "access-1" ? Response.json({ signedIn: true }) : new Response("{}", { status: 401 });
     if (url === "/api/recent") return status === 200 ? Response.json(recent) : new Response("boom", { status });
     return new Response("not found", { status: 404 });
   });
@@ -148,5 +153,23 @@ describe("Knowledge base", () => {
     renderApp("/region/atlantis");
 
     expect(await screen.findByText("Brak takich akt")).toBeInTheDocument();
+  });
+});
+
+describe("Login", () => {
+  afterEach(() => sessionStorage.clear());
+
+  it("offers a login button to a visitor", async () => {
+    renderApp("/");
+
+    expect(await screen.findByRole("button", { name: "Zaloguj" })).toBeInTheDocument();
+  });
+
+  it("confirms the owner session against the API and offers logout", async () => {
+    signInAsOwner();
+    renderApp("/");
+
+    expect(await screen.findByText("Właściciel")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Wyloguj" })).toBeInTheDocument();
   });
 });

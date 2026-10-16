@@ -40,3 +40,21 @@ New trust boundary: **the LLM answer is untrusted too** — it was produced from
 | **D**enial of service / cost | Burst of Events exhausts the free Groq quota (≈ 8K tokens/min, 200K/day) | Max 10 calls per run, 12 s pause, a 429 ends the run; unanalyzed Events wait for the next run; free plan cannot bill (0 PLN) | `batch.ts` |
 | **D**enial of service | Groq slow or down | 30 s timeout; failures leave the Event pending, ingest itself is unaffected | `groq.ts`, `handler.ts` |
 | **R**epudiation | No trace of what the model said | Per-run report (analyzed / failed / stopped on 429); the stored Analysis is the record | `batch.ts` |
+
+## Slice 06 — owner login
+
+```
+browser ──PKCE──► Cognito managed login ──code──► browser ──token in x-foresight-token──► CloudFront ──OAC──► Lambda web
+```
+
+Nothing the owner can change exists yet (Theses were dropped, ADR 0008); decisions on Threads come in slice 10 and reuse this chain.
+
+| STRIDE | Threat | Mitigation | Where |
+|---|---|---|---|
+| **S**poofing | Someone signs up or guesses their way in | No self sign-up (admin creates the one account), 14+ char password policy, optional TOTP; Cognito hides whether a user exists | `cognito.tf` |
+| **S**poofing | Stolen authorization code reused | Authorization Code + PKCE (S256), public client without a secret, callback only to the app URL | `cognito.tf`, `session.ts` |
+| **S**poofing | Login CSRF (attacker's code injected into the owner's browser) | Random `state` checked on the callback before the code is exchanged | `session.ts` |
+| **S**poofing | Forged or expired token | Every owner route (`/api/me` now) verified against the pool's keys (`aws-jwt-verify`: signature, expiry, issuer, client, `token_use=access`) | `auth.ts` |
+| **I**nformation disclosure | Owner responses cached by CloudFront or the browser | Default behavior `CachingDisabled` (tested), `Cache-Control: no-store` on owner routes | `cdn.tf`, `app.ts` |
+| **I**nformation disclosure | Token stolen via XSS | All feed / LLM text rendered as text; token only in this tab's `sessionStorage`, valid ≤ 1 h. Accepted risk: no CSP yet (a later hardening issue) | `session.ts` |
+| **E**levation of privilege | Web role abused to read or wipe data | Events: Query on `latest` only — no Scan, no writes (tested) | `lambda.tf` |

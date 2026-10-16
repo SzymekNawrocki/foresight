@@ -134,7 +134,11 @@ export function RegionPage({ region }: { region: Region }) {
   return (
     <Status query={recent}>
       {(events) => (
-        <Dossier kind="Region" name={REGION_LABEL[region]} events={events.filter((e) => e.analysis?.regions.includes(region))} />
+        <Dossier
+          kind="Region"
+          name={REGION_LABEL[region]}
+          events={events.filter((e) => e.analysis?.regions.includes(region))}
+        />
       )}
     </Status>
   );
@@ -145,7 +149,11 @@ export function TopicPage({ topic }: { topic: Topic }) {
   return (
     <Status query={recent}>
       {(events) => (
-        <Dossier kind="Temat" name={TOPIC_LABEL[topic]} events={events.filter((e) => e.analysis?.topics.includes(topic))} />
+        <Dossier
+          kind="Temat"
+          name={TOPIC_LABEL[topic]}
+          events={events.filter((e) => e.analysis?.topics.includes(topic))}
+        />
       )}
     </Status>
   );
@@ -162,3 +170,4 @@ export function NotFoundPage() {
     </div>
   );
 }
+
