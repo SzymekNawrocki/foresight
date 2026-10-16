@@ -15,3 +15,6 @@ aws_lambda_function_url                # no charge beyond Lambda invocations
 aws_lambda_permission                  # configuration only, no charge
 aws_resourcegroups_group               # Resource Groups are free
 aws_scheduler_schedule                 # EventBridge Scheduler: 14M invocations / month free; hourly = ~720
+aws_cognito_user_pool                  # Essentials/Lite: 10,000 MAU / month free, does not expire; no Plus add-ons, no SMS
+aws_cognito_user_pool_client           # configuration only, no charge
+aws_cognito_user_pool_domain           # Cognito prefix domain, no charge (no custom domain / certificate)

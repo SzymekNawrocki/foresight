@@ -59,16 +59,27 @@ resource "aws_iam_role_policy" "web_logs" {
   policy = data.aws_iam_policy_document.web_logs.json
 }
 
-# GET /api/events: Query on the `latest` index only — no base table, no Scan, no writes.
+# Events: Query on the `latest` index and GetItem of one Event (when a Thesis is placed) — no
+# Scan, no writes. Theses: read and write the table; the code keys every call by the caller.
 data "aws_iam_policy_document" "web_events" {
   statement {
     actions   = ["dynamodb:Query"]
     resources = ["${aws_dynamodb_table.events.arn}/index/latest"]
   }
+
+  statement {
+    actions   = ["dynamodb:GetItem"]
+    resources = [aws_dynamodb_table.events.arn]
+  }
+
+  statement {
+    actions   = ["dynamodb:Query", "dynamodb:PutItem"]
+    resources = [aws_dynamodb_table.theses.arn]
+  }
 }
 
 resource "aws_iam_role_policy" "web_events" {
-  name   = "read-latest-events"
+  name   = "events-and-theses"
   role   = aws_iam_role.web.id
   policy = data.aws_iam_policy_document.web_events.json
 }
@@ -82,7 +93,7 @@ resource "aws_lambda_function" "web" {
   #checkov:skip=CKV_AWS_116:Invoked synchronously through the Function URL; a DLQ only applies to async invocations
   #checkov:skip=CKV_AWS_117:No private resources to reach; a VPC with outbound internet needs a paid NAT gateway (0 PLN)
   #checkov:skip=CKV_AWS_272:The ZIP is signed with cosign and verified in deploy.yml before upload (#18)
-  #checkov:skip=CKV_AWS_173:EVENTS_TABLE_NAME is not a secret; AWS encrypts environment variables at rest by default
+  #checkov:skip=CKV_AWS_173:Table names, user pool and client ids are public identifiers, not secrets; AWS encrypts environment variables at rest by default
   function_name = local.web_function_name
   role          = aws_iam_role.web.arn
   runtime       = "nodejs24.x"
@@ -98,7 +109,11 @@ resource "aws_lambda_function" "web" {
   # nosemgrep: terraform.aws.security.aws-lambda-environment-unencrypted.aws-lambda-environment-unencrypted
   environment {
     variables = {
-      EVENTS_TABLE_NAME = aws_dynamodb_table.events.name
+      EVENTS_TABLE_NAME   = aws_dynamodb_table.events.name
+      THESES_TABLE_NAME   = aws_dynamodb_table.theses.name
+      USER_POOL_ID        = aws_cognito_user_pool.owner.id
+      USER_POOL_CLIENT_ID = aws_cognito_user_pool_client.web.id
+      AUTH_DOMAIN         = local.auth_domain
     }
   }
 

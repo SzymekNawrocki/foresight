@@ -36,8 +36,28 @@ DynamoDB is always free only in **provisioned** mode: 25 RCU + 25 WCU and 25 GB 
 | Table | 5 | 5 |
 | GSI `latest` | 5 | 5 |
 | GSI `pending` | 5 | 5 |
-| **Total** (limit 25 / 25) | 15 | 15 |
+| Table `theses` (06) | 3 | 3 |
+| **Total** (limit 25 / 25) | 18 | 18 |
 
 Load: ~100 puts per hourly run (one WCU each, item < 1 KB, a failed condition still consumes it); a few reads per page view. ~400 B per item → well under 1 GB per year. A single `kind` partition on the GSI is fine at this volume.
 
 No auto scaling (it creates CloudWatch alarms). Retention / TTL is out of scope for 02.
+
+## `theses` table (DynamoDB, slice 06)
+
+One item per Thesis (CONTEXT.md: Teza). Private to the owner.
+
+| Attribute | Type | Notes |
+|---|---|---|
+| `owner` | S | **Partition key.** Cognito `sub` of the author, taken from the verified access token — never from the request body. |
+| `id` | S | **Sort key.** `<createdAt ISO>#<8 random hex>`: sortable by time, unique. |
+| `eventId`, `eventTitle` | S | The Event the Thesis was placed under (title copied, so the Thesis survives Event clean-up). |
+| `instrument`, `direction`, `horizonDays`, `rationale` | S/S/N/S | What the owner chose (`NewThesis` in `packages/shared/src/thesis.ts`). |
+| `regions`, `topics` | L | Copied from the Event's Analysis on the server, for accuracy per Region / Topic (07). |
+| `createdAt`, `resolveAt`, `status` | S | `resolveAt = createdAt + Horizon`; `status` = `open` until slice 07 resolves it. |
+
+| Pattern | How |
+|---|---|
+| Place a Thesis | `PutItem` with `attribute_not_exists(id)` (web role) |
+| Owner's Theses, newest first | `Query owner = :sub`, `ScanIndexForward = false` (web role) |
+| Read one Event when placing | `GetItem` on `events` (web role; no Scan) |

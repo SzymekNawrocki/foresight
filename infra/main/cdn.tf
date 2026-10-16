@@ -65,9 +65,10 @@ resource "aws_cloudfront_distribution" "web" { # nosemgrep: terraform.aws.securi
   }
 
   default_cache_behavior {
-    target_origin_id           = local.web_origin_id
-    viewer_protocol_policy     = "redirect-to-https"
-    allowed_methods            = ["GET", "HEAD"]
+    target_origin_id       = local.web_origin_id
+    viewer_protocol_policy = "redirect-to-https"
+    # POST for Theses (slice 06). OAC needs the viewer to send x-amz-content-sha256 of the body.
+    allowed_methods            = ["DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"]
     cached_methods             = ["GET", "HEAD"]
     cache_policy_id            = data.aws_cloudfront_cache_policy.caching_disabled.id
     origin_request_policy_id   = data.aws_cloudfront_origin_request_policy.all_viewer_except_host.id

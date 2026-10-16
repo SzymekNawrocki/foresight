@@ -48,15 +48,23 @@ run "ingest_runs_hourly_without_retries" {
   }
 }
 
-run "web_reads_only_the_latest_index" {
+run "web_reads_events_narrowly_and_owns_only_theses" {
   command = plan
 
-  # The table ARN is computed; give it a fixed value already at plan time.
+  # Table ARNs are computed; give them fixed values already at plan time.
   override_resource {
     target          = aws_dynamodb_table.events
     override_during = plan
     values = {
       arn = "arn:aws:dynamodb:eu-central-1:123456789012:table/foresight-prod-events"
+    }
+  }
+
+  override_resource {
+    target          = aws_dynamodb_table.theses
+    override_during = plan
+    values = {
+      arn = "arn:aws:dynamodb:eu-central-1:123456789012:table/foresight-prod-theses"
     }
   }
 
@@ -66,18 +74,29 @@ run "web_reads_only_the_latest_index" {
   }
 
   assert {
-    condition     = length(data.aws_iam_policy_document.web_events.statement) == 1
-    error_message = "The web role gets exactly one DynamoDB statement."
+    condition     = length(data.aws_iam_policy_document.web_events.statement) == 3
+    error_message = "Three statements: latest index, one Event, Theses."
   }
 
   assert {
-    condition     = data.aws_iam_policy_document.web_events.statement[0].actions == toset(["dynamodb:Query"])
-    error_message = "The web role may only Query — no Scan, GetItem or writes."
+    condition = (
+      data.aws_iam_policy_document.web_events.statement[0].actions == toset(["dynamodb:Query"]) &&
+      data.aws_iam_policy_document.web_events.statement[0].resources == toset(["${aws_dynamodb_table.events.arn}/index/latest"])
+    )
+    error_message = "Events may be queried only through the `latest` index."
   }
 
   assert {
-    condition     = data.aws_iam_policy_document.web_events.statement[0].resources == toset(["${aws_dynamodb_table.events.arn}/index/latest"])
-    error_message = "The web role may only read the `latest` index, not the base table."
+    condition     = data.aws_iam_policy_document.web_events.statement[1].actions == toset(["dynamodb:GetItem"])
+    error_message = "The base events table: GetItem only — no Scan, no writes."
+  }
+
+  assert {
+    condition = (
+      data.aws_iam_policy_document.web_events.statement[2].actions == toset(["dynamodb:Query", "dynamodb:PutItem"]) &&
+      data.aws_iam_policy_document.web_events.statement[2].resources == toset([aws_dynamodb_table.theses.arn])
+    )
+    error_message = "Theses: Query and PutItem on the theses table only — no Scan, no deletes."
   }
 }
 
