@@ -3,7 +3,8 @@ import { type DynamoDBDocumentClient, PutCommand } from "@aws-sdk/lib-dynamodb";
 import type { Event } from "@foresight/shared";
 import type { EventStore } from "./store.js";
 
-// Data model: docs/data-model.md. `kind` is the partition key of the index for "latest Events".
+// Data model: docs/data-model.md. `kind` keys the "latest Events" index; `pending` keys the sparse
+// index of Events still waiting for their Analysis (removed once the Analysis is saved).
 export class DynamoEventStore implements EventStore {
   constructor(
     private readonly client: DynamoDBDocumentClient,
@@ -15,7 +16,7 @@ export class DynamoEventStore implements EventStore {
       await this.client.send(
         new PutCommand({
           TableName: this.tableName,
-          Item: { ...event, kind: "EVENT" },
+          Item: { ...event, kind: "EVENT", pending: "EVENT" },
           ConditionExpression: "attribute_not_exists(id)",
         }),
       );

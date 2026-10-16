@@ -18,13 +18,13 @@ const event = {
 describe("DynamoEventStore", () => {
   beforeEach(() => ddb.reset());
 
-  it("writes the Event only if its id is not taken yet", async () => {
+  it("writes the Event only if its id is not taken yet, marked as waiting for Analysis", async () => {
     ddb.on(PutCommand).resolves({});
 
     await expect(store().putIfAbsent(event)).resolves.toBe(true);
     expect(ddb.commandCalls(PutCommand)[0]?.args[0].input).toEqual({
       TableName: "events",
-      Item: { ...event, kind: "EVENT" },
+      Item: { ...event, kind: "EVENT", pending: "EVENT" },
       ConditionExpression: "attribute_not_exists(id)",
     });
   });

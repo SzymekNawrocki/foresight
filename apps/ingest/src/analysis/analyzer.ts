@@ -12,3 +12,8 @@ export interface Analyzer {
 export interface AnalysisStore {
   saveAnalysis(eventId: string, analysis: Analysis): Promise<void>;
 }
+
+export interface AnalysisQueue extends AnalysisStore {
+  /** The newest Events that have no Analysis yet. */
+  pending(limit: number): Promise<Event[]>;
+}
