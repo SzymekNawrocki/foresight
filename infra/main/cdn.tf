@@ -11,6 +11,12 @@ data "aws_cloudfront_cache_policy" "caching_disabled" {
   name = "Managed-CachingDisabled"
 }
 
+# Honors the origin Cache-Control (max-age), so only /api/recent — public and changing at most
+# hourly — is cached at the edge.
+data "aws_cloudfront_cache_policy" "caching_optimized" {
+  name = "Managed-CachingOptimized"
+}
+
 # Host widza nie może trafić do originu — Function URL odrzuca obcy Host.
 # HSTS, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, X-XSS-Protection — free.
 data "aws_cloudfront_response_headers_policy" "security_headers" {
@@ -65,6 +71,17 @@ resource "aws_cloudfront_distribution" "web" { # nosemgrep: terraform.aws.securi
     cached_methods             = ["GET", "HEAD"]
     cache_policy_id            = data.aws_cloudfront_cache_policy.caching_disabled.id
     origin_request_policy_id   = data.aws_cloudfront_origin_request_policy.all_viewer_except_host.id
+    response_headers_policy_id = data.aws_cloudfront_response_headers_policy.security_headers.id
+    compress                   = true
+  }
+
+  ordered_cache_behavior {
+    path_pattern               = "/api/recent"
+    target_origin_id           = local.web_origin_id
+    viewer_protocol_policy     = "redirect-to-https"
+    allowed_methods            = ["GET", "HEAD"]
+    cached_methods             = ["GET", "HEAD"]
+    cache_policy_id            = data.aws_cloudfront_cache_policy.caching_optimized.id
     response_headers_policy_id = data.aws_cloudfront_response_headers_policy.security_headers.id
     compress                   = true
   }

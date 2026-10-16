@@ -2,3 +2,4 @@ export { Analysis, AnalyzedEvent, analysisJsonSchema, Branch, Region, Scenario, 
 export { Event } from "./event.js";
 export { EventsResponse } from "./events-response.js";
 export { HealthResponse } from "./health.js";
+export { RecentResponse } from "./recent-response.js";

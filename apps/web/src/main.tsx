@@ -1,8 +1,9 @@
+import "./styles.css";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { RouterProvider } from "@tanstack/react-router";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import { EventList } from "./EventList.js";
-import { HealthStatus } from "./HealthStatus.js";
+import { createAppRouter } from "./router.js";
 
 const root = document.getElementById("root");
 if (!root) throw new Error("Brak elementu #root");
@@ -10,12 +11,7 @@ if (!root) throw new Error("Brak elementu #root");
 createRoot(root).render(
   <StrictMode>
     <QueryClientProvider client={new QueryClient()}>
-      <main>
-        <h1>Foresight</h1>
-        <HealthStatus />
-        <h2>Najnowsze Zdarzenia</h2>
-        <EventList />
-      </main>
+      <RouterProvider router={createAppRouter()} />
     </QueryClientProvider>
   </StrictMode>,
 );

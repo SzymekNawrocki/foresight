@@ -1,4 +1,4 @@
-import { type DynamoDBDocumentClient, QueryCommand } from "@aws-sdk/lib-dynamodb";
+import { type DynamoDBDocumentClient, QueryCommand, type QueryCommandInput } from "@aws-sdk/lib-dynamodb";
 import { Analysis, type AnalyzedEvent, Event } from "@foresight/shared";
 import type { EventReader } from "./events.js";
 
@@ -21,13 +21,37 @@ export class DynamoEventReader implements EventReader {
         Limit: limit,
       }),
     );
-    // Items came from feeds and the LLM (untrusted): only what still matches the contract reaches
-    // the page. A broken Analysis is dropped on its own, so the Event still shows.
-    return Items.flatMap((item): AnalyzedEvent[] => {
-      const event = Event.safeParse(item);
-      if (!event.success) return [];
-      const analysis = Analysis.safeParse(item.analysis);
-      return [analysis.success ? { ...event.data, analysis: analysis.data } : event.data];
-    });
+    return Items.flatMap(toAnalyzedEvent);
   }
+
+  async since(since: string, max: number) {
+    const events: AnalyzedEvent[] = [];
+    let startKey: QueryCommandInput["ExclusiveStartKey"];
+    do {
+      const page = await this.client.send(
+        new QueryCommand({
+          TableName: this.tableName,
+          IndexName: "latest",
+          KeyConditionExpression: "#kind = :kind AND publishedAt >= :since",
+          ExpressionAttributeNames: { "#kind": "kind" },
+          ExpressionAttributeValues: { ":kind": "EVENT", ":since": since },
+          ScanIndexForward: false,
+          Limit: max - events.length,
+          ExclusiveStartKey: startKey,
+        }),
+      );
+      events.push(...(page.Items ?? []).flatMap(toAnalyzedEvent));
+      startKey = page.LastEvaluatedKey;
+    } while (startKey && events.length < max);
+    return events;
+  }
+}
+
+// Items came from feeds and the LLM (untrusted): only what still matches the contract reaches
+// the page. A broken Analysis is dropped on its own, so the Event still shows.
+function toAnalyzedEvent(item: Record<string, unknown>): AnalyzedEvent[] {
+  const event = Event.safeParse(item);
+  if (!event.success) return [];
+  const analysis = Analysis.safeParse(item.analysis);
+  return [analysis.success ? { ...event.data, analysis: analysis.data } : event.data];
 }

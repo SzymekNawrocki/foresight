@@ -67,6 +67,25 @@ describe("DynamoEventReader", () => {
     await expect(reader().latest(20)).resolves.toEqual([event]);
   });
 
+  it("pages through the `latest` index back to a given time, up to a maximum", async () => {
+    ddb
+      .on(QueryCommand)
+      .resolvesOnce({ Items: [event], LastEvaluatedKey: { id: "x" } })
+      .resolvesOnce({ Items: [{ ...event, id: "f".repeat(32) }] });
+
+    const events = await reader().since("2026-10-09T12:00:00.000Z", 500);
+
+    expect(events.map((e) => e.id)).toEqual([event.id, "f".repeat(32)]);
+    const calls = ddb.commandCalls(QueryCommand).map((c) => c.args[0].input);
+    expect(calls[0]).toMatchObject({
+      IndexName: "latest",
+      KeyConditionExpression: "#kind = :kind AND publishedAt >= :since",
+      ExpressionAttributeValues: { ":kind": "EVENT", ":since": "2026-10-09T12:00:00.000Z" },
+      ScanIndexForward: false,
+    });
+    expect(calls[1]?.ExclusiveStartKey).toEqual({ id: "x" });
+  });
+
   it("returns an empty list when the query has no Items", async () => {
     ddb.on(QueryCommand).resolves({});
 
