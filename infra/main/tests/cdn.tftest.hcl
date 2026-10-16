@@ -32,3 +32,17 @@ run "lambda_reachable_only_through_cloudfront" {
     error_message = "Responses must carry the managed security headers (HSTS, X-Frame-Options, nosniff)."
   }
 }
+
+run "only_public_recent_events_are_cached_at_the_edge" {
+  command = plan
+
+  assert {
+    condition     = aws_cloudfront_distribution.web.default_cache_behavior[0].cache_policy_id == data.aws_cloudfront_cache_policy.caching_disabled.id
+    error_message = "Everything is uncached by default — private data must never sit in a shared cache."
+  }
+
+  assert {
+    condition     = [for b in aws_cloudfront_distribution.web.ordered_cache_behavior : b.path_pattern] == ["/api/recent"]
+    error_message = "Only /api/recent (public, changes hourly) may be cached."
+  }
+}
