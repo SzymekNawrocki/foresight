@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Trimmed from https://www.eetimes.com/feed/ on 2026-10-16: three items, title/link/date only. -->
+<rss version="2.0">
+  <channel>
+    <title>ee-times</title>
+    <item>
+      <title>Data Center Power a Prominent Highlight of OCP 2026</title>
+      <link>https://www.eetimes.com/data-center-power-a-prominent-highlight-of-ocp-2026/</link>
+      <pubDate>Fri, 16 Oct 2026 15:00:00 +0000</pubDate>
+    </item>
+    <item>
+      <title>Taiwan’s AI Ambitions Run into Talent Gap</title>
+      <link>https://www.eetimes.com/taiwans-ai-ambitions-run-into-talent-gap/</link>
+      <pubDate>Fri, 16 Oct 2026 10:55:42 +0000</pubDate>
+    </item>
+    <item>
+      <title>Your Chip Works. Prove It Is Secure.</title>
+      <link>https://www.eetimes.com/your-chip-works-prove-it-is-secure/</link>
+      <pubDate>Fri, 16 Oct 2026 08:37:49 +0000</pubDate>
+    </item>
+  </channel>
+</rss>

@@ -180,7 +180,10 @@ Pierwsza funkcja produktu: appka sama zbiera Zdarzenia ze Źródeł i pokazuje j
 Bez LLM — Scenariusze to plaster 03.
 
 Źródła (sprawdzone 2026-10-12, publiczne RSS; zapisujemy tylko tytuł, link, datę i Źródło,
-nie treść artykułu): BBC World, Al Jazeera, CNBC World, Notes from Poland.
+nie treść artykułu): BBC World, Al Jazeera, CNBC World, Notes from Poland. Plaster 05 (2026-10-16)
+dodał po jednym Źródle branżowym na słabo pokryty Temat: The Record (Cyber), Breaking Defense
+(Pole walki), SpaceNews (Kosmos), OilPrice (Energia, Surowce), The Diplomat (Azja-Pacyfik),
+MIT Technology Review (AI), EE Times (Półprzewodniki).
 
 - **02a — rdzeń ingestu lokalnie** (TDD, bez AWS): pobranie i parsowanie RSS, normalizacja
   do Zdarzenia, deduplikacja, zapis przez port; model danych DynamoDB; lekki STRIDE.

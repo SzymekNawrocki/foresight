@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Trimmed from https://therecord.media/feed on 2026-10-16: three items, title/link/date only. -->
+<rss version="2.0">
+  <channel>
+    <title>the-record</title>
+    <item>
+      <title>Proofpoint lines up $6.3 billion deal for Varonis’ data security</title>
+      <link>https://therecord.media/proofpoint-varonis-cybersecurity-acquisition</link>
+      <pubDate>Fri, 16 Oct 2026 14:45:00 GMT</pubDate>
+    </item>
+    <item>
+      <title>Moscow police detain suspected DataSuckers hackers linked to breaches in Ukraine and Russia</title>
+      <link>https://therecord.media/russia-datasuckers-hackers-arrested</link>
+      <pubDate>Fri, 16 Oct 2026 13:30:00 GMT</pubDate>
+    </item>
+    <item>
+      <title>Baltimore suburb confirms August data breach after ransomware claims</title>
+      <link>https://therecord.media/anne-arundel-county-maryland-confirms-data-breach</link>
+      <pubDate>Fri, 16 Oct 2026 13:05:00 GMT</pubDate>
+    </item>
+  </channel>
+</rss>

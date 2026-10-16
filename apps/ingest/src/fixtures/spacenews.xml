@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Trimmed from https://spacenews.com/feed/ on 2026-10-16: three items, title/link/date only. -->
+<rss version="2.0">
+  <channel>
+    <title>spacenews</title>
+    <item>
+      <title>Oct. 29: Applying AI to the GEOINT Mission</title>
+      <link>https://spacenews.com/applying-ai-to-the-geoint-mission-event/</link>
+      <pubDate>Thu, 15 Oct 2026 20:41:50 +0000</pubDate>
+    </item>
+    <item>
+      <title>How NASA is thinking about a moon base</title>
+      <link>https://spacenews.com/how-nasa-is-thinking-about-a-moon-base/</link>
+      <pubDate>Thu, 15 Oct 2026 15:14:24 +0000</pubDate>
+    </item>
+    <item>
+      <title>Agile Space Industries Expands to Seattle Area with New Bellevue Office</title>
+      <link>https://spacenews.com/agile-space-industries-expands-to-seattle-area-with-new-bellevue-office/</link>
+      <pubDate>Thu, 15 Oct 2026 12:00:00 +0000</pubDate>
+    </item>
+  </channel>
+</rss>
