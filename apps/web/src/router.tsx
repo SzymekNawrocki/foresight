@@ -1,0 +1,59 @@
+import { Region, Topic } from "@foresight/shared";
+import {
+  createRootRoute,
+  createRoute,
+  createRouter,
+  notFound,
+  type RouterHistory,
+} from "@tanstack/react-router";
+import { BriefingPage, NotFoundPage, RegionPage, TopicPage } from "./pages.js";
+import { Shell } from "./Shell.js";
+
+const rootRoute = createRootRoute({ component: Shell, notFoundComponent: NotFoundPage });
+
+const briefingRoute = createRoute({ getParentRoute: () => rootRoute, path: "/", component: BriefingPage });
+
+// Parametry z adresu też są wejściem z zewnątrz: tylko znane Regiony i Tematy, reszta → 404.
+const regionRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/region/$region",
+  params: {
+    parse: ({ region }) => {
+      const parsed = Region.safeParse(region);
+      if (!parsed.success) throw notFound();
+      return { region: parsed.data };
+    },
+    stringify: ({ region }) => ({ region }),
+  },
+  component: function RegionRoute() {
+    return <RegionPage region={regionRoute.useParams().region} />;
+  },
+});
+
+const topicRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/topic/$topic",
+  params: {
+    parse: ({ topic }) => {
+      const parsed = Topic.safeParse(topic);
+      if (!parsed.success) throw notFound();
+      return { topic: parsed.data };
+    },
+    stringify: ({ topic }) => ({ topic }),
+  },
+  component: function TopicRoute() {
+    return <TopicPage topic={topicRoute.useParams().topic} />;
+  },
+});
+
+const routeTree = rootRoute.addChildren([briefingRoute, regionRoute, topicRoute]);
+
+export function createAppRouter(history?: RouterHistory) {
+  return createRouter({ routeTree, ...(history && { history }) });
+}
+
+declare module "@tanstack/react-router" {
+  interface Register {
+    router: ReturnType<typeof createAppRouter>;
+  }
+}
