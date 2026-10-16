@@ -80,3 +80,45 @@ run "web_reads_only_the_latest_index" {
     error_message = "The web role may only read the `latest` index, not the base table."
   }
 }
+
+run "ingest_role_is_scoped_to_the_analysis_queue_and_one_key" {
+  command = plan
+
+  override_resource {
+    target          = aws_dynamodb_table.events
+    override_during = plan
+    values = {
+      arn = "arn:aws:dynamodb:eu-central-1:123456789012:table/foresight-prod-events"
+    }
+  }
+
+  assert {
+    condition     = length(aws_dynamodb_table.events.global_secondary_index) == 2
+    error_message = "Two indexes: `latest` for the page and the sparse `pending` queue for the Analysis."
+  }
+
+  assert {
+    condition     = data.aws_iam_policy_document.ingest.statement[0].actions == toset(["dynamodb:PutItem", "dynamodb:UpdateItem"])
+    error_message = "Ingest writes Events and Analyses — no deletes, no scans."
+  }
+
+  assert {
+    condition     = data.aws_iam_policy_document.ingest.statement[1].resources == toset(["${aws_dynamodb_table.events.arn}/index/pending"])
+    error_message = "Ingest may Query only the `pending` index."
+  }
+
+  assert {
+    condition     = data.aws_iam_policy_document.ingest.statement[2].actions == toset(["ssm:GetParameter"])
+    error_message = "Ingest may only read a parameter, never write one."
+  }
+
+  assert {
+    condition     = endswith(one(data.aws_iam_policy_document.ingest.statement[2].resources), ":parameter/foresight/prod/groq-api-key")
+    error_message = "Ingest may read exactly one parameter: the Groq key."
+  }
+
+  assert {
+    condition     = aws_lambda_function.ingest.timeout >= 300
+    error_message = "The run needs time for up to 10 paced Groq calls."
+  }
+}

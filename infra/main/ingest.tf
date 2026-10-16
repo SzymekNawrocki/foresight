@@ -2,6 +2,10 @@
 # function with a placeholder; the real code comes from the deploy pipeline (ignore_changes).
 locals {
   ingest_function_name = "foresight-${var.environment}-ingest"
+
+  # Created by hand as a SecureString (aws/ssm key), so the value never enters Terraform state:
+  # aws ssm put-parameter --name /foresight/prod/groq-api-key --type SecureString --value <key>
+  groq_key_parameter = "/foresight/${var.environment}/groq-api-key"
 }
 
 data "archive_file" "ingest_placeholder" {
@@ -38,11 +42,23 @@ resource "aws_iam_role" "ingest" {
   assume_role_policy = data.aws_iam_policy_document.lambda_assume.json
 }
 
-# Write new Events and its own logs — nothing else (no reads, no deletes, no other tables).
+# Write new Events, read the Analysis queue, save Analyses, read the one Groq key and write its
+# own logs — nothing else (no scans, no deletes, no other tables or parameters).
 data "aws_iam_policy_document" "ingest" {
   statement {
-    actions   = ["dynamodb:PutItem"]
+    actions   = ["dynamodb:PutItem", "dynamodb:UpdateItem"]
     resources = [aws_dynamodb_table.events.arn]
+  }
+
+  statement {
+    actions   = ["dynamodb:Query"]
+    resources = ["${aws_dynamodb_table.events.arn}/index/pending"]
+  }
+
+  # The aws/ssm key policy lets account principals decrypt through SSM, so no kms:Decrypt here.
+  statement {
+    actions   = ["ssm:GetParameter"]
+    resources = ["arn:aws:ssm:${data.aws_region.current.region}:${data.aws_caller_identity.current.account_id}:parameter${local.groq_key_parameter}"]
   }
 
   statement {
@@ -64,14 +80,15 @@ resource "aws_lambda_function" "ingest" {
   #checkov:skip=CKV_AWS_116:A failed run is logged and the next hour retries; nothing to replay from a DLQ
   #checkov:skip=CKV_AWS_117:Only reaches public feeds and DynamoDB; a VPC with outbound internet needs a paid NAT gateway (0 PLN)
   #checkov:skip=CKV_AWS_272:The ZIP is signed with cosign and verified in deploy.yml before upload (#18)
-  #checkov:skip=CKV_AWS_173:TABLE_NAME is not a secret; AWS encrypts environment variables at rest by default
+  #checkov:skip=CKV_AWS_173:TABLE_NAME and the SSM parameter name are not secrets; AWS encrypts environment variables at rest by default
   function_name = local.ingest_function_name
   role          = aws_iam_role.ingest.arn
   runtime       = "nodejs24.x"
   architectures = ["arm64"]
   memory_size   = 256
-  timeout       = 60
-  handler       = "index.handler"
+  # Up to 10 Groq calls with 12 s pauses after the ingest.
+  timeout = 300
+  handler = "index.handler"
 
   filename         = data.archive_file.ingest_placeholder.output_path
   source_code_hash = data.archive_file.ingest_placeholder.output_base64sha256
@@ -80,7 +97,8 @@ resource "aws_lambda_function" "ingest" {
   # nosemgrep: terraform.aws.security.aws-lambda-environment-unencrypted.aws-lambda-environment-unencrypted
   environment {
     variables = {
-      TABLE_NAME = aws_dynamodb_table.events.name
+      TABLE_NAME         = aws_dynamodb_table.events.name
+      GROQ_KEY_PARAMETER = local.groq_key_parameter
     }
   }
 
@@ -97,6 +115,8 @@ resource "aws_lambda_function" "ingest" {
 }
 
 data "aws_caller_identity" "current" {}
+
+data "aws_region" "current" {}
 
 data "aws_iam_policy_document" "scheduler_assume" {
   statement {
