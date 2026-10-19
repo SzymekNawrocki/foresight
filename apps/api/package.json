@@ -12,17 +12,17 @@
     "@aws-sdk/client-dynamodb": "~3.1142.0",
     "@aws-sdk/lib-dynamodb": "~3.1142.0",
     "@foresight/shared": "workspace:*",
-    "@hono/node-server": "^2.1.1",
+    "@hono/node-server": "^2.1.4",
     "aws-jwt-verify": "^5.2.1",
-    "hono": "^4.13.8"
+    "hono": "^4.13.13"
   },
   "devDependencies": {
-    "@types/node": "^24.13.5",
+    "@types/node": "^24.19.2",
     "aws-sdk-client-mock": "^4.1.0",
     "esbuild": "^0.28.2",
     "fflate": "^0.8.3",
-    "tsx": "^4.23.13",
+    "tsx": "^4.23.15",
     "typescript": "~6.0.3",
-    "vitest": "^5.0.1"
+    "vitest": "^5.0.4"
   }
 }
