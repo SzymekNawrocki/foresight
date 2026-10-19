@@ -12,7 +12,8 @@
     "build:lambda": "pnpm --filter @foresight/web build && pnpm --filter @foresight/api build:lambda && pnpm --filter @foresight/ingest build:lambda",
     "test": "pnpm -r test",
     "typecheck": "pnpm -r typecheck",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "eval": "pnpm --filter @foresight/ingest eval"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
