@@ -59,3 +59,18 @@ export function briefing(events: readonly AnalyzedEvent[], now: Date): Briefing 
     ),
   };
 }
+
+export interface Freshness {
+  text: string;
+  /** No new Event for over 2 h — the hourly worker has likely stopped. */
+  stale: boolean;
+}
+
+/** How long ago the worker last brought an Event (by fetch time, not publication time). */
+export function freshness(events: readonly AnalyzedEvent[], now: Date): Freshness | null {
+  if (events.length === 0) return null;
+  const newest = events.reduce((max, e) => (e.fetchedAt > max ? e.fetchedAt : max), events[0]?.fetchedAt ?? "");
+  const minutes = Math.floor((now.getTime() - Date.parse(newest)) / 60_000);
+  const ago = minutes < 1 ? "przed chwilą" : minutes < 120 ? `${minutes} min temu` : `${Math.floor(minutes / 60)} h temu`;
+  return { text: `ostatnie Zdarzenie: ${ago}`, stale: minutes > 120 };
+}

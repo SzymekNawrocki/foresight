@@ -8,7 +8,7 @@ import { briefing } from "./intel.js";
 import { REGION_LABEL, TOPIC_LABEL } from "./labels.js";
 import { WorldMap } from "./WorldMap.js";
 
-function useRecent() {
+export function useRecent() {
   return useQuery({ queryKey: ["recent"], queryFn: fetchRecent, refetchInterval: 5 * 60_000 });
 }
 

@@ -4,7 +4,9 @@ import { Link, Outlet } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { fetchHealth } from "./api.js";
 import { AuthButton } from "./auth-ui.js";
+import { freshness } from "./intel.js";
 import { TOPIC_LABEL } from "./labels.js";
+import { useRecent } from "./pages.js";
 
 const clock = new Intl.DateTimeFormat("pl-PL", {
   dateStyle: "medium",
@@ -34,6 +36,14 @@ function LinkStatus() {
       {text}
     </span>
   );
+}
+
+// Shares the "recent" query with the pages, so it costs no extra request.
+function Freshness() {
+  const recent = useRecent();
+  const fresh = recent.data ? freshness(recent.data.events, new Date()) : null;
+  if (!fresh) return null;
+  return <span className={fresh.stale ? "text-amber" : undefined}>{fresh.text}</span>;
 }
 
 export function Shell() {
@@ -82,6 +92,11 @@ export function Shell() {
       <main className="pt-6">
         <Outlet />
       </main>
+
+      <footer className="label mt-12 flex flex-wrap gap-x-6 gap-y-1 border-t border-line pt-3 text-[10px] text-dim">
+        <Freshness />
+        <span>Analizy generuje AI na podstawie nagłówków; to nie jest porada inwestycyjna.</span>
+      </footer>
     </div>
   );
 }
