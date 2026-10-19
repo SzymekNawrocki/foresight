@@ -11,6 +11,13 @@ Publiczny kanał wiadomości (RSS), z którego pobierane są Zdarzenia.
 _Avoid_: feed, provider
 _W kodzie_: `Source`
 
+**Poziom Źródła**:
+Wiarygodność Źródła: A — pierwotne (oficjalne komunikaty rządów, organizacji, regulatorów),
+B — rzetelne serwisy (redakcje z korektą i sprostowaniami), C — analizy (think tanki, media
+branżowe). Fakty z A i B, interpretacje z C; tylko A i B mogą zapalić Sygnał ostrzegawczy.
+_Avoid_: ranking, zaufanie, jakość
+_W kodzie_: `SourceTier`
+
 **Zdarzenie**:
 Pojedyncza wiadomość geopolityczna lub rynkowa pobrana ze Źródła, która może wpłynąć na rynki.
 _Avoid_: news, event, artykuł, wpis
@@ -48,9 +55,16 @@ _Avoid_: asset, rynek
 ## Widoki
 
 **Briefing**:
-Strona główna: Wątki z ruchem w ostatnich 24 h (z jednym zdaniem „co się zmieniło”), ciemna
-mapa z liczbą aktywnych Wątków per Region i — dla właściciela — liczba Nowych sytuacji.
+Strona główna: Ruchy z ostatnich 24 h, ciemna mapa z liczbą aktywnych Wątków per Region,
+Wątki aktywne z najbardziej prawdopodobnym Scenariuszem i — dla właściciela — liczba Nowych
+sytuacji.
 _Avoid_: feed, strona główna, przegląd
+
+**Ruch**:
+Zmiana w Wątku warta uwagi: Scenariusz przesunął się na skali Prawdopodobieństwa albo zapalił
+się Sygnał ostrzegawczy. Brak Ruchów w 24 h to też informacja („bez istotnych zmian”).
+_Avoid_: aktualizacja, zmiana, update
+_W kodzie_: `Move`
 
 **Baza wiedzy**:
 Automatyczne strony Regionów, Tematów i Aktorów: Wątki i Zdarzenia z tego obszaru; u Aktora
@@ -78,16 +92,24 @@ _W kodzie_: `ThreadProposal`
 
 **Raport sytuacyjny**:
 Pisany przez AI obraz Wątku: stan teraz, Aktorzy i ich interesy, Scenariusze z Sygnałami
-ostrzegawczymi, narażone Klasy aktywów, wpływ na relacje międzynarodowe, co się zmieniło
-i najbardziej prawdopodobny Scenariusz. Odświeżany najwyżej raz dziennie; każda wersja
-zostaje jako dziennik sytuacji.
+ostrzegawczymi i Prawdopodobieństwem, narażone Klasy aktywów, wpływ na relacje
+międzynarodowe i co się zmieniło. Odświeżany krocząco — Wątek z nowymi Zdarzeniami najwyżej
+raz na 24 h; każda wersja zostaje jako dziennik sytuacji.
 _Avoid_: podsumowanie, summary, analiza
 _W kodzie_: `SituationReport`
 
 **Sygnał ostrzegawczy**:
 Obserwowalna oznaka, że sytuacja idzie w stronę danego Scenariusza („po czym to poznasz”).
+Zapala się, gdy Raport wskaże Zdarzenie-dowód ze Źródła o Poziomie A albo B.
 _Avoid_: wskaźnik, trigger, alert
 _W kodzie_: `WarningSignal`
+
+**Prawdopodobieństwo**:
+Ocena Scenariusza na 7-stopniowej skali słownej (wg ICD 203): prawie wykluczone, bardzo mało
+prawdopodobne, mało prawdopodobne, mniej więcej po równo, prawdopodobne, bardzo prawdopodobne,
+niemal pewne. Bez procentów — model nie jest skalibrowany.
+_Avoid_: procent, szansa, prognoza
+_W kodzie_: `Likelihood`
 
 **Aktor**:
 Państwo albo organizacja z ustalonej listy (~40, np. USA, Chiny, Iran, NATO, UE, OPEC),

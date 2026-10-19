@@ -1,8 +1,10 @@
-# Foresight — SPEC v0.4
+# Foresight — SPEC v0.5
 
 Nazwa: Foresight (dawniej robocza „WarRoom”, zmieniona 2026-09-23). Ustalenia z sesji grillingu
 2026-09-15; kierunek produktu zmieniony w grillingu 2026-10-13 ([ADR 0007](docs/adr/0007-intelligence-hub-not-just-a-game.md))
 i ponownie 2026-10-16 — Wątki zamiast Tez ([ADR 0008](docs/adr/0008-threads-instead-of-theses.md)).
+Po starcie MVP grilling 2026-10-19 doprecyzował kierunek świata, Poziomy Źródeł i budżet tokenów
+([ADR 0009](docs/adr/0009-tracked-signals-and-token-budget.md)).
 
 Appka jest **publicznym narzędziem do śledzenia sytuacji geopolitycznych**: Wątki z Raportami
 sytuacyjnymi, Briefing „co się ruszyło”, Baza wiedzy po Regionach, Tematach i Aktorach.
@@ -26,21 +28,28 @@ Słownik domeny: `CONTEXT.md`. Decyzje trudne do odwrócenia: `docs/adr/`.
 Przecięcie trzech osi: **geostrategia × tech × rynki**. Główna czynność: rano otwierasz Briefing,
 widzisz, które sytuacje się ruszyły i jak, i wchodzisz w Raport sytuacyjny Wątku, który cię
 obchodzi. Foresight nie ocenia, czy ktoś miał rację — pokazuje, jak zmieniała się sytuacja.
+Kierunek świata to **ruch między Scenariuszami w czasie**: Sygnały ostrzegawcze zapalają się
+na podstawie Zdarzeń, a Prawdopodobieństwo Scenariuszy przesuwa się na skali.
 
-1. **Ingest** — co godzinę Zdarzenia z 11 Źródeł (światowe + po jednym branżowym na Temat).
-2. **Analiza AI (meldunek)** — paczki po 5 Zdarzeń w jednym wywołaniu LLM, po polsku: Regiony,
+1. **Ingest** — co godzinę Zdarzenia ze Źródeł z Poziomem A (oficjalne), B (rzetelne serwisy)
+   albo C (analizy). Fakty z A i B, interpretacje z C.
+2. **Analiza AI (meldunek)** — `gpt-oss-20b`, paczki po 5 Zdarzeń w jednym wywołaniu, po polsku: Regiony,
    Tematy, do 4 Aktorów, Waga (1–3), jedno zdanie „dlaczego ważne” i przypięcie do aktywnego
    Wątku albo — przy Wadze ≥ 2 — propozycja Nowej sytuacji. Duplikaty nagłówków odsiewane bez AI;
    najpierw Źródła branżowe; zużycie tokenów logowane.
 3. **Wątki** — oś czasu Zdarzeń; aktywny (Zdarzenie w 14 dni) → uśpiony → zarchiwizowany ręcznie;
    najwyżej 30 aktywnych w prompcie. Skrzynka **Nowe sytuacje**: właściciel akceptuje, łączy
    albo odrzuca.
-4. **Raport sytuacyjny** — najwyżej raz dziennie, tylko dla Wątków z ruchem: stan teraz, Aktorzy
-   i interesy, Scenariusze (eskalacja / status quo / deeskalacja) z Sygnałami ostrzegawczymi,
-   Klasy aktywów, relacje międzynarodowe, „co się zmieniło”, najbardziej prawdopodobny Scenariusz.
-   Każda wersja zostaje (dziennik sytuacji).
-5. **Briefing** — Ruch w Wątkach · 24 h → mapa aktywnych Wątków per Region → Nowe sytuacje
-   (właściciel); surowe Zdarzenia na osobnej stronie **Strumień**.
+4. **Raport sytuacyjny** — `gpt-oss-120b`, krocząco: co godzinę 2–3 Wątki z nowymi Zdarzeniami
+   i Raportem starszym niż 24 h (najpierw największa Waga). Stan teraz, Aktorzy i interesy,
+   Scenariusze (eskalacja / status quo / deeskalacja) z Sygnałami ostrzegawczymi
+   i Prawdopodobieństwem (skala ICD 203), Klasy aktywów, relacje międzynarodowe, „co się zmieniło”.
+   Sygnał zapala się tylko z dowodem — id Zdarzenia ze Źródła A lub B (sprawdza kod); strzałkę
+   i powód zmiany Prawdopodobieństwa liczy kod względem poprzedniej wersji. Każda wersja zostaje
+   (dziennik sytuacji).
+5. **Briefing** — Ruchy · 24 h (przesunięcia Scenariuszy i zapalone Sygnały) → mapa aktywnych
+   Wątków per Region → Wątki aktywne → Nowe sytuacje (właściciel); surowe Zdarzenia na osobnej
+   stronie **Strumień**. W stopce świeżość: ostatni ingest i ostatni Raport.
 6. **Baza wiedzy** — strony Regionów, Tematów i Aktorów (u Aktora: „najczęściej razem”).
 
 **Tematy (8, stała lista):** Cyber, AI, Pole walki, Kosmos, Półprzewodniki, Surowce, Energia,
@@ -53,10 +62,10 @@ Bliski Wschód, Afryka, Azja-Pacyfik; Globalne — Zdarzenia bez jednego miejsca
 konto, właściciela, bez rejestracji dla innych. Publiczne odpowiedzi API cache'uje CloudFront.
 Stopka: „Analizy generuje AI na podstawie nagłówków; to nie jest porada inwestycyjna”.
 
-Poza zakresem MVP: Tezy i ich rozliczanie (ADR 0008), ceny Instrumentów przy Wątkach (później,
-Tiingo), pełny graf relacji między Aktorami, Poza zakresem MVP: wielu użytkowników, publiczne statystyki, publikacja na Facebooku
+Poza zakresem MVP: Tezy i ich rozliczanie (ADR 0008), ceny jako Sygnały, pełny graf relacji
+między Aktorami, wielu użytkowników, publiczne statystyki, publikacja na Facebooku
 (appka jest warsztatem — posty właściciel pisze sam), własne notatki w Bazie wiedzy,
-cotygodniowe podsumowania AI, powiadomienia, wiele modeli.
+cotygodniowe podsumowania AI, powiadomienia.
 
 ## Role i proces (Ścieżka 05)
 
@@ -94,8 +103,9 @@ CloudFront (bez WAF — ADR 0006; Shield Std, nagłówki HSTS) [us-east-1 — za
 Lambda "web" — Function URL (auth: AWS_IAM)                [eu-central-1]
    ├─ /*      → statyczny frontend (Vite build)
    └─ /api/*  → Hono API ──► DynamoDB
-EventBridge Scheduler ─► Lambda "ingest" ─► RSS
+EventBridge Scheduler ─► Lambda "ingest" (worker) ─► RSS
                               └─► Groq API (klucz z SSM) ─► DynamoDB
+CloudWatch (alarmy) ─► SNS ─► e-mail właściciela
 ```
 
 | Warstwa | Wybór |
@@ -105,10 +115,11 @@ EventBridge Scheduler ─► Lambda "ingest" ─► RSS
 | Wejście | CloudFront, pay-as-you-go w ramach always free (1 TB, 10 mln żądań); bez WAF — ADR 0006 |
 | Obliczenia | Lambda, paczki ZIP (nie obrazy — prywatny ECR nie jest „always free") |
 | Wydania | wersje + alias `live`; rollback = przestawienie aliasu |
-| Dane | DynamoDB, tryb provisioned (always free: 25 GB, 25 RCU/25 WCU łącznie; on-demand nie jest darmowy) |
+| Dane | DynamoDB, tryb provisioned (always free: 25 GB, 25 RCU/25 WCU łącznie; on-demand nie jest darmowy); `events` z indeksami 15/15, `threads` single-table 5/5 — razem 20/25 |
 | Harmonogram | EventBridge Scheduler |
 | Sekrety | SSM Parameter Store, SecureString (standard tier), klucz zarządzany przez AWS |
-| AI | Groq, `openai/gpt-oss-20b`, Zero Data Retention włączone |
+| AI | Groq, Zero Data Retention: `openai/gpt-oss-20b` meldunki (≤ 150K tokenów/dzień), `openai/gpt-oss-120b` Raporty (≤ 25/dzień, ≤ 150K); budżet tokenów zatrzymuje pracę przed limitem |
+| Obserwowalność | logi JSON z zużyciem tokenów; 3 alarmy CloudWatch → SNS e-mail (błędy workera, Analiza stoi, cisza w ingeście) |
 | Domena | brak; `*.cloudfront.net` |
 | Środowiska | tylko prod + lokalny dev; Terraform parametryzowany `environment` |
 
@@ -133,7 +144,7 @@ EventBridge Scheduler ─► Lambda "ingest" ─► RSS
 | `apply` | OIDC z HCP Terraform (workspace, faza apply) | zmiany infrastruktury w 2 regionach |
 | `deploy` | OIDC z GitHub (repo, `main`, Environment) | tylko `UpdateFunctionCode` / `PublishVersion` / `UpdateAlias` dla funkcji projektu |
 | Lambda `web` | — | `Query` na indeksie `latest` tabeli Zdarzeń (02c); decyzje o Wątkach od plastra 10 |
-| Lambda `ingest` | — | zapis Zdarzeń, Analiz i Raportów, odczyt jednego parametru SSM (klucz Groq) |
+| Lambda `ingest` (worker) | — | zapis Zdarzeń i Analiz, tabela `threads` (Wątki, Raporty, budżet), odczyt jednego parametru SSM (klucz Groq) |
 
 ## Pipeline
 
@@ -211,20 +222,22 @@ Kolejność ustalona 2026-10-13: po każdym plastrze na stronie widać coś nowe
 | **05 Lepsze Źródła** | Najlepsze Źródła branżowe (research → akceptacja właściciela) | Wolumen pod limity Groq | RSS i warunki każdego Źródła |
 | **06 Logowanie** | Jedno konto właściciela (Tezy wycięte — ADR 0008) | Uwierzytelnianie Cognito + PKCE, nagłówek tokenu i SHA-256 body przez OAC | Darmowe logowanie dla jednego konta |
 
-## Plastry 08–12 — Wątki (ADR 0008)
+## Plastry 09–11 — kierunek świata (ADR 0009)
+
+08 (porządki po ADR 0008) zamknięty; plastry 09–12 z ADR 0008 zastąpione 2026-10-19 trzema
+większymi.
 
 | Plaster | Zdolność produktowa | Zdolność DevSecOps |
 |---|---|---|
-| **08 Porządki** | Kierunek zapisany (ADR 0008, CONTEXT, SPEC); 06 przycięty do logowania; 07 zamknięty | Usunięcie martwego kodu i uprawnień |
-| **09 Odchudzona Analiza** | Meldunek: Aktorzy, 1 zdanie, bez Scenariusza; paczki po 5, odsiew duplikatów, priorytet Źródeł | Pomiar zużycia tokenów; injection w paczce w modelu zagrożeń |
-| **10 Wątki** | Przypinanie w tym samym wywołaniu, skrzynka Nowe sytuacje, cykl życia, strona Wątku | Autoryzacja decyzji właściciela (pierwszy realny zapis przez OAC) |
-| **11 Raport sytuacyjny** | Dzienny Raport + historia wersji; nowy Briefing (Ruch w Wątkach, mapa Wątków) | Trzeci harmonogram; budżet tokenów dzielony między Analizę i Raporty |
-| **12 Aktorzy** | Strony Aktorów, „najczęściej razem” | Agregacje bez dodatkowych wywołań AI |
+| **09 Fundament** | Bez widocznej zmiany poza stopką ze świeżością | Głębokie moduły workera (Ingest, Meldunki, Raporty, Budżet, seam LLM z adapterem Groq i fake), log tokenów, budżet tokenów, 3 alarmy + SNS |
+| **10 Rdzeń** | Poziomy Źródeł A/B/C (research listy), odchudzony meldunek z Aktorami w paczkach po 5, Wątki i skrzynka Nowe sytuacje, kroczące Raporty z Sygnałami i Prawdopodobieństwem, minimalna strona Wątku | Tabela `threads`, drugi model, `pnpm eval` (złote przypadki), autoryzacja decyzji właściciela, injection w paczce w modelu zagrożeń |
+| **11 Widok** | Nowy Briefing (Ruchy, mapa Wątków, Wątki aktywne), ceny przy Wątku | Darmowe źródło cen (licencja, limity), cache odpowiedzi |
+
+Później: strony Aktorów („najczęściej razem”), ceny jako Sygnały.
 
 ## Odłożone (decyzja w plastrze, który tego potrzebuje)
 
-- Ceny Instrumentów przy Wątkach (Tiingo, darmowy Starter) — gdy właściciel uzna, że ich brakuje.
 - Pełny graf relacji między Aktorami.
 - Retencja Zdarzeń (TTL) — gdy tabela zacznie rosnąć.
-- Obserwowalność i alarmy, szczegóły strategii testów.
+- Szczegóły strategii testów poza evalem.
 - Środowisko dev i promocja zmian.
