@@ -12,8 +12,9 @@ locals {
   metrics_namespace = "Foresight"
 }
 
-# nosemgrep: terraform.aws.security.aws-sns-topic-unencrypted.aws-sns-topic-unencrypted
-resource "aws_sns_topic" "alarms" {
+# Unencrypted on purpose — same reason as the Checkov skip below.
+#trivy:ignore:AWS-0095
+resource "aws_sns_topic" "alarms" { # nosemgrep: terraform.aws.security.aws-sns-topic-unencrypted.aws-sns-topic-unencrypted
   #checkov:skip=CKV_AWS_26:CloudWatch cannot publish to a topic encrypted with aws/sns, and a customer key costs ~1 USD/month (0 PLN); alarm texts hold no secrets
   name = "foresight-${var.environment}-alarms"
 }
