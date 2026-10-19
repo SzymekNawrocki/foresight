@@ -1,20 +1,72 @@
 import { describe, expect, it, vi } from "vitest";
-import { validAnalysis } from "./analysis/fixtures.js";
+import type { PendingAnalysis } from "./analysis/pending.js";
+import { createTokenBudget, InMemoryBudgetStore } from "./budget/budget.js";
 import { createHandler } from "./handler.js";
 import { InMemoryEventStore } from "./store.js";
 
-const rss = `<rss><channel><item><title>One</title><link>https://a.example/1</link></item></channel></rss>`;
+const rss = `<rss><channel>
+  <item><title>One</title><link>https://a.example/1</link></item>
+  <item><title>Two</title><link>https://a.example/2</link></item>
+</channel></rss>`;
 const sources = [{ id: "a", name: "A", url: "https://a.example/rss" }];
+const limits = { "openai/gpt-oss-20b": 150_000 };
 
-describe("ingest handler", () => {
+describe("worker handler", () => {
   it("runs the ingest and logs the report as one JSON line", async () => {
     const log = vi.fn();
     const handler = createHandler({ sources, fetchFeed: async () => rss, store: new InMemoryEventStore(), log });
 
     const report = await handler();
 
-    expect(report).toEqual({ ingest: [{ source: "a", items: 1, new: 1, duplicate: 0, invalid: 0 }] });
-    expect(JSON.parse(log.mock.calls[0]?.[0])).toEqual({ msg: "ingest finished", report });
+    expect(report).toEqual({ ingest: [{ source: "a", items: 2, new: 2, duplicate: 0, invalid: 0 }], newEvents: 2 });
+    expect(JSON.parse(log.mock.calls[0]?.[0])).toMatchObject({ msg: "ingest finished", report });
+  });
+
+  it("writes NewEvents and AnalysisBacklog into the same line as CloudWatch metrics (EMF)", async () => {
+    const log = vi.fn();
+    const handler = createHandler({
+      sources,
+      fetchFeed: async () => rss,
+      store: new InMemoryEventStore(),
+      log,
+      now: () => new Date("2026-10-19T10:00:00Z"),
+      analysis: {
+        pending: { analyzePending: async () => ({ analyzed: 2, failed: 0, backlog: 7 }) },
+        budget: () => createTokenBudget({ store: new InMemoryBudgetStore(), limits }),
+      },
+    });
+
+    await handler();
+
+    expect(JSON.parse(log.mock.calls[0]?.[0])).toMatchObject({
+      _aws: {
+        Timestamp: Date.parse("2026-10-19T10:00:00Z"),
+        CloudWatchMetrics: [
+          {
+            Namespace: "Foresight",
+            Dimensions: [["Service"]],
+            Metrics: [
+              { Name: "NewEvents", Unit: "Count" },
+              { Name: "AnalysisBacklog", Unit: "Count" },
+            ],
+          },
+        ],
+      },
+      Service: "worker",
+      NewEvents: 2,
+      AnalysisBacklog: 7,
+    });
+  });
+
+  it("leaves AnalysisBacklog out when it is unknown, instead of reporting a false zero", async () => {
+    const log = vi.fn();
+    const handler = createHandler({ sources, fetchFeed: async () => rss, store: new InMemoryEventStore(), log });
+
+    await handler();
+
+    const line = JSON.parse(log.mock.calls[0]?.[0]);
+    expect(line._aws.CloudWatchMetrics[0].Metrics).toEqual([{ Name: "NewEvents", Unit: "Count" }]);
+    expect(line).not.toHaveProperty("AnalysisBacklog");
   });
 
   it("does not throw when every Source fails — the next hourly run tries again", async () => {
@@ -29,67 +81,77 @@ describe("ingest handler", () => {
 
     await expect(handler()).resolves.toEqual({
       ingest: [{ source: "a", items: 0, new: 0, duplicate: 0, invalid: 0, error: "HTTP 503" }],
+      newEvents: 0,
     });
   });
 
-  it("analyzes pending Events after the ingest", async () => {
-    const store = new InMemoryEventStore();
-    const saved: string[] = [];
+  it("analyzes pending Events after the ingest and reports the token budget", async () => {
+    const store = new InMemoryBudgetStore();
+    const seen: string[] = [];
+    const pending: PendingAnalysis = {
+      async analyzePending(budget) {
+        seen.push("analysis");
+        await budget.record({ model: "openai/gpt-oss-20b", tokens: 1_234 });
+        return { analyzed: 1, failed: 0, backlog: 0 };
+      },
+    };
     const handler = createHandler({
       sources,
-      fetchFeed: async () => rss,
-      store,
-      log: () => {},
-      analysis: {
-        queue: {
-          pending: async (limit) => store.latest(limit),
-          saveAnalysis: async (eventId) => void saved.push(eventId),
-        },
-        analyzer: async () => ({ analyze: async () => ({ ok: true, analysis: validAnalysis }) }),
-        pauseMs: 0,
+      fetchFeed: async () => {
+        seen.push("ingest");
+        return rss;
       },
+      store: new InMemoryEventStore(),
+      log: () => {},
+      analysis: { pending, budget: () => createTokenBudget({ store, limits }) },
     });
 
     const report = await handler();
 
-    expect(report.analysis).toEqual({ analyzed: 1, failed: 0, stoppedOnRateLimit: false });
-    expect(saved).toHaveLength(1);
+    expect(seen).toEqual(["ingest", "analysis"]);
+    expect(report.analysis).toEqual({ analyzed: 1, failed: 0, backlog: 0 });
+    expect(report.tokens).toEqual([{ model: "openai/gpt-oss-20b", used: 1_234, limit: 150_000 }]);
   });
 
-  it("does not read the key when nothing is pending", async () => {
-    const analyzer = vi.fn();
+  it("gives every run a fresh budget, so a counter is never stale across warm starts", async () => {
+    const budget = vi.fn(() => createTokenBudget({ store: new InMemoryBudgetStore(), limits }));
     const handler = createHandler({
       sources,
       fetchFeed: async () => rss,
       store: new InMemoryEventStore(),
       log: () => {},
-      analysis: { queue: { pending: async () => [], saveAnalysis: async () => {} }, analyzer },
+      analysis: { pending: { analyzePending: async () => ({ analyzed: 0, failed: 0 }) }, budget },
     });
 
-    const report = await handler();
+    await handler();
+    await handler();
 
-    expect(report.analysis).toEqual({ analyzed: 0, failed: 0, stoppedOnRateLimit: false });
-    expect(analyzer).not.toHaveBeenCalled();
+    expect(budget).toHaveBeenCalledTimes(2);
   });
 
-  it("keeps the ingest result when the Analysis step fails (e.g. key unreadable)", async () => {
-    const store = new InMemoryEventStore();
+  it("keeps the ingest result when the budget cannot be read", async () => {
     const handler = createHandler({
       sources,
       fetchFeed: async () => rss,
-      store,
+      store: new InMemoryEventStore(),
       log: () => {},
       analysis: {
-        queue: { pending: async (limit) => store.latest(limit), saveAnalysis: async () => {} },
-        analyzer: async () => {
-          throw new Error("AccessDenied");
-        },
+        pending: { analyzePending: async () => ({ analyzed: 0, failed: 0 }) },
+        budget: () => ({
+          reserve: async () => false,
+          record: async () => {},
+          report: async () => {
+            throw new Error("AccessDenied");
+          },
+        }),
       },
     });
 
     await expect(handler()).resolves.toEqual({
-      ingest: [{ source: "a", items: 1, new: 1, duplicate: 0, invalid: 0 }],
-      analysis: { error: "AccessDenied" },
+      ingest: [{ source: "a", items: 2, new: 2, duplicate: 0, invalid: 0 }],
+      newEvents: 2,
+      analysis: { analyzed: 0, failed: 0 },
+      tokens: { error: "AccessDenied" },
     });
   });
 });

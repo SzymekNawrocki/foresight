@@ -1,4 +1,8 @@
 # Contract of slice 02b without AWS: the provider is mocked, nothing is created or billed.
+variables {
+  alarm_email = "owner@example.com"
+}
+
 mock_provider "aws" {
   mock_data "aws_iam_policy_document" {
     defaults = {
@@ -26,6 +30,33 @@ run "events_table_stays_in_always_free" {
   assert {
     condition     = aws_dynamodb_table.events.deletion_protection_enabled
     error_message = "The events table must be protected from accidental deletion."
+  }
+}
+
+run "all_tables_together_stay_in_always_free" {
+  command = plan
+
+  assert {
+    condition     = aws_dynamodb_table.threads.billing_mode == "PROVISIONED" && length(aws_dynamodb_table.threads.global_secondary_index) == 0
+    error_message = "threads is a provisioned single-table design without indexes (ADR 0009)."
+  }
+
+  assert {
+    condition = (
+      aws_dynamodb_table.events.read_capacity + sum([for g in aws_dynamodb_table.events.global_secondary_index : g.read_capacity]) + aws_dynamodb_table.threads.read_capacity <= 25 &&
+      aws_dynamodb_table.events.write_capacity + sum([for g in aws_dynamodb_table.events.global_secondary_index : g.write_capacity]) + aws_dynamodb_table.threads.write_capacity <= 25
+    )
+    error_message = "All tables and indexes share the account-wide 25 RCU / 25 WCU."
+  }
+
+  assert {
+    condition     = one(aws_dynamodb_table.threads.ttl).enabled && one(aws_dynamodb_table.threads.ttl).attribute_name == "expiresAt"
+    error_message = "Budget counters expire through TTL, so the table does not grow."
+  }
+
+  assert {
+    condition     = aws_dynamodb_table.threads.deletion_protection_enabled
+    error_message = "The threads table must be protected from accidental deletion."
   }
 }
 
@@ -108,13 +139,28 @@ run "ingest_role_is_scoped_to_the_analysis_queue_and_one_key" {
   }
 
   assert {
-    condition     = data.aws_iam_policy_document.ingest.statement[2].actions == toset(["ssm:GetParameter"])
+    condition     = data.aws_iam_policy_document.ingest.statement[3].actions == toset(["ssm:GetParameter"])
     error_message = "Ingest may only read a parameter, never write one."
   }
 
   assert {
-    condition     = endswith(one(data.aws_iam_policy_document.ingest.statement[2].resources), ":parameter/foresight/prod/groq-api-key")
+    condition     = endswith(one(data.aws_iam_policy_document.ingest.statement[3].resources), ":parameter/foresight/prod/groq-api-key")
     error_message = "Ingest may read exactly one parameter: the Groq key."
+  }
+
+  assert {
+    condition     = data.aws_iam_policy_document.ingest.statement[2].actions == toset(["dynamodb:GetItem", "dynamodb:UpdateItem"])
+    error_message = "The worker reads and adds to token counters — no deletes, no scans."
+  }
+
+  assert {
+    condition     = one(data.aws_iam_policy_document.ingest.statement[2].condition).values == tolist(["BUDGET#*"])
+    error_message = "In slice 09 the worker may touch only the budget items of the threads table."
+  }
+
+  assert {
+    condition     = aws_lambda_function.ingest.environment[0].variables.THREADS_TABLE_NAME == aws_dynamodb_table.threads.name
+    error_message = "The worker keeps its token counters in the threads table."
   }
 
   assert {

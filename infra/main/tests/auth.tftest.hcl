@@ -1,4 +1,8 @@
 # Contract of slice 06 without AWS: the owner login.
+variables {
+  alarm_email = "owner@example.com"
+}
+
 mock_provider "aws" {
   mock_data "aws_iam_policy_document" {
     defaults = {

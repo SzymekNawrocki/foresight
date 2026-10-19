@@ -72,7 +72,10 @@ function toStrict(node: unknown): unknown {
   return out;
 }
 
-export const analysisJsonSchema = toStrict(z.toJSONSchema(Analysis)) as Record<string, unknown>;
+/** JSON Schema of a Zod schema in the subset Groq strict mode accepts. */
+export const strictJsonSchema = (schema: z.ZodType) => toStrict(z.toJSONSchema(schema)) as Record<string, unknown>;
+
+export const analysisJsonSchema = strictJsonSchema(Analysis);
 
 // An Event as the page sees it: the Analysis is absent until the LLM has processed the Event.
 export const AnalyzedEvent = Event.extend({ analysis: Analysis.optional() });

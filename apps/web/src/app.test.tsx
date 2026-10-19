@@ -71,6 +71,14 @@ describe("Briefing", () => {
     expect(map.getByRole("link", { name: /Ameryka Północna/ })).toHaveTextContent("00");
   });
 
+  it("shows in the footer how fresh the data is, with the AI disclaimer", async () => {
+    renderApp("/");
+
+    const footer = within(await screen.findByRole("contentinfo"));
+    expect(await footer.findByText("ostatnie Zdarzenie: przed chwilą")).toBeInTheDocument();
+    expect(footer.getByText(/to nie jest porada inwestycyjna/)).toBeInTheDocument();
+  });
+
   it("reports the link to the API in the header", async () => {
     renderApp("/");
 

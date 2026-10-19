@@ -1,6 +1,6 @@
 import type { AnalyzedEvent } from "@foresight/shared";
 import { describe, expect, it } from "vitest";
-import { briefing, regionOfCountry } from "./intel.js";
+import { briefing, freshness, regionOfCountry } from "./intel.js";
 
 describe("regionOfCountry", () => {
   it.each([
@@ -84,5 +84,37 @@ describe("briefing", () => {
 
   it("puts the heaviest recent Events first", () => {
     expect(briefing(events, now).top.map((e) => e.id[0])).toEqual(["a", "b", "e"]);
+  });
+});
+
+describe("freshness", () => {
+  const now = new Date("2026-10-19T12:00:00Z");
+  const fetched = (iso: string) => ({ ...base, fetchedAt: iso });
+  const base: AnalyzedEvent = {
+    id: "0123456789abcdef0123456789abcdef",
+    source: "bbc-world",
+    title: "T",
+    url: "https://www.bbc.co.uk/news/1",
+    publishedAt: "2026-10-19T09:00:00Z",
+    fetchedAt: "2026-10-19T09:00:00Z",
+  };
+
+  it("reads the newest fetch time, not the publication time", () => {
+    expect(freshness([fetched("2026-10-19T10:00:00Z"), fetched("2026-10-19T11:48:00Z")], now)).toEqual({
+      text: "ostatnie Zdarzenie: 12 min temu",
+      stale: false,
+    });
+  });
+
+  it("switches to hours and marks data older than 2 h as stale", () => {
+    expect(freshness([fetched("2026-10-19T08:30:00Z")], now)).toEqual({ text: "ostatnie Zdarzenie: 3 h temu", stale: true });
+  });
+
+  it("says 'przed chwilą' under a minute", () => {
+    expect(freshness([fetched("2026-10-19T11:59:40Z")], now)?.text).toBe("ostatnie Zdarzenie: przed chwilą");
+  });
+
+  it("has nothing to say without Events", () => {
+    expect(freshness([], now)).toBeNull();
   });
 });

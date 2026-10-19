@@ -1,6 +1,6 @@
 import { type DynamoDBDocumentClient, QueryCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
 import { type Analysis, Event } from "@foresight/shared";
-import type { AnalysisQueue } from "./analysis/analyzer.js";
+import type { AnalysisQueue } from "./analysis/queue.js";
 
 // Data model: docs/data-model.md → "Events waiting for Analysis". Only new Events carry
 // `pending`, so the index holds exactly the queue and costs nothing once it is drained.
@@ -39,5 +39,26 @@ export class DynamoAnalysisQueue implements AnalysisQueue {
         ExpressionAttributeValues: { ":analysis": analysis },
       }),
     );
+  }
+
+  async backlog() {
+    let count = 0;
+    let start: Record<string, unknown> | undefined;
+    do {
+      const res = await this.client.send(
+        new QueryCommand({
+          TableName: this.tableName,
+          IndexName: "pending",
+          KeyConditionExpression: "#pending = :pending",
+          ExpressionAttributeNames: { "#pending": "pending" },
+          ExpressionAttributeValues: { ":pending": "EVENT" },
+          Select: "COUNT",
+          ...(start && { ExclusiveStartKey: start }),
+        }),
+      );
+      count += res.Count ?? 0;
+      start = res.LastEvaluatedKey;
+    } while (start);
+    return count;
   }
 }
