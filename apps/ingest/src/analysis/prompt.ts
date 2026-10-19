@@ -1,9 +1,5 @@
 import type { Event } from "@foresight/shared";
-
-export interface ChatMessage {
-  role: "system" | "user";
-  content: string;
-}
+import type { ChatMessage } from "../llm/llm.js";
 
 // OWASP LLM01: the title is attacker-controlled. Instructions live only in the system message;
 // the Event goes in one fenced data block that the title cannot close.

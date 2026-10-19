@@ -53,4 +53,19 @@ describe("DynamoAnalysisQueue", () => {
       ExpressionAttributeValues: { ":analysis": validAnalysis },
     });
   });
+
+  it("counts the backlog on the sparse index without reading the items", async () => {
+    ddb.on(QueryCommand).resolvesOnce({ Count: 40, LastEvaluatedKey: { id: "x" } }).resolvesOnce({ Count: 2 });
+
+    await expect(queue().backlog()).resolves.toBe(42);
+    expect(ddb.commandCalls(QueryCommand)[0]?.args[0].input).toEqual({
+      TableName: "events",
+      IndexName: "pending",
+      KeyConditionExpression: "#pending = :pending",
+      ExpressionAttributeNames: { "#pending": "pending" },
+      ExpressionAttributeValues: { ":pending": "EVENT" },
+      Select: "COUNT",
+    });
+    expect(ddb.commandCalls(QueryCommand)[1]?.args[0].input.ExclusiveStartKey).toEqual({ id: "x" });
+  });
 });
