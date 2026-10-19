@@ -1,6 +1,6 @@
-import { Analysis, analysisJsonSchema } from "@foresight/shared";
+import { ACTOR_REGION, Actor, Analysis, analysisJsonSchema, AnalyzedEvent, LegacyAnalysis } from "@foresight/shared";
 import { describe, expect, it } from "vitest";
-import { validAnalysis } from "./fixtures.js";
+import { legacyAnalysis, validAnalysis } from "./fixtures.js";
 
 describe("Analysis", () => {
   it("accepts a complete Analysis", () => {
@@ -8,21 +8,59 @@ describe("Analysis", () => {
   });
 
   it.each([
+    ["attach", { kind: "attach", threadId: "hormuz" }],
+    ["propose", { kind: "propose", name: "Blokada Cieśniny Ormuz" }],
+  ])("accepts the thread decision %s", (_, thread) => {
+    expect(Analysis.safeParse({ ...validAnalysis, thread }).success).toBe(true);
+  });
+
+  it.each([
     ["no Region", { ...validAnalysis, regions: [] }],
     ["unknown Region", { ...validAnalysis, regions: ["atlantis"] }],
     ["unknown Topic", { ...validAnalysis, topics: ["crypto"] }],
+    ["unknown Actor", { ...validAnalysis, actors: ["atlantis"] }],
+    ["more than 4 Actors", { ...validAnalysis, actors: ["usa", "china", "iran", "israel", "russia"] }],
     ["Weight out of range", { ...validAnalysis, weight: 4 }],
     ["fractional Weight", { ...validAnalysis, weight: 1.5 }],
     ["empty why-it-matters", { ...validAnalysis, whyItMatters: "" }],
-    ["oversized why-it-matters", { ...validAnalysis, whyItMatters: "x".repeat(401) }],
-    ["missing Branch", { ...validAnalysis, scenario: { escalation: validAnalysis.scenario.escalation } }],
+    ["oversized why-it-matters", { ...validAnalysis, whyItMatters: "x".repeat(301) }],
+    ["attach without a Thread id", { ...validAnalysis, thread: { kind: "attach" } }],
+    ["unknown thread decision", { ...validAnalysis, thread: { kind: "merge", threadId: "x" } }],
+    ["per-Event Scenario", { ...validAnalysis, scenario: legacyAnalysis.scenario }],
     ["extra field", { ...validAnalysis, html: "<script>" }],
   ])("rejects %s", (_, candidate) => {
     expect(Analysis.safeParse(candidate).success).toBe(false);
   });
 
-  it("allows an Event with no Topic (noise)", () => {
-    expect(Analysis.safeParse({ ...validAnalysis, topics: [], weight: 1 }).success).toBe(true);
+  it("allows an Event with no Topic and no Actor (noise)", () => {
+    expect(Analysis.safeParse({ ...validAnalysis, topics: [], actors: [], weight: 1 }).success).toBe(true);
+  });
+
+  it("maps Actors only to Regions that exist", () => {
+    for (const [actor, region] of Object.entries(ACTOR_REGION)) {
+      expect(Actor.options).toContain(actor);
+      expect(Analysis.shape.regions.element.options).toContain(region);
+    }
+  });
+});
+
+describe("reading stored Analyses", () => {
+  const event = {
+    id: "0123456789abcdef0123456789abcdef",
+    source: "oilprice",
+    title: "Hormuz",
+    url: "https://oilprice.com/1",
+    publishedAt: "2026-10-16T10:00:00.000Z",
+    fetchedAt: "2026-10-16T11:00:00.000Z",
+  };
+
+  it("still reads the legacy shape with a per-Event Scenario", () => {
+    expect(LegacyAnalysis.safeParse(legacyAnalysis).success).toBe(true);
+    expect(AnalyzedEvent.parse({ ...event, analysis: legacyAnalysis }).analysis).toEqual(legacyAnalysis);
+  });
+
+  it("reads the current shape", () => {
+    expect(AnalyzedEvent.parse({ ...event, analysis: validAnalysis }).analysis).toEqual(validAnalysis);
   });
 });
 
@@ -63,9 +101,14 @@ describe("analysisJsonSchema (Groq strict mode)", () => {
     expect([...used].filter((key) => !allowed.has(key))).toEqual([]);
   });
 
-  it("lists the same Regions and Topics as the Zod schema", () => {
+  it("lists the same Regions, Topics and Actors as the Zod schema", () => {
     const props = (analysisJsonSchema as { properties: Record<string, { items: { enum: string[] } }> }).properties;
     expect(props.regions?.items.enum).toEqual(Analysis.shape.regions.element.options);
     expect(props.topics?.items.enum).toEqual(Analysis.shape.topics.element.options);
+    expect(props.actors?.items.enum).toEqual(Actor.options);
+  });
+
+  it("keeps the thread decision kinds as enums, not const", () => {
+    expect(JSON.stringify(analysisJsonSchema)).toContain('"enum":["attach"]');
   });
 });

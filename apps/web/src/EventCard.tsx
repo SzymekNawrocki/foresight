@@ -1,6 +1,6 @@
 import type { AnalyzedEvent, Branch } from "@foresight/shared";
 import { Link } from "@tanstack/react-router";
-import { DIRECTION_ARROW, REGION_LABEL, TOPIC_LABEL, WEIGHT_LABEL } from "./labels.js";
+import { ACTOR_LABEL, DIRECTION_ARROW, REGION_LABEL, TOPIC_LABEL, WEIGHT_LABEL } from "./labels.js";
 
 // Czas zawsze po polsku, niezależnie od strefy przeglądarki — Zdarzenia porównujemy między sobą.
 const time = new Intl.DateTimeFormat("pl-PL", {
@@ -61,11 +61,21 @@ export function EventCard({ event }: { event: AnalyzedEvent }) {
               </li>
             ))}
           </ul>
+          {"actors" in analysis && analysis.actors.length > 0 && (
+            <ul className="mt-1.5 flex flex-wrap gap-x-3 text-[12px] text-dim" aria-label="Aktorzy">
+              {analysis.actors.map((a) => (
+                <li key={a}>{ACTOR_LABEL[a]}</li>
+              ))}
+            </ul>
+          )}
           <p className="mt-3 max-w-3xl leading-relaxed text-fg/90">{analysis.whyItMatters}</p>
-          <ul className="mt-3 grid gap-2 border-t border-line pt-3 md:grid-cols-2">
-            <BranchItem name="Eskalacja" branch={analysis.scenario.escalation} />
-            <BranchItem name="Deeskalacja" branch={analysis.scenario.deescalation} />
-          </ul>
+          {/* Analizy sprzed plastra 10 miały Scenariusz przy każdym Zdarzeniu; nowe mają go w Raporcie Wątku. */}
+          {"scenario" in analysis && (
+            <ul className="mt-3 grid gap-2 border-t border-line pt-3 md:grid-cols-2">
+              <BranchItem name="Eskalacja" branch={analysis.scenario.escalation} />
+              <BranchItem name="Deeskalacja" branch={analysis.scenario.deescalation} />
+            </ul>
+          )}
         </>
       )}
     </article>

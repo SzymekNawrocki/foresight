@@ -42,12 +42,10 @@ const analyzed = (id: string, hoursAgo: number, weight: number, regions: string[
     analysis: {
       regions,
       topics,
+      actors: [],
       weight,
-      whyItMatters: "Raz. Dwa.",
-      scenario: {
-        escalation: { path: "E.", assetClass: "ropa", direction: "up" },
-        deescalation: { path: "D.", assetClass: "ropa", direction: "down" },
-      },
+      whyItMatters: "Raz.",
+      thread: { kind: "none" },
     },
   }) as AnalyzedEvent;
 

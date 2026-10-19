@@ -16,12 +16,10 @@ const event = {
 const analysis = {
   regions: ["europe"],
   topics: ["energy"],
+  actors: ["germany", "russia"],
   weight: 2,
-  whyItMatters: "Zdanie pierwsze. Zdanie drugie.",
-  scenario: {
-    escalation: { path: "Eskalacja.", assetClass: "gaz", direction: "up" },
-    deescalation: { path: "Deeskalacja.", assetClass: "gaz", direction: "down" },
-  },
+  whyItMatters: "Jedno zdanie o gazie.",
+  thread: { kind: "none" },
 };
 
 describe("DynamoEventReader", () => {
@@ -59,6 +57,22 @@ describe("DynamoEventReader", () => {
     ddb.on(QueryCommand).resolves({ Items: [{ ...event, kind: "EVENT", analysis }] });
 
     await expect(reader().latest(20)).resolves.toEqual([{ ...event, analysis }]);
+  });
+
+  it("returns an Analysis saved in the legacy shape too", async () => {
+    const legacy = {
+      regions: analysis.regions,
+      topics: analysis.topics,
+      weight: analysis.weight,
+      whyItMatters: "Zdanie pierwsze. Zdanie drugie.",
+      scenario: {
+        escalation: { path: "Eskalacja.", assetClass: "gaz", direction: "up" },
+        deescalation: { path: "Deeskalacja.", assetClass: "gaz", direction: "down" },
+      },
+    };
+    ddb.on(QueryCommand).resolves({ Items: [{ ...event, analysis: legacy }] });
+
+    await expect(reader().latest(20)).resolves.toEqual([{ ...event, analysis: legacy }]);
   });
 
   it("keeps the Event but drops an Analysis that breaks the contract", async () => {
