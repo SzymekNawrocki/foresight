@@ -19,7 +19,54 @@ describe("worker handler", () => {
     const report = await handler();
 
     expect(report).toEqual({ ingest: [{ source: "a", items: 2, new: 2, duplicate: 0, invalid: 0 }], newEvents: 2 });
-    expect(JSON.parse(log.mock.calls[0]?.[0])).toEqual({ msg: "ingest finished", report });
+    expect(JSON.parse(log.mock.calls[0]?.[0])).toMatchObject({ msg: "ingest finished", report });
+  });
+
+  it("writes NewEvents and AnalysisBacklog into the same line as CloudWatch metrics (EMF)", async () => {
+    const log = vi.fn();
+    const handler = createHandler({
+      sources,
+      fetchFeed: async () => rss,
+      store: new InMemoryEventStore(),
+      log,
+      now: () => new Date("2026-10-19T10:00:00Z"),
+      analysis: {
+        pending: { analyzePending: async () => ({ analyzed: 2, failed: 0, backlog: 7 }) },
+        budget: () => createTokenBudget({ store: new InMemoryBudgetStore(), limits }),
+      },
+    });
+
+    await handler();
+
+    expect(JSON.parse(log.mock.calls[0]?.[0])).toMatchObject({
+      _aws: {
+        Timestamp: Date.parse("2026-10-19T10:00:00Z"),
+        CloudWatchMetrics: [
+          {
+            Namespace: "Foresight",
+            Dimensions: [["Service"]],
+            Metrics: [
+              { Name: "NewEvents", Unit: "Count" },
+              { Name: "AnalysisBacklog", Unit: "Count" },
+            ],
+          },
+        ],
+      },
+      Service: "worker",
+      NewEvents: 2,
+      AnalysisBacklog: 7,
+    });
+  });
+
+  it("leaves AnalysisBacklog out when it is unknown, instead of reporting a false zero", async () => {
+    const log = vi.fn();
+    const handler = createHandler({ sources, fetchFeed: async () => rss, store: new InMemoryEventStore(), log });
+
+    await handler();
+
+    const line = JSON.parse(log.mock.calls[0]?.[0]);
+    expect(line._aws.CloudWatchMetrics[0].Metrics).toEqual([{ Name: "NewEvents", Unit: "Count" }]);
+    expect(line).not.toHaveProperty("AnalysisBacklog");
   });
 
   it("does not throw when every Source fails — the next hourly run tries again", async () => {

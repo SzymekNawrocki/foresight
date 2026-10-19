@@ -42,3 +42,32 @@ Load: ~100 puts per hourly run (one WCU each, item < 1 KB, a failed condition st
 
 No auto scaling (it creates CloudWatch alarms). Retention / TTL is out of scope for 02.
 
+
+## `threads` table (DynamoDB, slice 09 →)
+
+Single-table design for everything that is not a raw Event (ADR 0009). Created in slice 09 as `foresight-<environment>-threads`: partition key `pk`, sort key `sk`, **no indexes**, provisioned 5/5, TTL on `expiresAt`.
+
+| `pk` | `sk` | Item | Slice |
+|---|---|---|---|
+| `BUDGET#<UTC day>` | `MODEL#<model id>` | Daily token counter: `tokens` (N), `expiresAt` (epoch seconds, day + 30 days) | 09 |
+| `THREAD#<id>` | `META` | Thread: name, status, last Event | 10 |
+| `THREAD#<id>` | `EVENT#<publishedAt>#<event id>` | Timeline entry (short copy of the dispatch) | 10 |
+| `THREAD#<id>` | `REPORT#<createdAt>` | Situation report version | 10 |
+| `THREADS` | `<thread id>` | Entry in the list of Threads | 10 |
+
+### Access patterns (slice 09)
+
+| Pattern | How |
+|---|---|
+| Tokens spent today by a model | `GetItem` on `BUDGET#<day>` / `MODEL#<model>`; missing item = 0. Read once per run. |
+| Count a call | `UpdateItem`: `ADD tokens :n SET expiresAt = if_not_exists(expiresAt, :ttl)`, `ReturnValues = UPDATED_NEW`. Atomic, so a counter is never lost. |
+
+The worker role may `GetItem` / `UpdateItem` only items whose partition key starts with `BUDGET#` (`dynamodb:LeadingKeys`).
+
+### Capacity — all tables
+
+| | RCU | WCU |
+|---|---|---|
+| `events` + 2 indexes | 15 | 15 |
+| `threads` | 5 | 5 |
+| **Total** (limit 25 / 25) | 20 | 20 |

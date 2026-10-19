@@ -1,4 +1,8 @@
 # Sprawdza kontrakt bezpieczeństwa 01b-2 bez AWS: provider jest zmockowany, więc
+variables {
+  alarm_email = "owner@example.com"
+}
+
 # test idzie lokalnie i w CI, nic nie tworzy i nic nie kosztuje.
 # Mock zwraca losowe stringi, a rola IAM waliduje JSON polityki — podstawiamy poprawny.
 mock_provider "aws" {

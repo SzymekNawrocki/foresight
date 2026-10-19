@@ -42,8 +42,8 @@ resource "aws_iam_role" "ingest" {
   assume_role_policy = data.aws_iam_policy_document.lambda_assume.json
 }
 
-# Write new Events, read the Analysis queue, save Analyses, read the one Groq key and write its
-# own logs — nothing else (no scans, no deletes, no other tables or parameters).
+# Write new Events, read the Analysis queue, save Analyses, count tokens, read the one Groq key
+# and write its own logs — nothing else (no scans, no deletes, no other parameters).
 data "aws_iam_policy_document" "ingest" {
   statement {
     actions   = ["dynamodb:PutItem", "dynamodb:UpdateItem"]
@@ -53,6 +53,18 @@ data "aws_iam_policy_document" "ingest" {
   statement {
     actions   = ["dynamodb:Query"]
     resources = ["${aws_dynamodb_table.events.arn}/index/pending"]
+  }
+
+  # Daily token counters only (slice 09); Threads and Situation reports come in slice 10.
+  statement {
+    actions   = ["dynamodb:GetItem", "dynamodb:UpdateItem"]
+    resources = [aws_dynamodb_table.threads.arn]
+
+    condition {
+      test     = "ForAllValues:StringLike"
+      variable = "dynamodb:LeadingKeys"
+      values   = ["BUDGET#*"]
+    }
   }
 
   # The aws/ssm key policy lets account principals decrypt through SSM, so no kms:Decrypt here.
@@ -98,6 +110,7 @@ resource "aws_lambda_function" "ingest" {
   environment {
     variables = {
       TABLE_NAME         = aws_dynamodb_table.events.name
+      THREADS_TABLE_NAME = aws_dynamodb_table.threads.name
       GROQ_KEY_PARAMETER = local.groq_key_parameter
     }
   }
