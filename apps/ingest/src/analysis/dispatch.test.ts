@@ -1,4 +1,4 @@
-import { Analysis } from "@foresight/shared";
+import { Analysis, strictJsonSchema } from "@foresight/shared";
 import { describe, expect, it } from "vitest";
 import { DispatchBatch, looksLikeInjection, QUARANTINED, settle } from "./dispatch.js";
 import { validAnalysis } from "./fixtures.js";
@@ -10,6 +10,35 @@ describe("settle", () => {
     const analysis = settle({ ...validAnalysis, regions: ["europe"], actors: ["poland", "ukraine"] }, active);
 
     expect(analysis.regions).toEqual(["europe", "russia-eurasia"]);
+  });
+
+  it("keeps only known labels: an Actor, Region or Topic outside our lists is dropped", () => {
+    const analysis = settle(
+      {
+        ...validAnalysis,
+        regions: ["europe", "baltics"],
+        topics: ["battlefield", "drones"],
+        actors: ["ukraine", "lithuania", "poland"],
+      },
+      active,
+    );
+
+    expect(analysis).toMatchObject({
+      regions: ["europe", "russia-eurasia"],
+      topics: ["battlefield"],
+      actors: ["ukraine", "poland"],
+    });
+  });
+
+  it("falls back to global when no known Region is left, and keeps at most 4 Actors", () => {
+    const analysis = settle(
+      { ...validAnalysis, regions: ["moon"], actors: ["un", "nato", "eu", "g7", "brics"] },
+      active,
+    );
+
+    expect(analysis.actors).toEqual(["un", "nato", "eu", "g7"]);
+    expect(analysis.regions).toEqual(["europe"]);
+    expect(settle({ ...validAnalysis, regions: ["moon"], actors: [] }, active).regions).toEqual(["global"]);
   });
 
   it("keeps an attach to an active Thread", () => {
@@ -72,6 +101,18 @@ describe("DispatchBatch", () => {
     const batch = { dispatches: [{ ref: "e1", ...validAnalysis }, bad] };
 
     expect(DispatchBatch.parse(batch).dispatches).toEqual([{ ref: "e1", ...validAnalysis }, null]);
+  });
+
+  it("sends labels to the model as plain strings, so an unknown Actor cannot fail the whole batch at Groq", () => {
+    const schema = JSON.stringify(strictJsonSchema(DispatchBatch));
+
+    expect(schema).not.toContain('"lithuania"');
+    expect(schema).not.toContain('"houthis"');
+    expect(schema).not.toContain('"russia-eurasia"');
+    expect(schema).not.toContain('"sanctions-trade"');
+    expect(DispatchBatch.parse({ dispatches: [{ ref: "e1", ...validAnalysis, actors: ["lithuania"] }] }).dispatches[0]).toMatchObject({
+      actors: ["lithuania"],
+    });
   });
 
   it("rejects more than 5 dispatches", () => {
