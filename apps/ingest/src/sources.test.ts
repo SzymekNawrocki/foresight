@@ -8,6 +8,7 @@ describe("SOURCES", () => {
     for (const source of SOURCES) {
       expect(source.id).toMatch(/^[a-z0-9-]{1,40}$/);
       expect(new URL(source.url).protocol).toBe("https:");
+      expect(["A", "B", "C"]).toContain(source.tier);
     }
   });
 });

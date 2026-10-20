@@ -5,28 +5,33 @@ import type { AnalysisQueue } from "./analysis/queue.js";
 
 // Data model: docs/data-model.md → "Events waiting for Analysis". Only new Events carry
 // `pending`, so the index holds exactly the queue and costs nothing once it is drained.
+// Its value is the Source tier; `EVENT` marks Events queued before tiers existed (slice 10).
+const QUEUE_ORDER = ["A", "B", "EVENT", "C"] as const;
+
 export class DynamoAnalysisQueue implements AnalysisQueue {
   constructor(
     private readonly client: DynamoDBDocumentClient,
     private readonly tableName: string,
   ) {}
 
+  // Tier A and B first, so facts are analyzed before interpretation when the queue is long.
   async pending(limit: number) {
-    const { Items = [] } = await this.client.send(
-      new QueryCommand({
-        TableName: this.tableName,
-        IndexName: "pending",
-        KeyConditionExpression: "#pending = :pending",
-        ExpressionAttributeNames: { "#pending": "pending" },
-        ExpressionAttributeValues: { ":pending": "EVENT" },
-        ScanIndexForward: false,
-        Limit: limit,
-      }),
-    );
-    return Items.flatMap((item) => {
-      const parsed = Event.safeParse(item);
-      return parsed.success ? [parsed.data] : [];
-    });
+    const events: Event[] = [];
+    for (const tier of QUEUE_ORDER) {
+      if (events.length >= limit) break;
+      const { Items = [] } = await this.client.send(
+        new QueryCommand({
+          ...this.#inTier(tier),
+          ScanIndexForward: false,
+          Limit: limit - events.length,
+        }),
+      );
+      for (const item of Items) {
+        const parsed = Event.safeParse(item);
+        if (parsed.success) events.push(parsed.data);
+      }
+    }
+    return events;
   }
 
   async saveAnalysis(eventId: string, analysis: Analysis) {
@@ -44,22 +49,16 @@ export class DynamoAnalysisQueue implements AnalysisQueue {
 
   async backlog() {
     let count = 0;
-    let start: Record<string, unknown> | undefined;
-    do {
-      const res = await this.client.send(
-        new QueryCommand({
-          TableName: this.tableName,
-          IndexName: "pending",
-          KeyConditionExpression: "#pending = :pending",
-          ExpressionAttributeNames: { "#pending": "pending" },
-          ExpressionAttributeValues: { ":pending": "EVENT" },
-          Select: "COUNT",
-          ...(start && { ExclusiveStartKey: start }),
-        }),
-      );
-      count += res.Count ?? 0;
-      start = res.LastEvaluatedKey;
-    } while (start);
+    for (const tier of QUEUE_ORDER) {
+      let start: Record<string, unknown> | undefined;
+      do {
+        const res = await this.client.send(
+          new QueryCommand({ ...this.#inTier(tier), Select: "COUNT", ...(start && { ExclusiveStartKey: start }) }),
+        );
+        count += res.Count ?? 0;
+        start = res.LastEvaluatedKey;
+      } while (start);
+    }
     return count;
   }
 
@@ -88,5 +87,15 @@ export class DynamoAnalysisQueue implements AnalysisQueue {
       start = res.LastEvaluatedKey;
     } while (start);
     return found;
+  }
+
+  #inTier(tier: string) {
+    return {
+      TableName: this.tableName,
+      IndexName: "pending",
+      KeyConditionExpression: "#pending = :pending",
+      ExpressionAttributeNames: { "#pending": "pending" },
+      ExpressionAttributeValues: { ":pending": tier },
+    };
   }
 }

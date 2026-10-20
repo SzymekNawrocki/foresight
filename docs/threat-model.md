@@ -13,7 +13,7 @@ RSS feeds (internet, untrusted) ──HTTPS──► Lambda ingest ──► Dyn
 | **S**poofing | A feed URL is hijacked or redirected to a hostile server | Sources are a fixed list in code (no user-supplied URLs → no SSRF); https only; content is still treated as untrusted | `sources.ts` |
 | **T**ampering | A feed injects markup or script in titles or links | Links must be `https:` (no `javascript:`); titles stored as plain text and rendered as text, never HTML (02c) | `Event` schema, AGENTS.md |
 | **T**ampering | Prompt injection via titles | See slice 03 below | `analysis/` |
-| **R**epudiation | No trace of what was ingested | Per-Source report (items / new / duplicate / invalid / error) logged on every run | `runIngest` |
+| **R**epudiation | No trace of what was ingested | Per-Source report (items / new / duplicate / invalid / stale / error) logged on every run | `runIngest` |
 | **I**nformation disclosure | — | Only public news is stored; no user data in this slice | — |
 | **D**enial of service | Huge or never-ending feed, slow server | 10 s timeout, 2 MB body cap, read stops at the cap | `fetchFeed` |
 | **D**enial of service | XML entity expansion ("billion laughs"), external entities | Documents with `<!DOCTYPE` / `<!ENTITY` rejected before parsing | `parseFeed` |

@@ -40,6 +40,14 @@ describe("parseFeed", () => {
     ]);
   });
 
+  it("falls back to the Atom a10:updated date some RSS feeds use instead of pubDate", () => {
+    const xml = `<rss xmlns:a10="http://www.w3.org/2005/Atom" version="2.0"><channel>
+        <item><title>One</title><link>https://example.com/1</link><a10:updated>2026-10-20T21:30:00Z</a10:updated></item>
+      </channel></rss>`;
+
+    expect(parseFeed(xml)[0]?.published).toBe("2026-10-20T21:30:00Z");
+  });
+
   it("rejects documents with a DOCTYPE (entity expansion attacks)", () => {
     const xml = `<?xml version="1.0"?><!DOCTYPE lol [<!ENTITY a "aaaa">]><rss><channel><item><title>&a;</title></item></channel></rss>`;
 

@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"
+	xmlns:content="http://purl.org/rss/1.0/modules/content/"
+	xmlns:wfw="http://wellformedweb.org/CommentAPI/"
+	xmlns:dc="http://purl.org/dc/elements/1.1/"
+	xmlns:atom="http://www.w3.org/2005/Atom"
+	xmlns:sy="http://purl.org/rss/1.0/modules/syndication/"
+	xmlns:slash="http://purl.org/rss/1.0/modules/slash/"
+	>
+
+<channel>
+	<title>Presidential Actions &#8211; The White House</title>
+	
+	<link>https://www.whitehouse.gov/presidential-actions/</link>
+	<description/>
+	<lastBuildDate>Mon, 19 Oct 2026 15:56:26 +0000</lastBuildDate>
+	<language>en-US</language>
+	<sy:updatePeriod>
+	hourly	</sy:updatePeriod>
+	<sy:updateFrequency>
+	1	</sy:updateFrequency>
+		<item>
+		<title>Advancing Women&#8217;s Health to Improve Outcomes in All Phases of Life</title>
+		<link>https://www.whitehouse.gov/presidential-actions/2026/10/advancing-womens-health-to-improve-outcomes-in-all-phases-of-life/</link>
+		<dc:creator><![CDATA[The White House]]></dc:creator>
+		<pubDate>Mon, 19 Oct 2026 15:25:57 +0000</pubDate>
+				<category><![CDATA[Presidential Actions]]></category>
+		<category><![CDATA[Executive Orders]]></category>
+		<guid isPermaLink="false">https://www.whitehouse.gov/?p=52972</guid>
+			</item>
+<item>
+		<title>Implementing the Lindsey O. Graham Sanctioning Russia and Iran Act of 2026</title>
+		<link>https://www.whitehouse.gov/presidential-actions/2026/10/implementing-the-lindsey-o-graham-sanctioning-russia-and-iran-act-of-2026/</link>
+		<dc:creator><![CDATA[The White House]]></dc:creator>
+		<pubDate>Sat, 17 Oct 2026 00:34:24 +0000</pubDate>
+				<category><![CDATA[Presidential Actions]]></category>
+		<category><![CDATA[Executive Orders]]></category>
+		<guid isPermaLink="false">https://www.whitehouse.gov/?p=52952</guid>
+			</item>
+<item>
+		<title>Establishment of a Committee of Inquiry to Investigate Allegations of False Statements by Lisa DeNell Cook</title>
+		<link>https://www.whitehouse.gov/presidential-actions/2026/10/establishment-of-a-committee-of-inquiry-to-investigate-allegations-of-false-statements-by-lisa-denell-cook/</link>
+		<dc:creator><![CDATA[The White House]]></dc:creator>
+		<pubDate>Thu, 08 Oct 2026 01:00:00 +0000</pubDate>
+				<category><![CDATA[Presidential Actions]]></category>
+		<category><![CDATA[Presidential Memoranda]]></category>
+		<guid isPermaLink="false">https://www.whitehouse.gov/?p=52486</guid>
+			</item>
+</channel>
+</rss>

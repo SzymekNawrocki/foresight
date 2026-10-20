@@ -18,13 +18,13 @@ const event = {
 describe("DynamoEventStore", () => {
   beforeEach(() => ddb.reset());
 
-  it("writes the Event only if its id is not taken yet, marked as waiting for Analysis", async () => {
+  it("writes the Event only if its id is not taken yet, queued for Analysis under its Source tier", async () => {
     ddb.on(PutCommand).resolves({});
 
-    await expect(store().putIfAbsent(event)).resolves.toBe(true);
+    await expect(store().putIfAbsent(event, "A")).resolves.toBe(true);
     expect(ddb.commandCalls(PutCommand)[0]?.args[0].input).toEqual({
       TableName: "events",
-      Item: { ...event, kind: "EVENT", pending: "EVENT" },
+      Item: { ...event, kind: "EVENT", pending: "A" },
       ConditionExpression: "attribute_not_exists(id)",
     });
   });
@@ -32,12 +32,12 @@ describe("DynamoEventStore", () => {
   it("returns false for an Event that already exists", async () => {
     ddb.on(PutCommand).rejects(new ConditionalCheckFailedException({ message: "exists", $metadata: {} }));
 
-    await expect(store().putIfAbsent(event)).resolves.toBe(false);
+    await expect(store().putIfAbsent(event, "A")).resolves.toBe(false);
   });
 
   it("rethrows other errors", async () => {
     ddb.on(PutCommand).rejects(new Error("throttled"));
 
-    await expect(store().putIfAbsent(event)).rejects.toThrow("throttled");
+    await expect(store().putIfAbsent(event, "A")).rejects.toThrow("throttled");
   });
 });

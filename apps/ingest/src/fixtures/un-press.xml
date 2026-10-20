@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss xmlns:dc="http://purl.org/dc/elements/1.1/" version="2.0" xml:base="https://press.un.org/en">
+  <channel>
+    <title>UN Meetings Coverage and Press Releases</title>
+    <link>https://press.un.org/en</link>
+    <description/>
+    <language>en</language>
+    
+    <item>
+  <title>Security Council, 10250th Meeting (PM) Kosovo/UNMIK</title>
+  <link>https://press.un.org/en/blog/sc16485</link>
+  <pubDate>Tue, 20 Oct 2026 13:21:13 -0400</pubDate>
+    <dc:creator>United Nations</dc:creator>
+    <guid isPermaLink="true">https://press.un.org/en/blog/sc16485</guid>
+    </item>
+<item>
+  <title>Security Council, 10249th Meeting (AM) Central African Republic/MINUSCA</title>
+  <link>https://press.un.org/en/blog/sc16484</link>
+  <pubDate>Tue, 20 Oct 2026 06:51:42 -0400</pubDate>
+    <dc:creator>United Nations</dc:creator>
+    <guid isPermaLink="true">https://press.un.org/en/blog/sc16484</guid>
+    </item>
+<item>
+  <title>Sixth Committee Underlines Need for Legal Certainty in Cross-border Commerce</title>
+  <link>https://press.un.org/en/2026/gal3752.doc.htm</link>
+  <pubDate>Mon, 19 Oct 2026 19:57:02 -0400</pubDate>
+    <dc:creator>United Nations</dc:creator>
+    <guid isPermaLink="true">https://press.un.org/en/2026/gal3752.doc.htm</guid>
+    </item>
+</channel>
+</rss>

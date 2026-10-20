@@ -8,7 +8,7 @@ const rss = `<rss><channel>
   <item><title>One</title><link>https://a.example/1</link></item>
   <item><title>Two</title><link>https://a.example/2</link></item>
 </channel></rss>`;
-const sources = [{ id: "a", name: "A", url: "https://a.example/rss" }];
+const sources = [{ id: "a", name: "A", tier: "B" as const, url: "https://a.example/rss" }];
 const limits = { "openai/gpt-oss-20b": 150_000 };
 
 describe("worker handler", () => {
@@ -18,7 +18,7 @@ describe("worker handler", () => {
 
     const report = await handler();
 
-    expect(report).toEqual({ ingest: [{ source: "a", items: 2, new: 2, duplicate: 0, invalid: 0 }], newEvents: 2 });
+    expect(report).toEqual({ ingest: [{ source: "a", items: 2, new: 2, duplicate: 0, invalid: 0, stale: 0 }], newEvents: 2 });
     expect(JSON.parse(log.mock.calls[0]?.[0])).toMatchObject({ msg: "ingest finished", report });
   });
 
@@ -80,7 +80,7 @@ describe("worker handler", () => {
     });
 
     await expect(handler()).resolves.toEqual({
-      ingest: [{ source: "a", items: 0, new: 0, duplicate: 0, invalid: 0, error: "HTTP 503" }],
+      ingest: [{ source: "a", items: 0, new: 0, duplicate: 0, invalid: 0, stale: 0, error: "HTTP 503" }],
       newEvents: 0,
     });
   });
@@ -148,7 +148,7 @@ describe("worker handler", () => {
     });
 
     await expect(handler()).resolves.toEqual({
-      ingest: [{ source: "a", items: 2, new: 2, duplicate: 0, invalid: 0 }],
+      ingest: [{ source: "a", items: 2, new: 2, duplicate: 0, invalid: 0, stale: 0 }],
       newEvents: 2,
       analysis: { analyzed: 0, failed: 0 },
       tokens: { error: "AccessDenied" },

@@ -68,7 +68,8 @@ export function parseFeed(xml: string): FeedItem[] {
     return {
       title: text(item.title),
       link: text(item.link),
-      published: text(item.pubDate) ?? text(item["dc:date"]),
+      // The Council of the EU dates its items only with Atom a10:updated.
+      published: text(item.pubDate) ?? text(item["dc:date"]) ?? text(item["a10:updated"]),
     };
   });
 }

@@ -13,7 +13,7 @@ One item per Event. Created in 02b as `foresight-<environment>-events`.
 | `publishedAt` | S | ISO 8601 UTC; fetch time if the feed gives no readable date |
 | `fetchedAt` | S | ISO 8601 UTC |
 | `kind` | S | Always `EVENT`; partition key of the `latest` index |
-| `pending` | S | `EVENT` while the Event waits for its AI Analysis; partition key of the sparse `pending` index. Written only for new Events, removed when the Analysis is saved (slice 03). |
+| `pending` | S | Source tier (`A`, `B`, `C`) while the Event waits for its AI Analysis; partition key of the sparse `pending` index. Written only for new Events, removed when the Analysis is saved (slice 03). Events queued before slice 10 carry `EVENT`. |
 | `analysis` | M | The AI Analysis (`Analysis` in `packages/shared/src/analysis.ts`); absent until analyzed. |
 
 Schema: `Event` in `packages/shared/src/event.ts`.
@@ -24,7 +24,8 @@ Schema: `Event` in `packages/shared/src/event.ts`.
 |---|---|
 | Store an Event once | `PutItem` with `attribute_not_exists(id)`; a failed condition = duplicate |
 | Latest N Events (02c) | Query GSI `latest` (`kind = EVENT`, sort key `publishedAt`), `ScanIndexForward = false`, `Limit = N`. The web role may `dynamodb:Query` on `…/index/latest` only. |
-| Events waiting for Analysis (03) | Query GSI `pending` (`pending = EVENT`, sort key `publishedAt`), newest first, `Limit = 10`. Ingest role only. |
+| Events waiting for Analysis (03, tiers in 10) | Query GSI `pending` one partition at a time — `A`, `B`, legacy `EVENT`, then `C` — newest first (sort key `publishedAt`), until the batch limit is filled. At most 4 small queries per run. Ingest role only. |
+| Backlog for the "Analysis stalled" alarm | `Select = COUNT` on each of the 4 `pending` partitions, all pages. |
 | Near-duplicate candidates (10) | Query GSI `latest` (`kind = EVENT`, `publishedAt >= now − 48 h`), filter `attribute_exists(analysis)`, projection `title, analysis`, all pages. Once per run, only when something is pending; ~400 items ≈ 40 RCU, within the index burst. Ingest role. |
 | Save an Analysis (03) | `UpdateItem`: `SET analysis REMOVE pending`, condition `attribute_exists(id)`. One write takes the Event off the queue. |
 
@@ -39,7 +40,7 @@ DynamoDB is always free only in **provisioned** mode: 25 RCU + 25 WCU and 25 GB 
 | GSI `pending` | 5 | 5 |
 | **Total** (limit 25 / 25) | 15 | 15 |
 
-Load: ~100 puts per hourly run (one WCU each, item < 1 KB, a failed condition still consumes it); a few reads per page view. ~400 B per item → well under 1 GB per year. A single `kind` partition on the GSI is fine at this volume.
+Load: up to ~100 puts per hourly run (19 Sources, but items older than 48 h are skipped before the put; one WCU each, item < 1 KB, a failed condition still consumes it); a few reads per page view. ~400 B per item → well under 1 GB per year. A single `kind` partition on the GSI is fine at this volume.
 
 No auto scaling (it creates CloudWatch alarms). Retention / TTL is out of scope for 02.
 
