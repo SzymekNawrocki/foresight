@@ -8,7 +8,7 @@ import { createPendingAnalysis } from "./pending.js";
 import { type ActiveThread, buildMessages } from "./prompt.js";
 import type { AnalysisQueue } from "./queue.js";
 
-const MODEL = "openai/gpt-oss-20b";
+const MODEL = "openai/gpt-oss-120b";
 
 const eventOf = (letter: string, title = `Event ${letter}`): Event => ({
   id: letter.repeat(32),
@@ -55,7 +55,7 @@ function setup({
 }
 
 describe("analyzePending", () => {
-  it("analyzes the pending Events in batches of 5, one gpt-oss-20b call per batch", async () => {
+  it("analyzes the pending Events in batches of 5, one gpt-oss-120b call per batch", async () => {
     const { analysis, budget, llm, saved } = setup();
 
     await expect(analysis.analyzePending(budget)).resolves.toEqual({ analyzed: 7, failed: 0, backlog: 0 });

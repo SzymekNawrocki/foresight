@@ -54,7 +54,7 @@ export function createPendingAnalysis({
   queue,
   llm,
   threads = noThreads,
-  model = "openai/gpt-oss-20b",
+  model = "openai/gpt-oss-120b",
   limit = 20,
   pauseMs = 25_000,
   sleep = wait,
