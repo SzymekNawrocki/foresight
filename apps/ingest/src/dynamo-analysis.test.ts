@@ -1,7 +1,7 @@
 import { DynamoDBDocumentClient, QueryCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
 import { mockClient } from "aws-sdk-client-mock";
 import { beforeEach, describe, expect, it } from "vitest";
-import { validAnalysis } from "./analysis/fixtures.js";
+import { legacyAnalysis, validAnalysis } from "./analysis/fixtures.js";
 import { DynamoAnalysisQueue } from "./dynamo-analysis.js";
 
 const ddb = mockClient(DynamoDBDocumentClient);
@@ -67,5 +67,39 @@ describe("DynamoAnalysisQueue", () => {
       Select: "COUNT",
     });
     expect(ddb.commandCalls(QueryCommand)[1]?.args[0].input.ExclusiveStartKey).toEqual({ id: "x" });
+  });
+
+  it("reads titles and Analyses published since a time from the `latest` index, page by page", async () => {
+    ddb
+      .on(QueryCommand)
+      .resolvesOnce({ Items: [{ title: "First", analysis: validAnalysis }], LastEvaluatedKey: { id: "x" } })
+      .resolvesOnce({ Items: [{ title: "Second", analysis: validAnalysis }] });
+
+    await expect(queue().recent("2026-10-18T12:00:00.000Z")).resolves.toEqual([
+      { title: "First", analysis: validAnalysis },
+      { title: "Second", analysis: validAnalysis },
+    ]);
+    expect(ddb.commandCalls(QueryCommand)[0]?.args[0].input).toEqual({
+      TableName: "events",
+      IndexName: "latest",
+      KeyConditionExpression: "#kind = :kind AND #publishedAt >= :since",
+      FilterExpression: "attribute_exists(#analysis)",
+      ProjectionExpression: "#title, #analysis",
+      ExpressionAttributeNames: { "#kind": "kind", "#publishedAt": "publishedAt", "#analysis": "analysis", "#title": "title" },
+      ExpressionAttributeValues: { ":kind": "EVENT", ":since": "2026-10-18T12:00:00.000Z" },
+    });
+    expect(ddb.commandCalls(QueryCommand)[1]?.args[0].input.ExclusiveStartKey).toEqual({ id: "x" });
+  });
+
+  it("leaves out legacy and malformed Analyses, which cannot be reused", async () => {
+    ddb.on(QueryCommand).resolves({
+      Items: [
+        { title: "Legacy", analysis: legacyAnalysis },
+        { title: "Broken", analysis: { weight: 9 } },
+        { title: "Current", analysis: validAnalysis },
+      ],
+    });
+
+    await expect(queue().recent("2026-10-18T12:00:00.000Z")).resolves.toEqual([{ title: "Current", analysis: validAnalysis }]);
   });
 });

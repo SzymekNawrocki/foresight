@@ -134,8 +134,8 @@ run "ingest_role_is_scoped_to_the_analysis_queue_and_one_key" {
   }
 
   assert {
-    condition     = data.aws_iam_policy_document.ingest.statement[1].resources == toset(["${aws_dynamodb_table.events.arn}/index/pending"])
-    error_message = "Ingest may Query only the `pending` index."
+    condition     = data.aws_iam_policy_document.ingest.statement[1].resources == toset(["${aws_dynamodb_table.events.arn}/index/pending", "${aws_dynamodb_table.events.arn}/index/latest"])
+    error_message = "Ingest may Query only the `pending` queue and the `latest` index (near-duplicates), never the table itself."
   }
 
   assert {

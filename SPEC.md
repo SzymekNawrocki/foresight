@@ -33,7 +33,7 @@ na podstawie Zdarzeń, a Prawdopodobieństwo Scenariuszy przesuwa się na skali.
 
 1. **Ingest** — co godzinę Zdarzenia ze Źródeł z Poziomem A (oficjalne), B (rzetelne serwisy)
    albo C (analizy). Fakty z A i B, interpretacje z C.
-2. **Analiza AI (meldunek)** — `gpt-oss-20b`, paczki po 5 Zdarzeń w jednym wywołaniu, po polsku: Regiony,
+2. **Analiza AI (meldunek)** — `gpt-oss-120b`, paczki po 5 Zdarzeń w jednym wywołaniu, po polsku: Regiony,
    Tematy, do 4 Aktorów, Waga (1–3), jedno zdanie „dlaczego ważne” i przypięcie do aktywnego
    Wątku albo — przy Wadze ≥ 2 — propozycja Nowej sytuacji. Duplikaty nagłówków odsiewane bez AI;
    najpierw Źródła branżowe; zużycie tokenów logowane.
@@ -118,7 +118,7 @@ CloudWatch (alarmy) ─► SNS ─► e-mail właściciela
 | Dane | DynamoDB, tryb provisioned (always free: 25 GB, 25 RCU/25 WCU łącznie; on-demand nie jest darmowy); `events` z indeksami 15/15, `threads` single-table 5/5 — razem 20/25 |
 | Harmonogram | EventBridge Scheduler |
 | Sekrety | SSM Parameter Store, SecureString (standard tier), klucz zarządzany przez AWS |
-| AI | Groq, Zero Data Retention: `openai/gpt-oss-20b` meldunki (≤ 150K tokenów/dzień), `openai/gpt-oss-120b` Raporty (≤ 25/dzień, ≤ 150K); budżet tokenów zatrzymuje pracę przed limitem |
+| AI | Groq, Zero Data Retention: `openai/gpt-oss-120b` meldunki (~105K tokenów/dzień) i Raporty (reszta z 200K/dzień, ~15–20 Raportów; ADR 0009, aneks); budżet tokenów zatrzymuje pracę przed limitem |
 | Obserwowalność | logi JSON z zużyciem tokenów; 3 alarmy CloudWatch → SNS e-mail (błędy workera, Analiza stoi, cisza w ingeście) |
 | Domena | brak; `*.cloudfront.net` |
 | Środowiska | tylko prod + lokalny dev; Terraform parametryzowany `environment` |
@@ -168,7 +168,8 @@ i identyfikatory zasobów w zmiennych HCP, nie w kodzie.
 - Treść RSS = niezaufane wejście (prompt injection, OWASP LLM01).
 - Model bez narzędzi i uprawnień.
 - Odpowiedź = JSON walidowany schematem Zod; niezgodne odrzucane. Structured outputs w trybie
-  ścisłym, jeśli `gpt-oss-20b` na darmowym planie to obsługuje (sprawdzić w plastrze).
+  ścisłym — Groq sprawdza go dopiero po generowaniu, więc etykiety idą jako zwykłe napisy, a kod
+  zostawia znane wartości; jeden błędny meldunek nie odrzuca paczki (ADR 0009, aneks).
 - Wynik renderowany jako tekst, nigdy jako HTML.
 - Do modelu idą wyłącznie publiczne newsy i tytuły Wątków.
 

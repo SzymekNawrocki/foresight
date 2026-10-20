@@ -24,7 +24,7 @@ RSS feeds (internet, untrusted) ──HTTPS──► Lambda ingest ──► Dyn
 ## Slice 03 — AI Analysis
 
 ```
-DynamoDB events ──► Lambda ingest ──HTTPS──► Groq API (gpt-oss-20b) ──► Analysis ──► DynamoDB ──► page
+DynamoDB events ──► Lambda ingest ──HTTPS──► Groq API (gpt-oss-120b) ──► Analysis ──► DynamoDB ──► page
                         ▲ key from SSM (03b)
 ```
 

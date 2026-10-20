@@ -30,3 +30,19 @@ Key decisions from the grilling session:
 - Slices 09–12 of ADR 0008 are replaced by three slices: **09 Foundation** (refactor, token log, budget, alarms, freshness — no visible change), **10 Core** (Source tiers, lean batched dispatches with Actors and the eval, Threads and the inbox, rolling Situation reports with signals), **11 View** (new Briefing, prices next to a Thread). Actor pages and prices as signals move to later.
 - `CONTEXT.md` gains Source tier, Likelihood and Move; Situation report and Warning signal are sharpened.
 - The ingest Lambda becomes a general worker; its role gains access to the `threads` table and a second model is used with the same SSM key.
+
+## Amendment 2026-10-20: dispatches on `gpt-oss-120b`
+
+The eval in slice 10 (#53) measured batches of 5 on the golden cases (55 checks, the injection case left out — it is quarantined before the model). The old prompt (one `gpt-oss-20b` call per Event) scored ~48 at 1,312 tokens per Event.
+
+| Batched dispatches | Run 1 | Run 2 | Batches lost to HTTP 400 | Tokens per Event |
+|---|---|---|---|---|
+| `gpt-oss-20b`, reasoning low | 44 | 41 | 1 | ~360 |
+| `gpt-oss-20b`, reasoning medium | 41 | — (429) | 1 | ~470 |
+| `gpt-oss-120b`, reasoning low | 53 | 46 | 0 | ~440 |
+
+With the 20b model, batching drops below the baseline: a batch can collapse (five Events marked as noise after two sports headlines) or come back as broken JSON. Groq strict mode turned out to check the schema only after generating, so an Actor outside the enum ("lithuania") failed a whole batch with a 400.
+
+- **Dispatches move to `gpt-oss-120b`** (reasoning low). At ~240 Events/day that is ~105K tokens/day, so Situation reports share the same model's 200K/day with roughly 80K left (~15–20 reports instead of 25). The split per purpose is added with the reports (step 6 of #53).
+- **Labels go to the model as plain strings.** Regions, Topics and Actors are listed in the prompt, not as enums in the schema; code keeps the known values and adds `global` when no Region is left.
+- **One invalid dispatch no longer fails its batch.** Only its own Event stays pending; the run report says why Events failed.

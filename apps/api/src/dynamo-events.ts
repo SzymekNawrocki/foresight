@@ -1,5 +1,5 @@
 import { type DynamoDBDocumentClient, QueryCommand, type QueryCommandInput } from "@aws-sdk/lib-dynamodb";
-import { Analysis, type AnalyzedEvent, Event } from "@foresight/shared";
+import { type AnalyzedEvent, Event, StoredAnalysis } from "@foresight/shared";
 import type { EventReader } from "./events.js";
 
 // Data model: docs/data-model.md → "Latest N Events". The web role may Query only this index.
@@ -52,6 +52,6 @@ export class DynamoEventReader implements EventReader {
 function toAnalyzedEvent(item: Record<string, unknown>): AnalyzedEvent[] {
   const event = Event.safeParse(item);
   if (!event.success) return [];
-  const analysis = Analysis.safeParse(item.analysis);
+  const analysis = StoredAnalysis.safeParse(item.analysis);
   return [analysis.success ? { ...event.data, analysis: analysis.data } : event.data];
 }

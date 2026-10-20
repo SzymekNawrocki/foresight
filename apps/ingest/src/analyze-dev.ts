@@ -31,6 +31,7 @@ const analysis = createPendingAnalysis({
       console.dir(result, { depth: null });
     },
     backlog: async () => events.length - done.size,
+    recent: async () => [],
   },
   llm: async () => createGroqLlm({ apiKey }),
   limit: count,

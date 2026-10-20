@@ -1,4 +1,4 @@
-import type { Branch, Region, Topic, Weight } from "@foresight/shared";
+import type { Actor, Branch, Region, Topic, Weight } from "@foresight/shared";
 
 // Nazwy z CONTEXT.md — kod trzyma identyfikatory po angielsku, strona mówi po polsku.
 export const REGION_LABEL: Record<Region, string> = {
@@ -21,6 +21,51 @@ export const TOPIC_LABEL: Record<Topic, string> = {
   commodities: "Surowce",
   energy: "Energia",
   "sanctions-trade": "Sankcje i handel",
+};
+
+export const ACTOR_LABEL: Record<Actor, string> = {
+  usa: "USA",
+  canada: "Kanada",
+  mexico: "Meksyk",
+  brazil: "Brazylia",
+  venezuela: "Wenezuela",
+  uk: "Wielka Brytania",
+  germany: "Niemcy",
+  france: "Francja",
+  italy: "Włochy",
+  poland: "Polska",
+  ukraine: "Ukraina",
+  russia: "Rosja",
+  belarus: "Białoruś",
+  turkey: "Turcja",
+  israel: "Izrael",
+  palestine: "Palestyna",
+  iran: "Iran",
+  iraq: "Irak",
+  syria: "Syria",
+  "saudi-arabia": "Arabia Saudyjska",
+  uae: "ZEA",
+  qatar: "Katar",
+  egypt: "Egipt",
+  india: "Indie",
+  pakistan: "Pakistan",
+  afghanistan: "Afganistan",
+  china: "Chiny",
+  taiwan: "Tajwan",
+  japan: "Japonia",
+  "south-korea": "Korea Południowa",
+  "north-korea": "Korea Północna",
+  australia: "Australia",
+  eu: "UE",
+  nato: "NATO",
+  un: "ONZ",
+  opec: "OPEC",
+  g7: "G7",
+  brics: "BRICS",
+  "african-union": "Unia Afrykańska",
+  hamas: "Hamas",
+  hezbollah: "Hezbollah",
+  houthis: "Huti",
 };
 
 export const WEIGHT_LABEL: Record<Weight, string> = { 1: "szum", 2: "istotne", 3: "przełomowe" };

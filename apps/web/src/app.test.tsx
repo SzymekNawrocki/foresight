@@ -10,13 +10,23 @@ const hoursAgo = (h: number) => new Date(Date.now() - h * 3_600_000).toISOString
 const analysis = {
   regions: ["middle-east", "europe"],
   topics: ["energy", "sanctions-trade"],
+  actors: ["iran", "eu"],
   weight: 3,
-  whyItMatters: "Ormuz to wąskie gardło dla ropy. Każde zakłócenie od razu trafia w ceny.",
+  whyItMatters: "Ormuz to wąskie gardło dla ropy, więc każde zakłócenie od razu trafia w ceny.",
+  thread: { kind: "none" },
+} as const;
+
+// Saved before slice 10: one Scenario per Event, no Actors.
+const legacyAnalysis = {
+  regions: ["europe"],
+  topics: ["energy"],
+  weight: 2,
+  whyItMatters: "Gaz drożeje. Przemysł to odczuje.",
   scenario: {
     escalation: { path: "Blokada cieśniny na kilka dni.", assetClass: "ropa", direction: "up" },
     deescalation: { path: "Rozmowy uspokajają rynek.", assetClass: "ropa", direction: "down" },
   },
-} as const;
+};
 
 const hormuz: AnalyzedEvent = {
   id: "0123456789abcdef0123456789abcdef",
@@ -25,7 +35,7 @@ const hormuz: AnalyzedEvent = {
   url: "https://www.aljazeera.com/news/1",
   publishedAt: hoursAgo(1),
   fetchedAt: hoursAgo(0),
-  analysis: { ...analysis, regions: [...analysis.regions], topics: [...analysis.topics] },
+  analysis: { ...analysis, regions: [...analysis.regions], topics: [...analysis.topics], actors: [...analysis.actors] },
 };
 
 const pending: AnalyzedEvent = {
@@ -99,7 +109,7 @@ describe("Briefing", () => {
 });
 
 describe("Event card", () => {
-  it("shows the Analysis in Polish: Weight, Regions, Topics, why it matters and both Branches", async () => {
+  it("shows the Analysis in Polish: Weight, Regions, Topics, Actors and why it matters", async () => {
     renderApp("/region/middle-east");
 
     const card = (await screen.findByRole("link", { name: hormuz.title })).closest("article");
@@ -108,10 +118,24 @@ describe("Event card", () => {
     expect(c.getByText("Waga 3 · przełomowe")).toBeInTheDocument();
     expect(c.getByRole("link", { name: "Bliski Wschód" })).toHaveAttribute("href", "/region/middle-east");
     expect(c.getByRole("link", { name: "Sankcje i handel" })).toHaveAttribute("href", "/topic/sanctions-trade");
+    expect(within(c.getByRole("list", { name: "Aktorzy" })).getAllByRole("listitem").map((li) => li.textContent)).toEqual([
+      "Iran",
+      "UE",
+    ]);
     expect(c.getByText(analysis.whyItMatters)).toBeInTheDocument();
+    expect(c.queryByText(/Eskalacja/)).not.toBeInTheDocument();
+  });
+
+  it("still shows both Branches of an Analysis saved in the legacy shape", async () => {
+    renderApp("/region/europe", { since: hoursAgo(72), events: [{ ...pending, analysis: legacyAnalysis }] });
+
+    const card = (await screen.findByRole("link", { name: pending.title })).closest("article");
+    if (!card) throw new Error("no card");
+    const c = within(card);
     expect(c.getByText(/Eskalacja: ropa/)).toHaveTextContent("Eskalacja: ropa ↑");
     expect(c.getByText(/Deeskalacja: ropa/)).toHaveTextContent("Deeskalacja: ropa ↓");
-    expect(c.getByText(analysis.scenario.escalation.path)).toBeInTheDocument();
+    expect(c.getByText(legacyAnalysis.scenario.escalation.path)).toBeInTheDocument();
+    expect(c.queryByRole("list", { name: "Aktorzy" })).not.toBeInTheDocument();
   });
 
   it("links out safely to the source article", async () => {
