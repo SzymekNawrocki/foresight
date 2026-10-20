@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xml:base="https://news.un.org/en/" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd" xmlns:yandex="http://news.yandex.ru" xmlns:media="http://search.yahoo.com/mrss/" xmlns:podcast="https://podcastindex.org/namespace/1.0">
+  <channel>
+    <title>UN News - Global perspective Human stories</title>
+    <link>https://news.un.org/en/</link>
+    <description/>
+    <language>en</language>
+        <atom:link rel="self" href="https://news.un.org/feed/subscribe/en/news/all/rss.xml"></atom:link>
+
+<generator>United Nations</generator>
+<lastBuildDate>Tue, 20 Oct 2026 15:14:09 -0400</lastBuildDate>
+<pubDate>Tue, 20 Oct 2026 08:00:00 -0400</pubDate>
+<item>
+  <title>As Sudan war spills into Central African Republic, UN warns against early peacekeeper exit</title>
+  <link>https://news.un.org/feed/view/en/story/2026/10/1168630</link>
+        <enclosure url="https://global.unitednations.entermediadb.net/assets/mediadb/services/module/asset/downloads/preset/Collections/Embargoed/2026/10/14-10-2026-MINUSCA-CAR-02.jpg/image560x340cropped.jpg" length="46041" type="image/jpeg" />
+                <guid isPermaLink="true">https://news.un.org/en/story/2026/10/1168630</guid>
+                                              <pubDate>Tue, 20 Oct 2026 12:00:00 +0000</pubDate>
+                                              <source url="https://news.un.org/feed/subscribe/en/news/all/rss.xml">UN News - Global perspective Human stories</source>
+                                        </item>
+<item>
+  <title>Bangladesh: UNICEF chief calls for an end to child marriage</title>
+  <link>https://news.un.org/feed/view/en/story/2026/10/1168632</link>
+        <enclosure url="https://global.unitednations.entermediadb.net/assets/mediadb/services/module/asset/downloads/preset/Collections/Embargoed/30-01-2025-UNICEF-Bangladesh-06.jpg/image560x340cropped.jpg" length="50822" type="image/jpeg" />
+                <guid isPermaLink="true">https://news.un.org/en/story/2026/10/1168632</guid>
+                                              <pubDate>Tue, 20 Oct 2026 12:00:00 +0000</pubDate>
+                                              <source url="https://news.un.org/feed/subscribe/en/news/all/rss.xml">UN News - Global perspective Human stories</source>
+                                        </item>
+<item>
+  <title>‘One step away from famine’: Inside Afghanistan’s hunger crisis</title>
+  <link>https://news.un.org/feed/view/en/story/2026/10/1168631</link>
+        <enclosure url="https://global.unitednations.entermediadb.net/assets/mediadb/services/module/asset/downloads/preset/Collections/Embargoed/11-08-2025-UNAMA-Afghanistan-02.jpg/image560x340cropped.jpg" length="42169" type="image/jpeg" />
+                <guid isPermaLink="true">https://news.un.org/en/story/2026/10/1168631</guid>
+                                              <pubDate>Tue, 20 Oct 2026 12:00:00 +0000</pubDate>
+                                              <source url="https://news.un.org/feed/subscribe/en/news/all/rss.xml">UN News - Global perspective Human stories</source>
+                                        </item>
+</channel>
+</rss>

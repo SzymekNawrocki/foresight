@@ -18,19 +18,36 @@ const event = {
 describe("DynamoAnalysisQueue", () => {
   beforeEach(() => ddb.reset());
 
-  it("reads the newest pending Events from the sparse `pending` index", async () => {
-    ddb.on(QueryCommand).resolves({ Items: [{ ...event, kind: "EVENT", pending: "EVENT" }] });
+  const tierQuery = (tier: string) => ({
+    TableName: "events",
+    IndexName: "pending",
+    KeyConditionExpression: "#pending = :pending",
+    ExpressionAttributeNames: { "#pending": "pending" },
+    ExpressionAttributeValues: { ":pending": tier },
+  });
+  const inTier = (tier: string) => ({ ExpressionAttributeValues: { ":pending": tier } });
 
-    await expect(queue().pending(10)).resolves.toEqual([event]);
-    expect(ddb.commandCalls(QueryCommand)[0]?.args[0].input).toEqual({
-      TableName: "events",
-      IndexName: "pending",
-      KeyConditionExpression: "#pending = :pending",
-      ExpressionAttributeNames: { "#pending": "pending" },
-      ExpressionAttributeValues: { ":pending": "EVENT" },
-      ScanIndexForward: false,
-      Limit: 10,
-    });
+  it("takes pending Events tier by tier — A, B, legacy, then C — newest first within each", async () => {
+    const a = { ...event, id: "a".repeat(32) };
+    const b = { ...event, id: "b".repeat(32) };
+    ddb.on(QueryCommand, inTier("A")).resolves({ Items: [{ ...a, pending: "A" }] });
+    ddb.on(QueryCommand, inTier("B")).resolves({ Items: [{ ...b, pending: "B" }] });
+    ddb.on(QueryCommand, inTier("EVENT")).resolves({ Items: [{ ...event, pending: "EVENT" }] });
+
+    await expect(queue().pending(3)).resolves.toEqual([a, b, event]);
+    expect(ddb.commandCalls(QueryCommand).map((call) => call.args[0].input)).toEqual([
+      { ...tierQuery("A"), ScanIndexForward: false, Limit: 3 },
+      { ...tierQuery("B"), ScanIndexForward: false, Limit: 2 },
+      { ...tierQuery("EVENT"), ScanIndexForward: false, Limit: 1 },
+    ]);
+  });
+
+  it("does not read tier C while the higher tiers fill the batch", async () => {
+    ddb.on(QueryCommand).resolves({ Items: [] });
+    ddb.on(QueryCommand, inTier("A")).resolves({ Items: [{ ...event, pending: "A" }] });
+
+    await expect(queue().pending(1)).resolves.toEqual([event]);
+    expect(ddb.commandCalls(QueryCommand)).toHaveLength(1);
   });
 
   it("skips pending items that do not match the Event contract", async () => {
@@ -54,19 +71,16 @@ describe("DynamoAnalysisQueue", () => {
     });
   });
 
-  it("counts the backlog on the sparse index without reading the items", async () => {
-    ddb.on(QueryCommand).resolvesOnce({ Count: 40, LastEvaluatedKey: { id: "x" } }).resolvesOnce({ Count: 2 });
+  it("counts the backlog in every tier on the sparse index without reading the items", async () => {
+    ddb.on(QueryCommand).resolves({ Count: 0 });
+    ddb.on(QueryCommand, inTier("A")).resolvesOnce({ Count: 40, LastEvaluatedKey: { id: "x" } }).resolvesOnce({ Count: 2 });
+    ddb.on(QueryCommand, inTier("C")).resolves({ Count: 5 });
 
-    await expect(queue().backlog()).resolves.toBe(42);
-    expect(ddb.commandCalls(QueryCommand)[0]?.args[0].input).toEqual({
-      TableName: "events",
-      IndexName: "pending",
-      KeyConditionExpression: "#pending = :pending",
-      ExpressionAttributeNames: { "#pending": "pending" },
-      ExpressionAttributeValues: { ":pending": "EVENT" },
-      Select: "COUNT",
-    });
-    expect(ddb.commandCalls(QueryCommand)[1]?.args[0].input.ExclusiveStartKey).toEqual({ id: "x" });
+    await expect(queue().backlog()).resolves.toBe(47);
+    const inputs = ddb.commandCalls(QueryCommand).map((call) => call.args[0].input);
+    expect(inputs[0]).toEqual({ ...tierQuery("A"), Select: "COUNT" });
+    expect(inputs[1]?.ExclusiveStartKey).toEqual({ id: "x" });
+    expect(inputs.map((input) => input.ExpressionAttributeValues?.[":pending"])).toEqual(["A", "A", "B", "EVENT", "C"]);
   });
 
   it("reads titles and Analyses published since a time from the `latest` index, page by page", async () => {

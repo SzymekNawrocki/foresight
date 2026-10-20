@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xml:base="https://www.cisa.gov/" xmlns:dc="http://purl.org/dc/elements/1.1/">
+  <channel>
+    <title>All CISA Advisories</title>
+    <link>https://www.cisa.gov/</link>
+    <description/>
+    <language>en</language>
+    
+    <item>
+  <title>CISA Adds Six Known Exploited Vulnerabilities to Catalog</title>
+  <link>https://www.cisa.gov/news-events/alerts/2026/10/20/cisa-adds-six-known-exploited-vulnerabilities-catalog</link>
+  <pubDate>Tue, 20 Oct 26 12:00:00 +0000</pubDate>
+    <dc:creator>CISA</dc:creator>
+    <guid isPermaLink="false">/node/25663</guid>
+    </item>
+<item>
+  <title>Hitachi Energy MicroSCADA X SYS600 Product</title>
+  <link>https://www.cisa.gov/news-events/ics-advisories/icsa-26-293-04</link>
+  <pubDate>Tue, 20 Oct 26 12:00:00 +0000</pubDate>
+    <dc:creator>CISA</dc:creator>
+    <guid isPermaLink="false">/node/25652</guid>
+    </item>
+<item>
+  <title>#StopRansomware: SafePay Ransomware</title>
+  <link>https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-293a</link>
+  <pubDate>Tue, 20 Oct 26 12:00:00 +0000</pubDate>
+    <dc:creator>CISA</dc:creator>
+    <guid isPermaLink="false">/node/25648</guid>
+    </item>
+</channel>
+</rss>

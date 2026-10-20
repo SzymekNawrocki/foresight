@@ -200,6 +200,14 @@ dodał po jednym Źródle branżowym na słabo pokryty Temat: The Record (Cyber)
 (Pole walki), SpaceNews (Kosmos), OilPrice (Energia, Surowce), The Diplomat (Azja-Pacyfik),
 MIT Technology Review (AI), EE Times (Półprzewodniki).
 
+Plaster 10 (2026-10-20) nadał Źródłom Poziomy i dodał 8 oficjalnych Źródeł poziomu A (~15 wpisów
+na dobę): Biały Dom (akty prezydenta), Departament Obrony USA, ONZ (komunikaty i UN News), Rada UE,
+EBC, Fed, CISA. Poziom B: BBC, Al Jazeera, CNBC, Notes from Poland, The Record, Breaking Defense,
+SpaceNews; poziom C: OilPrice, The Diplomat, MIT Technology Review, EE Times. Przy zaległościach
+Meldunki powstają najpierw z A i B. Wpisy starsze niż 48 h są pomijane, więc nowe Źródło nie
+zasypuje kolejki swoim archiwum. Odrzucone: Komisja Europejska (szum), NATO, Departament Stanu,
+IEA, OPEC, MSZ Rosji i Japonii (blokują boty lub nie mają RSS), OFAC (martwy feed).
+
 - **02a — rdzeń ingestu lokalnie** (TDD, bez AWS): pobranie i parsowanie RSS, normalizacja
   do Zdarzenia, deduplikacja, zapis przez port; model danych DynamoDB; lekki STRIDE.
 - **02b — ingest w chmurze**: tabela DynamoDB, Lambda `ingest`, EventBridge Scheduler (co 1 h),
