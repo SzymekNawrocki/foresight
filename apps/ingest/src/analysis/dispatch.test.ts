@@ -65,10 +65,18 @@ describe("DispatchBatch", () => {
   });
 
   it.each([
-    ["an unknown ref", { dispatches: [{ ref: "e6", ...validAnalysis }] }],
-    ["more than 5 dispatches", { dispatches: Array(6).fill({ ref: "e1", ...validAnalysis }) }],
-    ["a dispatch without ref", { dispatches: [validAnalysis] }],
-  ])("rejects %s", (_, batch) => {
+    ["an unknown ref", { ref: "e6", ...validAnalysis }],
+    ["a dispatch without ref", validAnalysis],
+    ["a sentence over the limit", { ref: "e2", ...validAnalysis, whyItMatters: "x".repeat(301) }],
+  ])("drops %s and keeps the rest of the batch", (_, bad) => {
+    const batch = { dispatches: [{ ref: "e1", ...validAnalysis }, bad] };
+
+    expect(DispatchBatch.parse(batch).dispatches).toEqual([{ ref: "e1", ...validAnalysis }, null]);
+  });
+
+  it("rejects more than 5 dispatches", () => {
+    const batch = { dispatches: Array(6).fill({ ref: "e1", ...validAnalysis }) };
+
     expect(DispatchBatch.safeParse(batch).success).toBe(false);
   });
 });

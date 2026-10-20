@@ -1,12 +1,20 @@
 import type { Event } from "@foresight/shared";
 import type { TokenBudget } from "../budget/budget.js";
-import { estimateTokens, type Llm, type LlmRequest } from "../llm/llm.js";
+import { estimateTokens, type Llm, type LlmFailure, type LlmRequest } from "../llm/llm.js";
 import { BATCH_SIZE, DispatchBatch, looksLikeInjection, QUARANTINED, REFS, settle } from "./dispatch.js";
 import { type ActiveThread, buildMessages } from "./prompt.js";
 import type { AnalysisQueue } from "./queue.js";
 
 export type AnalysisReport =
-  | { analyzed: number; failed: number; quarantined?: number; stopped?: "rate-limited" | "budget"; backlog?: number }
+  | {
+      analyzed: number;
+      failed: number;
+      /** Why Events failed: an LLM failure for the whole batch, or `skipped` for a dispatch missing or invalid. */
+      reasons?: Partial<Record<LlmFailure | "skipped", number>>;
+      quarantined?: number;
+      stopped?: "rate-limited" | "budget";
+      backlog?: number;
+    }
   | { error: string; backlog?: number };
 
 export interface PendingAnalysis {
@@ -33,6 +41,11 @@ const wait = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, 
 const noThreads = async (): Promise<ActiveThread[]> => [];
 
 type RunReport = Extract<AnalysisReport, { analyzed: number }>;
+
+function fail(report: RunReport, reason: LlmFailure | "skipped", count: number) {
+  report.failed += count;
+  report.reasons = { ...report.reasons, [reason]: (report.reasons?.[reason] ?? 0) + count };
+}
 
 // Events go to the model in batches of 5, with the instructions and the Thread list sent once
 // per batch. An Event without a valid dispatch is not saved, so it stays pending for the next
@@ -80,7 +93,7 @@ export function createPendingAnalysis({
       const result = await client.complete(request);
       if (result.usage) await budget.record(result.usage);
       if (!result.ok) {
-        report.failed += batch.length;
+        fail(report, result.reason, batch.length);
         if (result.reason === "rate-limited") {
           report.stopped = "rate-limited";
           break;
@@ -94,9 +107,9 @@ export function createPendingAnalysis({
 
   async function saveBatch(batch: Event[], answer: DispatchBatch, activeIds: Set<string>, report: RunReport) {
     for (const [i, event] of batch.entries()) {
-      const found = answer.dispatches.find((d) => d.ref === REFS[i]);
+      const found = answer.dispatches.find((d) => d?.ref === REFS[i]);
       if (!found) {
-        report.failed++;
+        fail(report, "skipped", 1);
         continue;
       }
       await queue.saveAnalysis(event.id, settle(found, activeIds));

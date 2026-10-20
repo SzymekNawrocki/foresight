@@ -79,7 +79,7 @@ describe("analyzePending", () => {
     const reply = answer(["e1", "e1", "e2", "e3", "e4"]);
     const { analysis, budget, saved } = setup({ replies: [reply, rest] });
 
-    await expect(analysis.analyzePending(budget)).resolves.toEqual({ analyzed: 6, failed: 1, backlog: 1 });
+    await expect(analysis.analyzePending(budget)).resolves.toEqual({ analyzed: 6, failed: 1, reasons: { skipped: 1 }, backlog: 1 });
     expect(saved.has(events[4]?.id as string)).toBe(false);
   });
 
@@ -144,8 +144,37 @@ describe("analyzePending", () => {
   it("leaves a whole batch pending on an invalid answer and goes on", async () => {
     const { analysis, budget, saved } = setup({ replies: [{ answer: { dispatches: "nope" } }, rest] });
 
-    await expect(analysis.analyzePending(budget)).resolves.toEqual({ analyzed: 2, failed: 5, backlog: 5 });
+    await expect(analysis.analyzePending(budget)).resolves.toEqual({
+      analyzed: 2,
+      failed: 5,
+      reasons: { invalid: 5 },
+      backlog: 5,
+    });
     expect(saved.has(events[0]?.id as string)).toBe(false);
+  });
+
+  it("leaves only an invalid dispatch pending, not its whole batch", async () => {
+    const valid = { ...validAnalysis };
+    const reply = {
+      answer: {
+        dispatches: [
+          { ref: "e1", ...valid },
+          { ref: "e2", ...valid },
+          { ref: "e3", ...valid, whyItMatters: "x".repeat(301) },
+          { ref: "e4", ...valid },
+          { ref: "e5", ...valid },
+        ],
+      },
+    };
+    const { analysis, budget, saved } = setup({ replies: [reply, rest] });
+
+    await expect(analysis.analyzePending(budget)).resolves.toEqual({
+      analyzed: 6,
+      failed: 1,
+      reasons: { skipped: 1 },
+      backlog: 1,
+    });
+    expect(saved.has(events[2]?.id as string)).toBe(false);
   });
 
   it("stops the run on rate limiting", async () => {
@@ -154,6 +183,7 @@ describe("analyzePending", () => {
     await expect(analysis.analyzePending(budget)).resolves.toEqual({
       analyzed: 0,
       failed: 5,
+      reasons: { "rate-limited": 5 },
       stopped: "rate-limited",
       backlog: 7,
     });

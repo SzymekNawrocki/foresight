@@ -6,8 +6,13 @@ import { z } from "zod";
 export const BATCH_SIZE = 5;
 export const REFS = ["e1", "e2", "e3", "e4", "e5"] as const;
 
+const Dispatch = Analysis.extend({ ref: z.enum(REFS) });
+
+// One invalid dispatch (say, a sentence over the limit) turns into null instead of failing the
+// whole answer, so only its own Event stays pending. `catch` leaves the JSON schema sent to the
+// model unchanged, which is why the null is cast in rather than declared with `nullable`.
 export const DispatchBatch = z.strictObject({
-  dispatches: z.array(Analysis.extend({ ref: z.enum(REFS) })).max(BATCH_SIZE),
+  dispatches: z.array(Dispatch.catch(null as unknown as z.infer<typeof Dispatch>)).max(BATCH_SIZE),
 });
 export type DispatchBatch = z.infer<typeof DispatchBatch>;
 
