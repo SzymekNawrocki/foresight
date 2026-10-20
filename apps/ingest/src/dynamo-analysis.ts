@@ -1,5 +1,6 @@
 import { type DynamoDBDocumentClient, QueryCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
-import { type Analysis, Event } from "@foresight/shared";
+import { Analysis, Event } from "@foresight/shared";
+import type { RecentAnalysis } from "./analysis/duplicate.js";
 import type { AnalysisQueue } from "./analysis/queue.js";
 
 // Data model: docs/data-model.md → "Events waiting for Analysis". Only new Events carry
@@ -60,5 +61,32 @@ export class DynamoAnalysisQueue implements AnalysisQueue {
       start = res.LastEvaluatedKey;
     } while (start);
     return count;
+  }
+
+  // ~400 Events in 48 h read as ~40 RCU once an hour — within the burst of the `latest` index.
+  // Only the current Analysis shape is reused; a legacy one has no Actors or Thread decision.
+  async recent(since: string) {
+    const found: RecentAnalysis[] = [];
+    let start: Record<string, unknown> | undefined;
+    do {
+      const res = await this.client.send(
+        new QueryCommand({
+          TableName: this.tableName,
+          IndexName: "latest",
+          KeyConditionExpression: "#kind = :kind AND #publishedAt >= :since",
+          FilterExpression: "attribute_exists(#analysis)",
+          ProjectionExpression: "#title, #analysis",
+          ExpressionAttributeNames: { "#kind": "kind", "#publishedAt": "publishedAt", "#analysis": "analysis", "#title": "title" },
+          ExpressionAttributeValues: { ":kind": "EVENT", ":since": since },
+          ...(start && { ExclusiveStartKey: start }),
+        }),
+      );
+      for (const item of res.Items ?? []) {
+        const analysis = Analysis.safeParse(item.analysis);
+        if (typeof item.title === "string" && analysis.success) found.push({ title: item.title, analysis: analysis.data });
+      }
+      start = res.LastEvaluatedKey;
+    } while (start);
+    return found;
   }
 }

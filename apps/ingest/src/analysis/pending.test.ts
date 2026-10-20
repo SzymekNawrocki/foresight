@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { createTokenBudget, InMemoryBudgetStore } from "../budget/budget.js";
 import { createFakeLlm, type FakeReply } from "../llm/fake.js";
 import { QUARANTINED } from "./dispatch.js";
+import type { RecentAnalysis } from "./duplicate.js";
 import { validAnalysis } from "./fixtures.js";
 import { createPendingAnalysis } from "./pending.js";
 import { type ActiveThread, buildMessages } from "./prompt.js";
@@ -27,15 +28,19 @@ const answer = (refs: string[], dispatch: Partial<Analysis> = {}): FakeReply => 
 const full = answer(["e1", "e2", "e3", "e4", "e5"]);
 const rest = answer(["e1", "e2"]);
 
-function queueOf(pending: Event[]) {
+function queueOf(pending: Event[], analyzed: RecentAnalysis[] = []) {
   const saved = new Map<string, Analysis>();
+  const recent = vi.fn<AnalysisQueue["recent"]>(async () => analyzed);
   const queue: AnalysisQueue = {
     pending: async (limit) => pending.filter((e) => !saved.has(e.id)).slice(0, limit),
     saveAnalysis: async (eventId, analysis) => void saved.set(eventId, analysis),
     backlog: async () => pending.filter((e) => !saved.has(e.id)).length,
+    recent,
   };
-  return { queue, saved };
+  return { queue, saved, recent };
 }
+
+const NOW = new Date("2026-10-20T12:00:00.000Z");
 
 function setup({
   replies = [full, rest],
@@ -43,15 +48,16 @@ function setup({
   limit = 20,
   tokenLimit = 1_000_000,
   active = [] as ActiveThread[],
+  analyzed = [] as RecentAnalysis[],
 } = {}) {
-  const { queue, saved } = queueOf(pending);
+  const { queue, saved, recent } = queueOf(pending, analyzed);
   const llm = createFakeLlm(replies);
   const openLlm = vi.fn(async () => llm);
   const threads = vi.fn(async () => active);
   const sleep = vi.fn(async () => {});
   const budget = createTokenBudget({ store: new InMemoryBudgetStore(), limits: { [MODEL]: tokenLimit } });
-  const analysis = createPendingAnalysis({ queue, llm: openLlm, threads, limit, pauseMs: 25_000, sleep });
-  return { analysis, budget, llm, openLlm, saved, sleep, threads };
+  const analysis = createPendingAnalysis({ queue, llm: openLlm, threads, limit, pauseMs: 25_000, sleep, now: () => NOW });
+  return { analysis, budget, llm, openLlm, saved, sleep, threads, recent };
 }
 
 describe("analyzePending", () => {
@@ -115,6 +121,36 @@ describe("analyzePending", () => {
     await expect(analysis.analyzePending(budget)).resolves.toEqual({ analyzed: 2, failed: 0, quarantined: 1, backlog: 0 });
     expect(saved.get(hostile.id)).toEqual(QUARANTINED);
     expect(JSON.stringify(llm.requests)).not.toContain("Bakery");
+  });
+
+  it("reuses the Analysis of a near-duplicate from the last 48 h without asking the model", async () => {
+    const reworded = eventOf("q", "Qatar to announce a new regional defence partnership");
+    const earlier = {
+      title: "Qatar to unveil regional defence partnership",
+      analysis: { ...validAnalysis, weight: 3 as const, thread: { kind: "attach" as const, threadId: "dormant" } },
+    };
+    const { analysis, budget, llm, saved, recent } = setup({
+      replies: [rest],
+      pending: [reworded, ...events.slice(0, 2)],
+      analyzed: [earlier],
+    });
+
+    await expect(analysis.analyzePending(budget)).resolves.toEqual({ analyzed: 2, failed: 0, reused: 1, backlog: 0 });
+    // Settled again: the old attach points at a Thread that is no longer active.
+    expect(saved.get(reworded.id)).toEqual({ ...validAnalysis, weight: 3 });
+    expect(JSON.stringify(llm.requests)).not.toContain("Qatar");
+    expect(recent).toHaveBeenCalledExactlyOnceWith("2026-10-18T12:00:00.000Z");
+  });
+
+  it("does not open the LLM when every pending Event is a near-duplicate", async () => {
+    const reworded = eventOf("q", "Qatar to announce a new regional defence partnership");
+    const { analysis, budget, openLlm } = setup({
+      pending: [reworded],
+      analyzed: [{ title: "Qatar to unveil regional defence partnership", analysis: validAnalysis }],
+    });
+
+    await expect(analysis.analyzePending(budget)).resolves.toEqual({ analyzed: 0, failed: 0, reused: 1, backlog: 0 });
+    expect(openLlm).not.toHaveBeenCalled();
   });
 
   it("counts the tokens of every answered call in the budget", async () => {
@@ -203,12 +239,13 @@ describe("analyzePending", () => {
     expect(llm.requests).toHaveLength(0);
   });
 
-  it("does not open the LLM (or read its key or the Threads) when nothing is pending", async () => {
-    const { analysis, budget, openLlm, threads } = setup({ pending: [] });
+  it("does not open the LLM (or read its key, the Threads or recent Events) when nothing is pending", async () => {
+    const { analysis, budget, openLlm, threads, recent } = setup({ pending: [] });
 
     await expect(analysis.analyzePending(budget)).resolves.toEqual({ analyzed: 0, failed: 0, backlog: 0 });
     expect(openLlm).not.toHaveBeenCalled();
     expect(threads).not.toHaveBeenCalled();
+    expect(recent).not.toHaveBeenCalled();
   });
 
   it("reports a failure to open the LLM (e.g. key unreadable) instead of throwing", async () => {

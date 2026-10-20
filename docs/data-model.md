@@ -25,6 +25,7 @@ Schema: `Event` in `packages/shared/src/event.ts`.
 | Store an Event once | `PutItem` with `attribute_not_exists(id)`; a failed condition = duplicate |
 | Latest N Events (02c) | Query GSI `latest` (`kind = EVENT`, sort key `publishedAt`), `ScanIndexForward = false`, `Limit = N`. The web role may `dynamodb:Query` on `…/index/latest` only. |
 | Events waiting for Analysis (03) | Query GSI `pending` (`pending = EVENT`, sort key `publishedAt`), newest first, `Limit = 10`. Ingest role only. |
+| Near-duplicate candidates (10) | Query GSI `latest` (`kind = EVENT`, `publishedAt >= now − 48 h`), filter `attribute_exists(analysis)`, projection `title, analysis`, all pages. Once per run, only when something is pending; ~400 items ≈ 40 RCU, within the index burst. Ingest role. |
 | Save an Analysis (03) | `UpdateItem`: `SET analysis REMOVE pending`, condition `attribute_exists(id)`. One write takes the Event off the queue. |
 
 ### Capacity — 0 PLN

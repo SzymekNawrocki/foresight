@@ -2,6 +2,7 @@ import type { Event } from "@foresight/shared";
 import type { TokenBudget } from "../budget/budget.js";
 import { estimateTokens, type Llm, type LlmFailure, type LlmRequest } from "../llm/llm.js";
 import { BATCH_SIZE, DispatchBatch, looksLikeInjection, QUARANTINED, REFS, settle } from "./dispatch.js";
+import { findDuplicate } from "./duplicate.js";
 import { type ActiveThread, buildMessages } from "./prompt.js";
 import type { AnalysisQueue } from "./queue.js";
 
@@ -12,6 +13,8 @@ export type AnalysisReport =
       /** Why Events failed: an LLM failure for the whole batch, or `skipped` for a dispatch missing or invalid. */
       reasons?: Partial<Record<LlmFailure | "skipped", number>>;
       quarantined?: number;
+      /** Near-duplicates that took the Analysis of a recent Event, without a model call. */
+      reused?: number;
       stopped?: "rate-limited" | "budget";
       backlog?: number;
     }
@@ -34,7 +37,11 @@ export interface PendingAnalysisOptions {
   /** Pause between batches (≈ 8K tokens/min on the free plan, a batch spends ~3K). */
   pauseMs?: number;
   sleep?: (ms: number) => Promise<void>;
+  now?: () => Date;
 }
+
+/** How far back a near-duplicate may be (SPEC: slice 10, step 3). */
+const DUPLICATE_WINDOW_MS = 48 * 60 * 60 * 1000;
 
 const MAX_COMPLETION_TOKENS = 3_000;
 const wait = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
@@ -58,6 +65,7 @@ export function createPendingAnalysis({
   limit = 20,
   pauseMs = 25_000,
   sleep = wait,
+  now = () => new Date(),
 }: PendingAnalysisOptions): PendingAnalysis {
   async function run(budget: TokenBudget) {
     const report: RunReport = { analyzed: 0, failed: 0 };
@@ -70,11 +78,27 @@ export function createPendingAnalysis({
     }
     if (clean.length === 0) return report;
 
-    const client = await llm();
     const active = await threads();
     const activeIds = new Set(active.map((t) => t.id));
-    const batches = Array.from({ length: Math.ceil(clean.length / BATCH_SIZE) }, (_, i) =>
-      clean.slice(i * BATCH_SIZE, (i + 1) * BATCH_SIZE),
+
+    // A near-duplicate takes the Analysis of the earlier Event, settled again because its
+    // Thread may have gone dormant since.
+    const recent = await queue.recent(new Date(now().getTime() - DUPLICATE_WINDOW_MS).toISOString());
+    const fresh: Event[] = [];
+    for (const event of clean) {
+      const duplicate = findDuplicate(event.title, recent);
+      if (!duplicate) {
+        fresh.push(event);
+        continue;
+      }
+      await queue.saveAnalysis(event.id, settle(duplicate, activeIds));
+      report.reused = (report.reused ?? 0) + 1;
+    }
+    if (fresh.length === 0) return report;
+
+    const client = await llm();
+    const batches = Array.from({ length: Math.ceil(fresh.length / BATCH_SIZE) }, (_, i) =>
+      fresh.slice(i * BATCH_SIZE, (i + 1) * BATCH_SIZE),
     );
 
     for (const [i, batch] of batches.entries()) {

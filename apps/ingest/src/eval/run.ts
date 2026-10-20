@@ -31,6 +31,8 @@ const analysis = createPendingAnalysis({
     pending: async (limit) => events.filter((e) => !results.has(e.id)).slice(0, limit),
     saveAnalysis: async (eventId, result) => void results.set(eventId, result),
     backlog: async () => events.length - results.size,
+    // Every case must reach the model, so nothing counts as a near-duplicate here.
+    recent: async () => [],
   },
   llm: async () => createGroqLlm({ apiKey }),
   limit: events.length,

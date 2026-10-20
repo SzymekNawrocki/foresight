@@ -50,9 +50,13 @@ data "aws_iam_policy_document" "ingest" {
     resources = [aws_dynamodb_table.events.arn]
   }
 
+  # The queue, and the last 48 h of Analyses for near-duplicates (slice 10).
   statement {
-    actions   = ["dynamodb:Query"]
-    resources = ["${aws_dynamodb_table.events.arn}/index/pending"]
+    actions = ["dynamodb:Query"]
+    resources = [
+      "${aws_dynamodb_table.events.arn}/index/pending",
+      "${aws_dynamodb_table.events.arn}/index/latest",
+    ]
   }
 
   # Daily token counters only (slice 09); Threads and Situation reports come in slice 10.
