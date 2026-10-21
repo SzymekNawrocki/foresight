@@ -2,6 +2,7 @@
 import { serve } from "@hono/node-server";
 import { createApi } from "./app.js";
 import { InMemoryEventReader } from "./events.js";
+import { InMemoryThreadDirectory } from "./threads.js";
 
 const port = 8787;
 
@@ -16,6 +17,6 @@ const sample = [
   },
 ];
 
-serve({ fetch: createApi({ events: new InMemoryEventReader(sample) }).fetch, port }, () => {
+serve({ fetch: createApi({ events: new InMemoryEventReader(sample), threads: new InMemoryThreadDirectory() }).fetch, port }, () => {
   console.log(`API: http://localhost:${port}/api/health`);
 });

@@ -66,13 +66,13 @@ const report: SituationReport = {
 
 const proposal: Thread = { ...thread, id: "bbbb0001", name: "Wojna w Sudanie", status: "proposed", lead: undefined, moves: undefined };
 
-function renderApp(path: string) {
+function renderApp(path: string, listed: Thread = thread) {
   const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
     if (url === "/api/health") return Response.json({ status: "ok" });
     if (url === "/api/config") return Response.json({ auth: { domain: "https://login.example.com", clientId: "client-1" } });
     if (url === "/api/me") return Response.json({ signedIn: true });
     if (url === "/api/recent") return Response.json({ since: hoursAgo(72), events: [] });
-    if (url === "/api/threads") return Response.json({ threads: [{ ...thread, dormant: false }] });
+    if (url === "/api/threads") return Response.json({ threads: [{ ...listed, dormant: false }] });
     if (url === "/api/threads/aaaa0001") return Response.json({ thread: { ...thread, dormant: false }, report, timeline: [entry] });
     if (url === "/api/threads/proposals") return Response.json({ proposals: [{ thread: proposal, timeline: [entry] }] });
     if (url === "/api/threads/proposals/bbbb0001" && init?.method === "POST") return Response.json({ ok: true });
@@ -114,9 +114,26 @@ describe("Briefing — Threads", () => {
   it("lists active Threads with their lead scenario; the inbox stays hidden from visitors", async () => {
     renderApp("/");
 
-    expect(await screen.findByRole("link", { name: "Cieśnina Ormuz" })).toHaveAttribute("href", "/thread/aaaa0001");
-    expect(screen.getByText(/Najbardziej prawdopodobne: Napięcie bez blokady — prawdopodobne/)).toBeInTheDocument();
+    const threads = within(await screen.findByRole("region", { name: /Wątki aktywne/ }));
+    expect(threads.getByRole("link", { name: "Cieśnina Ormuz" })).toHaveAttribute("href", "/thread/aaaa0001");
+    expect(threads.getByText(/Najbardziej prawdopodobne: Napięcie bez blokady — prawdopodobne/)).toBeInTheDocument();
     expect(screen.queryByText(/Nowe sytuacje/)).not.toBeInTheDocument();
+  });
+
+  it("leads with the Moves of the last 24 h and counts active Threads per Region on the map", async () => {
+    renderApp("/");
+
+    const moves = within(await screen.findByRole("region", { name: /Ruchy · 24 h/ }));
+    expect(moves.getByText(/Napięcie bez blokady — mniej więcej po równo →/)).toHaveTextContent("prawdopodobne");
+    const map = within(screen.getByRole("navigation", { name: "Regiony na mapie" }));
+    expect(map.getByRole("link", { name: /Bliski Wschód/ })).toHaveTextContent("01");
+    expect(map.getByRole("link", { name: /Europa/ })).toHaveTextContent("00");
+  });
+
+  it("says so when nothing moved in 24 h", async () => {
+    renderApp("/", { ...thread, reportedAt: hoursAgo(30) });
+
+    expect(await screen.findByText("Bez istotnych zmian w ostatnich 24 h.")).toBeInTheDocument();
   });
 
   it("lets the owner accept a New situation", async () => {
@@ -132,5 +149,14 @@ describe("Briefing — Threads", () => {
         expect.objectContaining({ method: "POST", body: JSON.stringify({ action: "accept" }) }),
       ),
     );
+  });
+});
+
+describe("Region page — Threads", () => {
+  it("lists the active Threads of the Region above its Events", async () => {
+    renderApp("/region/middle-east");
+
+    const panel = within(await screen.findByRole("region", { name: /Wątki w tym Regionie/ }));
+    expect(panel.getByRole("link", { name: "Cieśnina Ormuz" })).toBeInTheDocument();
   });
 });

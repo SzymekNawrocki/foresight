@@ -242,6 +242,11 @@ większymi.
 | **10 Rdzeń** | Poziomy Źródeł A/B/C (research listy), odchudzony meldunek z Aktorami w paczkach po 5, Wątki i skrzynka Nowe sytuacje, kroczące Raporty z Sygnałami i Prawdopodobieństwem, minimalna strona Wątku | Tabela `threads`, drugi model, `pnpm eval` (złote przypadki), autoryzacja decyzji właściciela, injection w paczce w modelu zagrożeń |
 | **11 Widok** | Nowy Briefing (Ruchy, mapa Wątków, Wątki aktywne), ceny przy Wątku | Darmowe źródło cen (licencja, limity), cache odpowiedzi |
 
+Plaster 10 (#53, PR #54, #56, #58) dał Wątki, skrzynkę Nowe sytuacje i kroczące Raporty sytuacyjne;
+pierwszy realny Raport: ~2,4K tokenów. Plaster 11 (#61, 2026-10-21) przebudował Briefing na Wątki
+(Ruchy 24 h → mapa aktywnych Wątków → Wątki aktywne), surowe Zdarzenia przeszły na stronę Strumień.
+Ceny przy Wątku wydzielone do #60 (`later`) — wymagają wyboru darmowego, legalnego źródła cen.
+
 Później: strony Aktorów („najczęściej razem”), ceny jako Sygnały.
 
 ## Odłożone (decyzja w plastrze, który tego potrzebuje)

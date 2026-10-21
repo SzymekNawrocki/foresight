@@ -69,11 +69,11 @@ function renderApp(path: string, recent: unknown = { since: hoursAgo(72), events
   return { fetchMock, router };
 }
 
-describe("Briefing", () => {
+describe("Stream", () => {
   it("shows the 24 h totals and a counter per Region on the map", async () => {
-    renderApp("/");
+    renderApp("/stream");
 
-    expect(await screen.findByRole("heading", { name: "Briefing · 24 h" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Strumień · 24 h" })).toBeInTheDocument();
     const map = within(screen.getByRole("navigation", { name: "Regiony na mapie" }));
     const middleEast = map.getByRole("link", { name: /Bliski Wschód/ });
     expect(middleEast).toHaveTextContent("01");
@@ -82,7 +82,7 @@ describe("Briefing", () => {
   });
 
   it("shows in the footer how fresh the data is, with the AI disclaimer", async () => {
-    renderApp("/");
+    renderApp("/stream");
 
     const footer = within(await screen.findByRole("contentinfo"));
     expect(await footer.findByText("ostatnie Zdarzenie: przed chwilą")).toBeInTheDocument();
@@ -90,19 +90,19 @@ describe("Briefing", () => {
   });
 
   it("reports the link to the API in the header", async () => {
-    renderApp("/");
+    renderApp("/stream");
 
     expect(await screen.findByText("Łącze: aktywne")).toBeInTheDocument();
   });
 
   it("shows an error when the API breaks the contract", async () => {
-    renderApp("/", { since: hoursAgo(72), events: [{ ...pending, url: "javascript:alert(1)" }] });
+    renderApp("/stream", { since: hoursAgo(72), events: [{ ...pending, url: "javascript:alert(1)" }] });
 
     expect(await screen.findByText("Nie udało się pobrać Zdarzeń.")).toBeInTheDocument();
   });
 
   it("shows an error when the API fails", async () => {
-    renderApp("/", undefined, 500);
+    renderApp("/stream", undefined, 500);
 
     expect(await screen.findByText("Nie udało się pobrać Zdarzeń.")).toBeInTheDocument();
   });
@@ -139,7 +139,7 @@ describe("Event card", () => {
   });
 
   it("links out safely to the source article", async () => {
-    renderApp("/");
+    renderApp("/stream");
 
     const [link] = await screen.findAllByRole("link", { name: hormuz.title });
     expect(link).toHaveAttribute("href", hormuz.url);
@@ -148,14 +148,14 @@ describe("Event card", () => {
   });
 
   it("marks an Event that is still waiting for its Analysis", async () => {
-    renderApp("/");
+    renderApp("/stream");
 
     expect(await screen.findByText(/Analiza w kolejce/)).toBeInTheDocument();
   });
 
   it("renders feed and LLM text as text, never as HTML", async () => {
     const evil = '<img src=x onerror="alert(1)">';
-    renderApp("/", {
+    renderApp("/stream", {
       since: hoursAgo(72),
       events: [{ ...hormuz, title: evil, analysis: { ...hormuz.analysis, whyItMatters: evil } }],
     });
@@ -192,14 +192,14 @@ describe("Login", () => {
   afterEach(() => sessionStorage.clear());
 
   it("offers a login button to a visitor", async () => {
-    renderApp("/");
+    renderApp("/stream");
 
     expect(await screen.findByRole("button", { name: "Zaloguj" })).toBeInTheDocument();
   });
 
   it("confirms the owner session against the API and offers logout", async () => {
     signInAsOwner();
-    renderApp("/");
+    renderApp("/stream");
 
     expect(await screen.findByText("Właściciel")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Wyloguj" })).toBeInTheDocument();

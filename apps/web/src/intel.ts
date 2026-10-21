@@ -1,4 +1,4 @@
-import { type AnalyzedEvent, Region, Topic } from "@foresight/shared";
+import { type AnalyzedEvent, type Move, Region, type ThreadsResponse, Topic } from "@foresight/shared";
 
 // Państwo → Region (CONTEXT.md). Granice teatrów są umowne: najpierw wyjątki po nazwie,
 // potem prostokąty po środku ciężkości państwa ([długość, szerokość]).
@@ -73,4 +73,33 @@ export function freshness(events: readonly AnalyzedEvent[], now: Date): Freshnes
   const minutes = Math.floor((now.getTime() - Date.parse(newest)) / 60_000);
   const ago = minutes < 1 ? "przed chwilą" : minutes < 120 ? `${minutes} min temu` : `${Math.floor(minutes / 60)} h temu`;
   return { text: `ostatnie Zdarzenie: ${ago}`, stale: minutes > 120 };
+}
+
+type ListedThread = ThreadsResponse["threads"][number];
+
+/** Ruch with the Thread it belongs to and the report it came from. */
+export interface ThreadMove {
+  thread: Pick<ListedThread, "id" | "name">;
+  move: Move;
+  at: string;
+}
+
+export interface ThreadBriefing {
+  /** Active (not dormant) Threads touching each Region. */
+  regions: Record<Region, number>;
+  active: ListedThread[];
+  /** Moves of reports written in the last 24 h, newest first. */
+  moves: ThreadMove[];
+}
+
+export function threadBriefing(threads: readonly ListedThread[], now: Date): ThreadBriefing {
+  const since = new Date(now.getTime() - 24 * 3_600_000).toISOString();
+  const active = threads.filter((t) => !t.dormant);
+  const regions = zeros(Region.options);
+  for (const t of active) for (const r of t.regions) regions[r]++;
+  const moves = threads
+    .filter((t) => t.reportedAt && t.reportedAt >= since)
+    .toSorted((a, b) => (b.reportedAt ?? "").localeCompare(a.reportedAt ?? ""))
+    .flatMap((t) => (t.moves ?? []).map((move) => ({ thread: { id: t.id, name: t.name }, move, at: t.reportedAt ?? "" })));
+  return { regions, active, moves };
 }

@@ -7,13 +7,15 @@ import {
   type RouterHistory,
 } from "@tanstack/react-router";
 import { AuthCallbackPage } from "./auth-ui.js";
-import { BriefingPage, NotFoundPage, RegionPage, TopicPage } from "./pages.js";
+import { BriefingPage, NotFoundPage, RegionPage, StreamPage, TopicPage } from "./pages.js";
 import { Shell } from "./Shell.js";
 import { ThreadPage } from "./threads.js";
 
 const rootRoute = createRootRoute({ component: Shell, notFoundComponent: NotFoundPage });
 
 const briefingRoute = createRoute({ getParentRoute: () => rootRoute, path: "/", component: BriefingPage });
+
+const streamRoute = createRoute({ getParentRoute: () => rootRoute, path: "/stream", component: StreamPage });
 
 // Parametry z adresu też są wejściem z zewnątrz: tylko znane Regiony i Tematy, reszta → 404.
 const regionRoute = createRoute({
@@ -66,7 +68,7 @@ const threadRoute = createRoute({
 
 const callbackRoute = createRoute({ getParentRoute: () => rootRoute, path: "/auth/callback", component: AuthCallbackPage });
 
-const routeTree = rootRoute.addChildren([briefingRoute, regionRoute, topicRoute, threadRoute, callbackRoute]);
+const routeTree = rootRoute.addChildren([briefingRoute, streamRoute, regionRoute, topicRoute, threadRoute, callbackRoute]);
 
 export function createAppRouter(history?: RouterHistory) {
   return createRouter({ routeTree, ...(history && { history }) });
