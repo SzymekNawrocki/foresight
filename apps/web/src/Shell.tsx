@@ -73,6 +73,9 @@ export function Shell() {
         <Link to="/" className="label no-underline hover:text-alert" activeProps={{ className: "text-alert" }} activeOptions={{ exact: true }}>
           Briefing
         </Link>
+        <Link to="/stream" className="label no-underline hover:text-alert" activeProps={{ className: "text-alert" }}>
+          Strumień
+        </Link>
         <span className="text-faint" aria-hidden>
           //
         </span>

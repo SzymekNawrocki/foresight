@@ -4,10 +4,10 @@ import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { fetchRecent } from "./api.js";
 import { EventCard } from "./EventCard.js";
-import { briefing } from "./intel.js";
+import { briefing, type ThreadMove, threadBriefing } from "./intel.js";
 import { REGION_LABEL, TOPIC_LABEL } from "./labels.js";
 import { Panel } from "./panel.js";
-import { InboxPanel, ThreadsPanel } from "./threads.js";
+import { InboxPanel, ThreadList, ThreadsPanel, useThreads } from "./threads.js";
 import { WorldMap } from "./WorldMap.js";
 
 export function useRecent() {
@@ -42,7 +42,84 @@ function Stat({ label, value, tone = "text-fg" }: { label: string; value: number
   );
 }
 
+const time = new Intl.DateTimeFormat("pl-PL", { dateStyle: "short", timeStyle: "short", timeZone: "Europe/Warsaw" });
+
+function MoveLine({ item }: { item: ThreadMove }) {
+  const { move } = item;
+  return (
+    <li className="border-b border-line/60 py-1.5 text-[13px]">
+      <span className="text-[11px] text-dim">
+        <time dateTime={item.at}>{time.format(new Date(item.at))}</time>
+        {" · "}
+      </span>
+      <Link to="/thread/$id" params={{ id: item.thread.id }} className="font-medium">
+        {item.thread.name}
+      </Link>
+      {": "}
+      {move.kind === "shift" ? (
+        <>
+          {`${move.scenario} — ${move.from} → `}
+          <strong className="text-alert">{move.to}</strong>
+        </>
+      ) : (
+        <>
+          <span className="text-alert">● </span>
+          {`zapalił się sygnał „${move.text}” (${move.scenario})`}
+        </>
+      )}
+    </li>
+  );
+}
+
+// Briefing (CONTEXT.md): Moves → map of Threads → active Threads; raw Events live on the Stream.
 export function BriefingPage() {
+  const threads = useThreads();
+  const recent = useRecent();
+  if (threads.isPending) return <p className="label">Odszyfrowuję Wątki<span className="blink">_</span></p>;
+  if (threads.isError) return <p className="label text-alert">Nie udało się pobrać Wątków.</p>;
+  const now = new Date();
+  const b = threadBriefing(threads.data.threads, now);
+  const events = recent.data ? briefing(recent.data.events, now).totals : null;
+  return (
+    <div className="grid gap-6">
+      <div className="flex flex-wrap items-end gap-4">
+        <h1 className="font-display text-3xl font-bold tracking-[0.12em] uppercase">Briefing · 24 h</h1>
+        <dl className="ml-auto grid grid-cols-3 gap-2">
+          <Stat label="Ruchy" value={b.moves.length} tone="text-alert" />
+          <Stat label="Wątki aktywne" value={b.active.length} />
+          <Stat label="Zdarzenia" value={events?.events ?? 0} tone="text-dim" />
+        </dl>
+      </div>
+
+      <InboxPanel />
+
+      <Panel title="Ruchy · 24 h" aside="Zmiany Prawdopodobieństwa i zapalone sygnały">
+        {b.moves.length === 0 ? (
+          <p className="label">Bez istotnych zmian w ostatnich 24 h.</p>
+        ) : (
+          <ul>
+            {b.moves.map((m, i) => (
+              <MoveLine key={`${m.thread.id}-${i}`} item={m} />
+            ))}
+          </ul>
+        )}
+      </Panel>
+
+      <Panel title="Teatr działań" aside="Aktywne Wątki per Region">
+        <WorldMap counts={b.regions} />
+        <Link to="/region/$region" params={{ region: "global" }} className="tag mt-3 inline-flex gap-3 px-3 py-1.5">
+          <span className="label text-fg">{REGION_LABEL.global}</span>
+          <strong className={b.regions.global ? "text-alert" : "text-faint"}>{String(b.regions.global).padStart(2, "0")}</strong>
+        </Link>
+      </Panel>
+
+      <ThreadsPanel />
+    </div>
+  );
+}
+
+/** Strumień: every Event of the last 24 h, for those who want to look under the Threads. */
+export function StreamPage() {
   const recent = useRecent();
   return (
     <Status query={recent}>
@@ -51,7 +128,7 @@ export function BriefingPage() {
         return (
           <div className="grid gap-6">
             <div className="flex flex-wrap items-end gap-4">
-              <h1 className="font-display text-3xl font-bold tracking-[0.12em] uppercase">Briefing · 24 h</h1>
+              <h1 className="font-display text-3xl font-bold tracking-[0.12em] uppercase">Strumień · 24 h</h1>
               <dl className="ml-auto grid grid-cols-2 gap-2 sm:grid-cols-4">
                 <Stat label="Zdarzenia" value={b.totals.events} />
                 <Stat label="Istotne" value={b.totals.significant} tone="text-amber" />
@@ -71,9 +148,6 @@ export function BriefingPage() {
                 <strong className={b.regions.global ? "text-alert" : "text-faint"}>{String(b.regions.global).padStart(2, "0")}</strong>
               </Link>
             </Panel>
-
-            <InboxPanel />
-            <ThreadsPanel />
 
             <div className="grid gap-6 lg:grid-cols-[1fr_18rem]">
               <Panel title="Najważniejsze meldunki">
@@ -103,7 +177,7 @@ export function BriefingPage() {
   );
 }
 
-function Dossier({ kind, name, events }: { kind: string; name: string; events: AnalyzedEvent[] }) {
+function Dossier({ kind, name, events, children }: { kind: string; name: string; events: AnalyzedEvent[]; children?: ReactNode }) {
   const significant = events.filter((e) => (e.analysis?.weight ?? 0) >= 2).length;
   return (
     <div className="grid gap-6">
@@ -114,10 +188,22 @@ function Dossier({ kind, name, events }: { kind: string; name: string; events: A
           {events.length} Zdarzeń z 72 h, w tym {significant} z Wagą ≥ 2.
         </p>
       </div>
+      {children}
       <Panel title="Zdarzenia · od najnowszych">
         <EventStream events={events} empty="Brak Zdarzeń w tym obszarze w ostatnich 72 h." />
       </Panel>
     </div>
+  );
+}
+
+function RegionThreads({ region }: { region: Region }) {
+  const threads = useThreads();
+  const here = threads.data?.threads.filter((t) => !t.dormant && t.regions.includes(region)) ?? [];
+  if (!threads.isSuccess) return null;
+  return (
+    <Panel title="Wątki w tym Regionie">
+      {here.length === 0 ? <p className="label">Brak aktywnych Wątków.</p> : <ThreadList threads={here} />}
+    </Panel>
   );
 }
 
@@ -130,7 +216,9 @@ export function RegionPage({ region }: { region: Region }) {
           kind="Region"
           name={REGION_LABEL[region]}
           events={events.filter((e) => e.analysis?.regions.includes(region))}
-        />
+        >
+          <RegionThreads region={region} />
+        </Dossier>
       )}
     </Status>
   );

@@ -42,6 +42,16 @@ function ThreadRow({ thread }: { thread: ListedThread }) {
   );
 }
 
+export function ThreadList({ threads }: { threads: ListedThread[] }) {
+  return (
+    <ul>
+      {threads.map((t) => (
+        <ThreadRow key={t.id} thread={t} />
+      ))}
+    </ul>
+  );
+}
+
 export function ThreadsPanel() {
   const threads = useThreads();
   const active = threads.data?.threads.filter((t) => !t.dormant) ?? [];
@@ -54,11 +64,7 @@ export function ThreadsPanel() {
       ) : active.length === 0 ? (
         <p className="label">Brak aktywnych Wątków — czekają w skrzynce Nowe sytuacje.</p>
       ) : (
-        <ul>
-          {active.map((t) => (
-            <ThreadRow key={t.id} thread={t} />
-          ))}
-        </ul>
+        <ThreadList threads={active} />
       )}
     </Panel>
   );
