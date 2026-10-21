@@ -255,3 +255,18 @@ describe("analyzePending", () => {
     await expect(analysis.analyzePending(budget)).resolves.toEqual({ error: "AccessDenied", backlog: 7 });
   });
 });
+
+describe("analyzePending — Threads", () => {
+  it("links every saved Analysis, and a failed link does not put the Event back in the queue", async () => {
+    const { queue, saved } = queueOf(events.slice(0, 2));
+    const link = vi.fn(async (event: Event) => {
+      if (event.id === events[1]?.id) throw new Error("throttled");
+    });
+    const analysis = createPendingAnalysis({ queue, llm: async () => createFakeLlm([rest]), link, sleep: async () => {}, now: () => NOW });
+    const budget = createTokenBudget({ store: new InMemoryBudgetStore(), limits: { [MODEL]: 1_000_000 } });
+
+    await expect(analysis.analyzePending(budget)).resolves.toEqual({ analyzed: 2, failed: 0, unlinked: 1, backlog: 0 });
+    expect(link.mock.calls.map(([event]) => event.id)).toEqual(events.slice(0, 2).map((e) => e.id));
+    expect(saved.size).toBe(2);
+  });
+});
