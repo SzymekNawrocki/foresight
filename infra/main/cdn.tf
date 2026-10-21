@@ -86,6 +86,20 @@ resource "aws_cloudfront_distribution" "web" { # nosemgrep: terraform.aws.securi
     compress                   = true
   }
 
+  # The only write path: owner decisions on proposals. CloudFront rejects other methods itself,
+  # so every other path stays read-only before a request reaches the Lambda.
+  ordered_cache_behavior {
+    path_pattern               = "/api/threads/proposals/*"
+    target_origin_id           = local.web_origin_id
+    viewer_protocol_policy     = "https-only"
+    allowed_methods            = ["DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"]
+    cached_methods             = ["GET", "HEAD"]
+    cache_policy_id            = data.aws_cloudfront_cache_policy.caching_disabled.id
+    origin_request_policy_id   = data.aws_cloudfront_origin_request_policy.all_viewer_except_host.id
+    response_headers_policy_id = data.aws_cloudfront_response_headers_policy.security_headers.id
+    compress                   = true
+  }
+
   restrictions {
     geo_restriction {
       restriction_type = "none"
