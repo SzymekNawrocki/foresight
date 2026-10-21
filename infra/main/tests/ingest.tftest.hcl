@@ -112,6 +112,25 @@ run "web_reads_only_the_latest_index" {
   }
 }
 
+run "web_writes_threads_only_through_owner_partitions" {
+  command = plan
+
+  assert {
+    condition     = aws_lambda_function.web.environment[0].variables.THREADS_TABLE_NAME == aws_dynamodb_table.threads.name
+    error_message = "The web Lambda serves Threads from the threads table."
+  }
+
+  assert {
+    condition     = one(data.aws_iam_policy_document.web_threads.statement[0].condition).values == tolist(["THREADS", "THREAD#*"])
+    error_message = "The web role must never reach the token counters (BUDGET#)."
+  }
+
+  assert {
+    condition     = !contains(tolist(data.aws_iam_policy_document.web_threads.statement[0].actions), "dynamodb:DeleteItem") && !contains(tolist(data.aws_iam_policy_document.web_threads.statement[0].actions), "dynamodb:Scan")
+    error_message = "The web role neither deletes nor scans Threads."
+  }
+}
+
 run "ingest_role_is_scoped_to_the_analysis_queue_and_one_key" {
   command = plan
 
@@ -149,13 +168,13 @@ run "ingest_role_is_scoped_to_the_analysis_queue_and_one_key" {
   }
 
   assert {
-    condition     = data.aws_iam_policy_document.ingest.statement[2].actions == toset(["dynamodb:GetItem", "dynamodb:UpdateItem"])
-    error_message = "The worker reads and adds to token counters — no deletes, no scans."
+    condition     = data.aws_iam_policy_document.ingest.statement[2].actions == toset(["dynamodb:GetItem", "dynamodb:PutItem", "dynamodb:UpdateItem", "dynamodb:Query"])
+    error_message = "The worker keeps counters, Threads and reports — no deletes, no scans."
   }
 
   assert {
-    condition     = one(data.aws_iam_policy_document.ingest.statement[2].condition).values == tolist(["BUDGET#*"])
-    error_message = "In slice 09 the worker may touch only the budget items of the threads table."
+    condition     = one(data.aws_iam_policy_document.ingest.statement[2].condition).values == tolist(["BUDGET#*", "THREADS", "THREAD#*"])
+    error_message = "The worker may touch only budget, Thread list and Thread partitions of the threads table."
   }
 
   assert {
@@ -164,7 +183,7 @@ run "ingest_role_is_scoped_to_the_analysis_queue_and_one_key" {
   }
 
   assert {
-    condition     = aws_lambda_function.ingest.timeout >= 300
-    error_message = "The run needs time for up to 10 paced Groq calls."
+    condition     = aws_lambda_function.ingest.timeout >= 600 && aws_lambda_function.ingest.timeout <= 900
+    error_message = "The run needs time for paced dispatch batches and up to 3 reports, within the 15-minute Lambda limit."
   }
 }

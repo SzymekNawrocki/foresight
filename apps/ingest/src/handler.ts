@@ -1,5 +1,6 @@
 import type { AnalysisReport, PendingAnalysis } from "./analysis/pending.js";
 import type { BudgetLine, TokenBudget } from "./budget/budget.js";
+import type { ReportsRunReport, SituationReports } from "./reports/refresh.js";
 import { type IngestInput, runIngest, type SourceReport } from "./ingest.js";
 
 export interface HandlerDeps extends Omit<IngestInput, "now"> {
@@ -7,6 +8,8 @@ export interface HandlerDeps extends Omit<IngestInput, "now"> {
   now?: () => Date;
   analysis?: {
     pending: PendingAnalysis;
+    /** Rolling Situation reports, after the dispatches and from the same budget. */
+    reports?: SituationReports;
     /** A fresh budget per run: its counters are read from the store, not kept across warm starts. */
     budget: () => TokenBudget;
   };
@@ -17,6 +20,7 @@ export interface HandlerReport {
   /** New Events across all Sources — the alarm "no new Events" watches this number. */
   newEvents: number;
   analysis?: AnalysisReport;
+  reports?: ReportsRunReport;
   tokens?: BudgetLine[] | { error: string };
 }
 
@@ -30,6 +34,7 @@ export function createHandler({ log, now = () => new Date(), analysis, ...deps }
     if (analysis) {
       const budget = analysis.budget();
       report.analysis = await analysis.pending.analyzePending(budget);
+      if (analysis.reports) report.reports = await analysis.reports.refreshDue(budget);
       report.tokens = await budget.report().catch((error: unknown) => ({
         error: error instanceof Error ? error.message : String(error),
       }));

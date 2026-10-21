@@ -42,8 +42,8 @@ resource "aws_iam_role" "ingest" {
   assume_role_policy = data.aws_iam_policy_document.lambda_assume.json
 }
 
-# Write new Events, read the Analysis queue, save Analyses, count tokens, read the one Groq key
-# and write its own logs — nothing else (no scans, no deletes, no other parameters).
+# Write new Events, read the Analysis queue, save Analyses, keep Threads and reports, count
+# tokens, read the one Groq key and write its own logs — nothing else (no scans, no deletes, no other parameters).
 data "aws_iam_policy_document" "ingest" {
   statement {
     actions   = ["dynamodb:PutItem", "dynamodb:UpdateItem"]
@@ -59,15 +59,16 @@ data "aws_iam_policy_document" "ingest" {
     ]
   }
 
-  # Daily token counters only (slice 09); Threads and Situation reports come in slice 10.
+  # Token counters (slice 09), the list of Threads, their timelines and Situation reports (slice 10).
+  # No deletes and no Scan; only the three partition families of docs/data-model.md.
   statement {
-    actions   = ["dynamodb:GetItem", "dynamodb:UpdateItem"]
+    actions   = ["dynamodb:GetItem", "dynamodb:PutItem", "dynamodb:UpdateItem", "dynamodb:Query"]
     resources = [aws_dynamodb_table.threads.arn]
 
     condition {
       test     = "ForAllValues:StringLike"
       variable = "dynamodb:LeadingKeys"
-      values   = ["BUDGET#*"]
+      values   = ["BUDGET#*", "THREADS", "THREAD#*"]
     }
   }
 
@@ -102,8 +103,9 @@ resource "aws_lambda_function" "ingest" {
   runtime       = "nodejs24.x"
   architectures = ["arm64"]
   memory_size   = 256
-  # Up to 10 Groq calls with 12 s pauses after the ingest.
-  timeout = 300
+  # Ingest, 4 dispatch batches 25 s apart, then up to 3 Situation reports 60 s apart (~1 per
+  # minute fits 8K tokens/min). 256 MB × ~10 min × 720 runs ≈ 110K GB-s of the free 400K a month.
+  timeout = 900
   handler = "index.handler"
 
   filename         = data.archive_file.ingest_placeholder.output_path

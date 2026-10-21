@@ -1,4 +1,14 @@
-import { ConfigResponse, EventsResponse, HealthResponse, MeResponse, RecentResponse } from "@foresight/shared";
+import {
+  ConfigResponse,
+  EventsResponse,
+  HealthResponse,
+  MeResponse,
+  type ProposalDecision,
+  ProposalsResponse,
+  RecentResponse,
+  ThreadResponse,
+  ThreadsResponse,
+} from "@foresight/shared";
 import { authedFetch } from "./session.js";
 
 export async function fetchHealth(): Promise<HealthResponse> {
@@ -29,4 +39,28 @@ export async function fetchMe(): Promise<MeResponse> {
   const res = await authedFetch("/api/me");
   if (!res.ok) throw new Error(`GET /api/me → ${res.status}`);
   return MeResponse.parse(await res.json());
+}
+
+export async function fetchThreads(): Promise<ThreadsResponse> {
+  const res = await fetch("/api/threads");
+  if (!res.ok) throw new Error(`GET /api/threads → ${res.status}`);
+  return ThreadsResponse.parse(await res.json());
+}
+
+export async function fetchThread(id: string): Promise<ThreadResponse | null> {
+  const res = await fetch(`/api/threads/${encodeURIComponent(id)}`);
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`GET /api/threads/${id} → ${res.status}`);
+  return ThreadResponse.parse(await res.json());
+}
+
+export async function fetchProposals(): Promise<ProposalsResponse> {
+  const res = await authedFetch("/api/threads/proposals");
+  if (!res.ok) throw new Error(`GET /api/threads/proposals → ${res.status}`);
+  return ProposalsResponse.parse(await res.json());
+}
+
+export async function decideProposal(id: string, decision: ProposalDecision): Promise<void> {
+  const res = await authedFetch(`/api/threads/proposals/${encodeURIComponent(id)}`, { method: "POST", body: JSON.stringify(decision) });
+  if (!res.ok) throw new Error(`POST /api/threads/proposals/${id} → ${res.status}`);
 }

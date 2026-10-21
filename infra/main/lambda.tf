@@ -73,6 +73,27 @@ resource "aws_iam_role_policy" "web_events" {
   policy = data.aws_iam_policy_document.web_events.json
 }
 
+# /api/threads*: read Threads, timelines and reports; write only through the owner's decisions on
+# New situations (accept, merge, reject). The token counters (BUDGET#) stay out of reach.
+data "aws_iam_policy_document" "web_threads" {
+  statement {
+    actions   = ["dynamodb:GetItem", "dynamodb:Query", "dynamodb:PutItem", "dynamodb:UpdateItem"]
+    resources = [aws_dynamodb_table.threads.arn]
+
+    condition {
+      test     = "ForAllValues:StringLike"
+      variable = "dynamodb:LeadingKeys"
+      values   = ["THREADS", "THREAD#*"]
+    }
+  }
+}
+
+resource "aws_iam_role_policy" "web_threads" {
+  name   = "threads"
+  role   = aws_iam_role.web.id
+  policy = data.aws_iam_policy_document.web_threads.json
+}
+
 # Zaakceptowane (PR #14): X-Ray czeka na decyzję o obserwowalności — bez WAF publiczny ruch
 # mógłby wybić ślady ponad darmowy limit.
 # nosemgrep: terraform.aws.security.aws-lambda-x-ray-tracing-not-active.aws-lambda-x-ray-tracing-not-active
@@ -99,6 +120,7 @@ resource "aws_lambda_function" "web" {
   environment {
     variables = {
       EVENTS_TABLE_NAME   = aws_dynamodb_table.events.name
+      THREADS_TABLE_NAME  = aws_dynamodb_table.threads.name
       USER_POOL_ID        = aws_cognito_user_pool.owner.id
       USER_POOL_CLIENT_ID = aws_cognito_user_pool_client.web.id
       AUTH_DOMAIN         = local.auth_domain
@@ -114,7 +136,7 @@ resource "aws_lambda_function" "web" {
     ignore_changes = [filename, source_code_hash]
   }
 
-  depends_on = [aws_iam_role_policy.web_logs, aws_iam_role_policy.web_events]
+  depends_on = [aws_iam_role_policy.web_logs, aws_iam_role_policy.web_events, aws_iam_role_policy.web_threads]
 }
 
 # AWS_IAM = bez podpisu SigV4 Function URL odpowiada 403; podpisuje tylko CloudFront (OAC).

@@ -6,23 +6,12 @@ import { fetchRecent } from "./api.js";
 import { EventCard } from "./EventCard.js";
 import { briefing } from "./intel.js";
 import { REGION_LABEL, TOPIC_LABEL } from "./labels.js";
+import { Panel } from "./panel.js";
+import { InboxPanel, ThreadsPanel } from "./threads.js";
 import { WorldMap } from "./WorldMap.js";
 
 export function useRecent() {
   return useQuery({ queryKey: ["recent"], queryFn: fetchRecent, refetchInterval: 5 * 60_000 });
-}
-
-function Panel({ title, children, aside }: { title: string; children: ReactNode; aside?: ReactNode }) {
-  return (
-    <section className="border border-line bg-panel/60">
-      <h2 className="label flex items-center gap-2 border-b border-line px-3 py-2 text-fg">
-        <span className="text-alert">■</span>
-        {title}
-        {aside && <span className="ml-auto text-dim normal-case tracking-normal">{aside}</span>}
-      </h2>
-      <div className="p-3">{children}</div>
-    </section>
-  );
 }
 
 function Status({ query, children }: { query: ReturnType<typeof useRecent>; children: (events: AnalyzedEvent[]) => ReactNode }) {
@@ -82,6 +71,9 @@ export function BriefingPage() {
                 <strong className={b.regions.global ? "text-alert" : "text-faint"}>{String(b.regions.global).padStart(2, "0")}</strong>
               </Link>
             </Panel>
+
+            <InboxPanel />
+            <ThreadsPanel />
 
             <div className="grid gap-6 lg:grid-cols-[1fr_18rem]">
               <Panel title="Najważniejsze meldunki">

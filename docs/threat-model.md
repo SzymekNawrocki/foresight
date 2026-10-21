@@ -58,3 +58,26 @@ Nothing the owner can change exists yet (Theses were dropped, ADR 0008); decisio
 | **I**nformation disclosure | Owner responses cached by CloudFront or the browser | Default behavior `CachingDisabled` (tested), `Cache-Control: no-store` on owner routes | `cdn.tf`, `app.ts` |
 | **I**nformation disclosure | Token stolen via XSS | All feed / LLM text rendered as text; token only in this tab's `sessionStorage`, valid ≤ 1 h. Accepted risk: no CSP yet (a later hardening issue) | `session.ts` |
 | **E**levation of privilege | Web role abused to read or wipe data | Events: Query on `latest` only — no Scan, no writes (tested) | `lambda.tf` |
+
+## Slice 10 — Threads and Situation reports
+
+```
+pending Events ──batch of 5──► gpt-oss-120b ──dispatch──► settle() ──► events + Thread timeline (threads table)
+Thread timeline + previous report ──► gpt-oss-120b ──report──► settleReport() ──► REPORT# version ──► /thread/:id
+owner ──token──► POST /api/threads/proposals/:id ──► accept / merge / reject
+```
+
+New trust boundaries: **one hostile title shares a prompt with four others**, and **a Situation report is written from earlier LLM output** (dispatch sentences, the previous report).
+
+| STRIDE | Threat | Mitigation | Where |
+|---|---|---|---|
+| **T**ampering | An injected title in a batch sways its four neighbours (OWASP LLM01) | Titles matching injection patterns are quarantined before batching; each Event is a separate fenced line; the prompt says each Event is judged alone; evals include an injection case | `dispatch.ts`, `prompt.ts`, `eval/` |
+| **T**ampering | The model attaches an Event to a Thread that does not exist, or proposes a New situation from noise | `settle()` keeps an attach only to an id we sent and a proposal only for Weight ≥ 2; everything else becomes `none` | `dispatch.ts` |
+| **T**ampering | The model "confirms" a Warning signal it invented, or from an opinion piece | A lit signal must cite a ref of an Event we sent in that prompt **and** from a tier A or B Source; otherwise it stays unlit and is counted as rejected (tested) | `reports/report.ts` |
+| **T**ampering | The model fakes a trend ("Likelihood rose") | The model gives only the current rating on the ICD 203 scale; the arrow and its reason are computed in code from the previous version (tested); a rating outside the scale voids the report | `reports/report.ts` |
+| **T**ampering | Injection carried over through the previous report or a Thread name (both first written by the model) | Previous version and name go in fenced blocks with `<` `>` escaped, marked as untrusted data; reports are validated with Zod before they are stored and again before they are served | `reports/report.ts`, `dynamo-threads.ts` |
+| **S**poofing | A visitor accepts, merges or rejects a New situation | `/api/threads/proposals*` behind the owner token (same chain as slice 06); `no-store`; decisions validated with a strict schema and a Thread id regex (tested) | `app.ts` |
+| **T**ampering | Two decisions on one proposal (double click, two tabs) | Conditional update `status = proposed`; a merge closes the proposal before copying its timeline, so it cannot be copied twice | `apps/api/src/dynamo-threads.ts` |
+| **E**levation of privilege | Web role abused to wipe Threads or forge token counters | Web role: GetItem / Query / PutItem / UpdateItem only on `THREADS` and `THREAD#*` (`dynamodb:LeadingKeys`), no DeleteItem or Scan, no `BUDGET#` (tested) | `lambda.tf` |
+| **D**enial of service / cost | Reports exhaust the shared Groq quota | Two budget lanes on gpt-oss-120b: dispatches 110K, reports 70K tokens/day (20K left of 200K); at most 3 reports per run, 60 s apart, each Thread at most once in 24 h | `budget.ts`, `reports/refresh.ts` |
+| **D**enial of service | A long run hits the Lambda limit | Timeout 900 s; the reports run last, so a timeout costs only reports, never new Events or dispatches | `ingest.tf`, `handler.ts` |

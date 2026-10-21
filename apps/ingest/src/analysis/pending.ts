@@ -1,4 +1,4 @@
-import type { Event } from "@foresight/shared";
+import type { Analysis, Event } from "@foresight/shared";
 import type { TokenBudget } from "../budget/budget.js";
 import { estimateTokens, type Llm, type LlmFailure, type LlmRequest } from "../llm/llm.js";
 import { BATCH_SIZE, DispatchBatch, looksLikeInjection, QUARANTINED, REFS, settle } from "./dispatch.js";
@@ -15,6 +15,8 @@ export type AnalysisReport =
       quarantined?: number;
       /** Near-duplicates that took the Analysis of a recent Event, without a model call. */
       reused?: number;
+      /** Analyses saved but not put on their Thread's timeline (the Event itself is fine). */
+      unlinked?: number;
       stopped?: "rate-limited" | "budget";
       backlog?: number;
     }
@@ -31,6 +33,8 @@ export interface PendingAnalysisOptions {
   llm: () => Promise<Llm>;
   /** Threads an Event may attach to; read once per run, only when there is a batch to send. */
   threads?: () => Promise<ActiveThread[]>;
+  /** Puts a saved Analysis on its Thread's timeline (slice 10). */
+  link?: (event: Event, analysis: Analysis) => Promise<void>;
   model?: string;
   /** Max Events per run — keeps one run inside the free Groq limits. */
   limit?: number;
@@ -61,12 +65,21 @@ export function createPendingAnalysis({
   queue,
   llm,
   threads = noThreads,
+  link = async () => {},
   model = "openai/gpt-oss-120b",
   limit = 20,
   pauseMs = 25_000,
   sleep = wait,
   now = () => new Date(),
 }: PendingAnalysisOptions): PendingAnalysis {
+  // The Analysis is saved first: a failed timeline write must not put the Event back in the queue.
+  async function save(event: Event, analysis: Analysis, report: RunReport) {
+    await queue.saveAnalysis(event.id, analysis);
+    await link(event, analysis).catch(() => {
+      report.unlinked = (report.unlinked ?? 0) + 1;
+    });
+  }
+
   async function run(budget: TokenBudget) {
     const report: RunReport = { analyzed: 0, failed: 0 };
     const events = await queue.pending(limit);
@@ -91,7 +104,7 @@ export function createPendingAnalysis({
         fresh.push(event);
         continue;
       }
-      await queue.saveAnalysis(event.id, settle(duplicate, activeIds));
+      await save(event, settle(duplicate, activeIds), report);
       report.reused = (report.reused ?? 0) + 1;
     }
     if (fresh.length === 0) return report;
@@ -136,7 +149,7 @@ export function createPendingAnalysis({
         fail(report, "skipped", 1);
         continue;
       }
-      await queue.saveAnalysis(event.id, settle(found, activeIds));
+      await save(event, settle(found, activeIds), report);
       report.analyzed++;
     }
   }

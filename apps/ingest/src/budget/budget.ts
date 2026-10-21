@@ -1,10 +1,13 @@
 import type { TokenUsage } from "../llm/llm.js";
 
-// Groq free plan: 200K tokens/day per model (console.groq.com/docs/rate-limits). ~25% stays free
-// for manual runs and evals (ADR 0009).
+// Groq free plan: 200K tokens/day per model (console.groq.com/docs/rate-limits). Dispatches and
+// Situation reports both run on gpt-oss-120b (ADR 0009, amendment), so its 200K is split into two
+// lanes — counters of their own — and 20K stays free for manual runs and evals.
+export const DISPATCH_LANE = "openai/gpt-oss-120b";
+export const REPORT_LANE = "openai/gpt-oss-120b#reports";
 export const DAILY_TOKEN_LIMITS = {
-  "openai/gpt-oss-20b": 150_000,
-  "openai/gpt-oss-120b": 150_000,
+  [DISPATCH_LANE]: 110_000,
+  [REPORT_LANE]: 70_000,
 } as const;
 
 /** Daily token counters per model; `day` is a UTC date like 2026-10-19. */
