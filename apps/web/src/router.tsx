@@ -1,4 +1,4 @@
-import { Region, Topic } from "@foresight/shared";
+import { Region, ThreadId, Topic } from "@foresight/shared";
 import {
   createRootRoute,
   createRoute,
@@ -9,6 +9,7 @@ import {
 import { AuthCallbackPage } from "./auth-ui.js";
 import { BriefingPage, NotFoundPage, RegionPage, TopicPage } from "./pages.js";
 import { Shell } from "./Shell.js";
+import { ThreadPage } from "./threads.js";
 
 const rootRoute = createRootRoute({ component: Shell, notFoundComponent: NotFoundPage });
 
@@ -47,9 +48,25 @@ const topicRoute = createRoute({
   },
 });
 
+const threadRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/thread/$id",
+  params: {
+    parse: ({ id }) => {
+      const parsed = ThreadId.safeParse(id);
+      if (!parsed.success) throw notFound();
+      return { id: parsed.data };
+    },
+    stringify: ({ id }) => ({ id }),
+  },
+  component: function ThreadRoute() {
+    return <ThreadPage id={threadRoute.useParams().id} />;
+  },
+});
+
 const callbackRoute = createRoute({ getParentRoute: () => rootRoute, path: "/auth/callback", component: AuthCallbackPage });
 
-const routeTree = rootRoute.addChildren([briefingRoute, regionRoute, topicRoute, callbackRoute]);
+const routeTree = rootRoute.addChildren([briefingRoute, regionRoute, topicRoute, threadRoute, callbackRoute]);
 
 export function createAppRouter(history?: RouterHistory) {
   return createRouter({ routeTree, ...(history && { history }) });
