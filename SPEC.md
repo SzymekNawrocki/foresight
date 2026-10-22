@@ -1,13 +1,17 @@
-# Foresight — SPEC v0.5
+# Foresight — SPEC v0.6
 
 Nazwa: Foresight (dawniej robocza „WarRoom”, zmieniona 2026-09-23). Ustalenia z sesji grillingu
 2026-09-15; kierunek produktu zmieniony w grillingu 2026-10-13 ([ADR 0007](docs/adr/0007-intelligence-hub-not-just-a-game.md))
 i ponownie 2026-10-16 — Wątki zamiast Tez ([ADR 0008](docs/adr/0008-threads-instead-of-theses.md)).
 Po starcie MVP grilling 2026-10-19 doprecyzował kierunek świata, Poziomy Źródeł i budżet tokenów
 ([ADR 0009](docs/adr/0009-tracked-signals-and-token-budget.md)).
+Audyt 2026-10-22 zawęził produkt do niszy tech × geo × rynki
+([ADR 0010](docs/adr/0010-tech-first-niche-radar.md)).
 
-Appka jest **publicznym narzędziem do śledzenia sytuacji geopolitycznych**: Wątki z Raportami
-sytuacyjnymi, Briefing „co się ruszyło”, Baza wiedzy po Regionach, Tematach i Aktorach.
+Appka jest **radarem tematów na stronę właściciela w jednej niszy**: technologia w centrum
+(cyber i hacking, drony, militarny kosmos, chipy, AI, zbrojeniówka), w tle gra państw, obok wpływ
+na ceny Spółek. Wątki z Raportami sytuacyjnymi, Briefing „co się ruszyło”, Karty postów,
+Baza wiedzy po Regionach, Tematach i Aktorach.
 Zarazem pozostaje **pojazdem treningowym** Fazy 8 Ścieżki 01 (IaC + chmura) z Mapy DevSecOps,
 budowanym procesem Ścieżki 05 (AI Native SDLC).
 Słownik domeny: `CONTEXT.md`. Decyzje trudne do odwrócenia: `docs/adr/`.
@@ -25,17 +29,20 @@ Słownik domeny: `CONTEXT.md`. Decyzje trudne do odwrócenia: `docs/adr/`.
 
 ## Produkt — zakres MVP
 
-Przecięcie trzech osi: **geostrategia × tech × rynki**. Główna czynność: rano otwierasz Briefing,
-widzisz, które sytuacje się ruszyły i jak, i wchodzisz w Raport sytuacyjny Wątku, który cię
-obchodzi. Foresight nie ocenia, czy ktoś miał rację — pokazuje, jak zmieniała się sytuacja.
+Przecięcie trzech osi: **tech × geostrategia × rynki**, z technologią na pierwszym miejscu
+(ADR 0010). Zdarzenie spoza Niszy (np. czysta geopolityka bez technologii) jest zapisywane, ale
+nie pokazuje się nigdzie. Główna czynność: otwierasz Briefing, widzisz 3 Karty postów i Wątki,
+które się ruszyły, i wchodzisz w Raport sytuacyjny Wątku, o którym chcesz pisać. Foresight nie ocenia, czy ktoś miał rację — pokazuje, jak zmieniała się sytuacja.
 Kierunek świata to **ruch między Scenariuszami w czasie**: Sygnały ostrzegawcze zapalają się
 na podstawie Zdarzeń, a Prawdopodobieństwo Scenariuszy przesuwa się na skali.
 
 1. **Ingest** — co godzinę Zdarzenia ze Źródeł z Poziomem A (oficjalne), B (rzetelne serwisy)
    albo C (analizy). Fakty z A i B, interpretacje z C.
-2. **Analiza AI (meldunek)** — `gpt-oss-120b`, paczki po 5 Zdarzeń w jednym wywołaniu, po polsku: Regiony,
-   Tematy, do 4 Aktorów, Waga (1–3), jedno zdanie „dlaczego ważne” i przypięcie do aktywnego
-   Wątku albo — przy Wadze ≥ 2 — propozycja Nowej sytuacji. Duplikaty nagłówków odsiewane bez AI;
+2. **Analiza AI (meldunek)** — `gpt-oss-120b`, paczki po 5 Zdarzeń w jednym wywołaniu, po polsku:
+   najpierw „czy w Niszy?” (poza Niszą — tylko `niche: false`), potem Regiony, Tematy, do 4
+   Aktorów, do 3 Wpływów na Spółkę (Spółka z ustalonej listy, kierunek ↑ ↓ ↕, jedno zdanie
+   mechanizmu), Waga (1–3), jedno zdanie „dlaczego ważne” i przypięcie do aktywnego
+   Wątku albo — przy Wadze ≥ 2 — propozycja Nowej sytuacji (podobne propozycje łączy kod). Duplikaty nagłówków odsiewane bez AI;
    najpierw Źródła branżowe; zużycie tokenów logowane.
 3. **Wątki** — oś czasu Zdarzeń; aktywny (Zdarzenie w 14 dni) → uśpiony → zarchiwizowany ręcznie;
    najwyżej 30 aktywnych w prompcie. Skrzynka **Nowe sytuacje**: właściciel akceptuje, łączy
@@ -43,17 +50,24 @@ na podstawie Zdarzeń, a Prawdopodobieństwo Scenariuszy przesuwa się na skali.
 4. **Raport sytuacyjny** — `gpt-oss-120b`, krocząco: co godzinę 2–3 Wątki z nowymi Zdarzeniami
    i Raportem starszym niż 24 h (najpierw największa Waga). Stan teraz, Aktorzy i interesy,
    Scenariusze (eskalacja / status quo / deeskalacja) z Sygnałami ostrzegawczymi
-   i Prawdopodobieństwem (skala ICD 203), Klasy aktywów, relacje międzynarodowe, „co się zmieniło”.
+   i Prawdopodobieństwem (skala ICD 203), Wpływy na Spółki (od plastra 14; wcześniej Klasy
+   aktywów), relacje międzynarodowe, „co się zmieniło”.
    Sygnał zapala się tylko z dowodem — id Zdarzenia ze Źródła A lub B (sprawdza kod); strzałkę
    i powód zmiany Prawdopodobieństwa liczy kod względem poprzedniej wersji. Każda wersja zostaje
    (dziennik sytuacji).
 5. **Briefing** — Ruchy · 24 h (przesunięcia Scenariuszy i zapalone Sygnały) → mapa aktywnych
    Wątków per Region → Wątki aktywne → Nowe sytuacje (właściciel); surowe Zdarzenia na osobnej
    stronie **Strumień**. W stopce świeżość: ostatni ingest i ostatni Raport.
-6. **Baza wiedzy** — strony Regionów, Tematów i Aktorów (u Aktora: „najczęściej razem”).
+6. **Karty postów** (od plastra 14) — codziennie 3 na Briefingu: hak, technologia, gra państw,
+   Spółki z kierunkiem, linki do Źródeł. Posty pisze właściciel; tylko w appce, bez maila.
+7. **Baza wiedzy** — strony Regionów, Tematów i Aktorów (u Aktora: „najczęściej razem”).
 
-**Tematy (8, stała lista):** Cyber, AI, Pole walki, Kosmos, Półprzewodniki, Surowce, Energia,
-Sankcje i handel. Zdarzenie bez Tematu to szum — nie liczy się na mapie.
+**Tematy (6, stała lista niszy — ADR 0010):** Cyber, Drony, Kosmos, Chipy, AI, Zbrojeniówka.
+Energia, surowce i sankcje nie są Tematami — pojawiają się jako Wpływ na Spółkę. Stare Analizy
+(8 Tematów do plastra 11) zostają czytelne.
+
+**Spółki (~45, stała lista z tickerami, akceptuje właściciel):** obronność i drony, cyber, kosmos,
+chipy, platformy AI, kilka ETF-ów, polskie spółki z GPW. Kod odrzuca Spółkę spoza listy.
 
 **Regiony (7 + Globalne):** Ameryka Północna, Ameryka Łacińska, Europa, Rosja i Eurazja,
 Bliski Wschód, Afryka, Azja-Pacyfik; Globalne — Zdarzenia bez jednego miejsca.
@@ -63,9 +77,9 @@ konto, właściciela, bez rejestracji dla innych. Publiczne odpowiedzi API cache
 Stopka: „Analizy generuje AI na podstawie nagłówków; to nie jest porada inwestycyjna”.
 
 Poza zakresem MVP: Tezy i ich rozliczanie (ADR 0008), ceny jako Sygnały, pełny graf relacji
-między Aktorami, wielu użytkowników, publiczne statystyki, publikacja na Facebooku
-(appka jest warsztatem — posty właściciel pisze sam), własne notatki w Bazie wiedzy,
-cotygodniowe podsumowania AI, powiadomienia.
+między Aktorami, wielu użytkowników, publiczne statystyki, publikacja na Facebooku i gotowe
+posty od AI (appka jest warsztatem — posty właściciel pisze sam), własne notatki w Bazie wiedzy,
+cotygodniowe podsumowania AI, powiadomienia, Zdarzenia spoza Niszy.
 
 ## Role i proces (Ścieżka 05)
 
@@ -248,6 +262,20 @@ pierwszy realny Raport: ~2,4K tokenów. Plaster 11 (#61, 2026-10-21) przebudowa�
 Ceny przy Wątku wydzielone do #60 (`later`) — wymagają wyboru darmowego, legalnego źródła cen.
 
 Później: strony Aktorów („najczęściej razem”), ceny jako Sygnały.
+
+## Plastry 12–14 — nisza tech × geo × rynki (ADR 0010)
+
+Audyt 2026-10-22: 0 aktywnych Wątków (CloudFront blokował POST, #63), 43 Nowe sytuacje
+o różnych nazwach (zimny start), tylko 122 z 481 meldunków z Tematem tech, Al Jazeera = 39%
+strumienia.
+
+| Plaster | Zdolność produktowa | Zdolność DevSecOps |
+|---|---|---|
+| **12 Pętla i nisza** | Decyzje właściciela działają (POST przez CloudFront), meldunek v3 z bramką Niszy, 6 Tematów niszy i Wpływami na Spółki, ~8 Wątków startowych, łączenie podobnych Nowych sytuacji, widoki tylko z Niszy | Eval przepisany pod Niszę (trafność bramki: nic z niszy nie ginie, szum odpada), lista dozwolonych wartości w kodzie (Spółki), ordered behavior CloudFronta tylko dla tras właściciela |
+| **13 Źródła niszy** | Research Źródeł branżowych i oficjalnych dla cyber, obronności, kosmosu i chipów → akceptacja właściciela; mniej ogólnych serwisów | Zdrowie Źródeł (ile wpisów i ile w Niszy per Źródło w raporcie workera) |
+| **14 Karty postów** | 3 Karty postów dziennie na Briefingu; Wpływy na Spółki w Raporcie zamiast Klas aktywów | Wynik AI w nowej części tabeli `threads`, renderowany jako tekst; budżet tokenów dla Kart |
+
+Później: ceny przy Spółkach (#60) — czy rynek faktycznie zareagował.
 
 ## Odłożone (decyzja w plastrze, który tego potrzebuje)
 

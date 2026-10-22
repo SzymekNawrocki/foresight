@@ -1,8 +1,35 @@
 # Foresight
 
-Publiczne narzędzie do śledzenia sytuacji geopolitycznych: świat dostarcza Zdarzenia, AI osadza je
-w Regionach, Tematach i Wątkach, a dla każdego Wątku pisze Raport sytuacyjny — co to znaczy dla
-rynków i relacji międzynarodowych.
+Radar tematów w Niszy tech × geo × rynki: świat dostarcza Zdarzenia, AI odsiewa te spoza Niszy,
+osadza resztę w Regionach, Tematach i Wątkach, wskazuje Wpływ na Spółki, a dla każdego Wątku
+pisze Raport sytuacyjny. Właściciel wybiera z tego tematy na posty.
+
+## Nisza
+
+**Nisza**:
+Zdarzenia, w których technologia jest w centrum (cyber i hacking, drony, militarny kosmos, chipy,
+AI, zbrojeniówka), w tle jest gra państw, a obok — wpływ na ceny Spółek. Technologia jest
+warunkiem koniecznym; Zdarzenie spoza Niszy nie pokazuje się nigdzie.
+_Avoid_: filtr, kategoria
+_W kodzie_: `niche`
+
+**Spółka**:
+Notowana firma albo ETF z ustalonej listy (~45, z tickerem), na której cenę może wpłynąć
+Zdarzenie z Niszy.
+_Avoid_: instrument, aktywo, walor
+_W kodzie_: `Company`
+
+**Wpływ na Spółkę**:
+Kierunek (↑ wzrost, ↓ spadek, ↕ niepewny) i jedno zdanie mechanizmu, dlaczego cena Spółki może
+się ruszyć. Ocena jakościowa, nie porada inwestycyjna; do 3 na Zdarzenie.
+_Avoid_: rekomendacja, sygnał kupna, prognoza ceny
+_W kodzie_: `CompanyImpact`
+
+**Karta posta**:
+Codzienny pomysł na post dla właściciela: hak, technologia, gra państw, Wpływy na Spółki i linki
+do Źródeł. Gotowego posta appka nie pisze.
+_Avoid_: post, draft, temat (to oś Tematów)
+_W kodzie_: `PostCard`
 
 ## Świat
 
@@ -31,15 +58,16 @@ _Avoid_: kontynent, kraj, obszar
 _W kodzie_: `Region`
 
 **Temat**:
-Jedna z ośmiu stałych osi tech i rynku: Cyber, AI, Pole walki, Kosmos, Półprzewodniki, Surowce,
-Energia, Sankcje i handel. Zdarzenie ma zero lub więcej Tematów; bez Tematu jest szumem.
+Jedna z sześciu stałych osi technologii w Niszy: Cyber, Drony, Kosmos, Chipy, AI, Zbrojeniówka.
+Zdarzenie z Niszy ma co najmniej jeden Temat. Do plastra 11 lista miała 8 osi (z Polem walki,
+Surowcami, Energią, Sankcjami i handlem) — stare Analizy zostają czytelne.
 _Avoid_: tag, kategoria, sektor
 _W kodzie_: `Topic`
 
 ## Analiza
 
 **Waga**:
-Ocena AI, jak bardzo Zdarzenie zmienia sytuację: 1 — szum, 2 — istotne, 3 — przełomowe.
+Ocena AI, jak bardzo Zdarzenie z Niszy zmienia sytuację: 1 — drobne, 2 — istotne, 3 — przełomowe.
 _Avoid_: priorytet, ważność, score
 _W kodzie_: `Weight`
 
@@ -50,6 +78,7 @@ _Avoid_: analiza, prognoza, predykcja
 
 **Klasa aktywów**:
 Grupa instrumentów, na którą wpływa Scenariusz (np. ropa, złoto, półprzewodniki, indeksy akcji).
+W Raportach do plastra 13; od plastra 14 zastępuje ją Wpływ na Spółkę.
 _Avoid_: asset, rynek
 
 ## Widoki
