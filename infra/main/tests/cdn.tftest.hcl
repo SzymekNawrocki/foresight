@@ -46,7 +46,27 @@ run "only_public_recent_events_are_cached_at_the_edge" {
   }
 
   assert {
-    condition     = [for b in aws_cloudfront_distribution.web.ordered_cache_behavior : b.path_pattern] == ["/api/recent"]
+    condition = alltrue([
+      for b in aws_cloudfront_distribution.web.ordered_cache_behavior :
+      b.path_pattern == "/api/recent" || b.cache_policy_id == data.aws_cloudfront_cache_policy.caching_disabled.id
+    ])
     error_message = "Only /api/recent (public, changes hourly) may be cached."
+  }
+}
+
+run "only_inbox_decisions_accept_writes" {
+  command = plan
+
+  assert {
+    condition     = toset(aws_cloudfront_distribution.web.default_cache_behavior[0].allowed_methods) == toset(["GET", "HEAD"])
+    error_message = "Everything but the inbox stays read-only at the edge."
+  }
+
+  assert {
+    condition = [
+      for b in aws_cloudfront_distribution.web.ordered_cache_behavior : b.path_pattern
+      if contains(b.allowed_methods, "POST")
+    ] == ["/api/threads/proposals/*"]
+    error_message = "POST reaches the origin only for owner decisions on proposals."
   }
 }
