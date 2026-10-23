@@ -1,4 +1,5 @@
 import { type AnalyzedEvent, type Move, Region, type ThreadsResponse, Topic } from "@foresight/shared";
+import { isTopic } from "./labels.js";
 
 // Państwo → Region (CONTEXT.md). Granice teatrów są umowne: najpierw wyjątki po nazwie,
 // potem prostokąty po środku ciężkości państwa ([długość, szerokość]).
@@ -42,7 +43,7 @@ export function briefing(events: readonly AnalyzedEvent[], now: Date): Briefing 
   const topics = zeros(Topic.options);
   for (const { analysis } of significant) {
     for (const r of analysis?.regions ?? []) regions[r]++;
-    for (const t of analysis?.topics ?? []) topics[t]++;
+    for (const t of analysis?.topics ?? []) if (isTopic(t)) topics[t]++;
   }
 
   return {

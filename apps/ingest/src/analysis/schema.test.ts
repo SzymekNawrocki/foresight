@@ -1,6 +1,6 @@
-import { ACTOR_REGION, Actor, Analysis, analysisJsonSchema, AnalyzedEvent, LegacyAnalysis } from "@foresight/shared";
+import { ACTOR_REGION, Actor, Analysis, analysisJsonSchema, AnalysisV2, AnalyzedEvent, LegacyAnalysis, Verdict } from "@foresight/shared";
 import { describe, expect, it } from "vitest";
-import { legacyAnalysis, validAnalysis } from "./fixtures.js";
+import { analysisV2, legacyAnalysis, validAnalysis } from "./fixtures.js";
 
 describe("Analysis", () => {
   it("accepts a complete Analysis", () => {
@@ -32,8 +32,24 @@ describe("Analysis", () => {
     expect(Analysis.safeParse(candidate).success).toBe(false);
   });
 
-  it("allows an Event with no Topic and no Actor (noise)", () => {
-    expect(Analysis.safeParse({ ...validAnalysis, topics: [], actors: [], weight: 1 }).success).toBe(true);
+  it("allows a niche Event with no Actor and no Company", () => {
+    expect(Analysis.safeParse({ ...validAnalysis, actors: [], companies: [], weight: 1 }).success).toBe(true);
+  });
+
+  it.each([
+    ["no Topic", { ...validAnalysis, topics: [] }],
+    ["a v2 Topic", { ...validAnalysis, topics: ["energy"] }],
+    ["an unknown Company", { ...validAnalysis, companies: [{ company: "ANDURIL", direction: "up", mechanism: "Kontrakt." }] }],
+    ["more than 3 Companies", { ...validAnalysis, companies: Array(4).fill(validAnalysis.companies[0]) }],
+    ["an unknown direction", { ...validAnalysis, companies: [{ company: "LMT", direction: "sideways", mechanism: "Kontrakt." }] }],
+    ["no niche flag", { ...validAnalysis, niche: undefined }],
+  ])("rejects a niche Analysis with %s", (_, candidate) => {
+    expect(Analysis.safeParse(candidate).success).toBe(false);
+  });
+
+  it("saves an Event off the Niche as the bare flag, and nothing else", () => {
+    expect(Verdict.safeParse({ niche: false }).success).toBe(true);
+    expect(Verdict.safeParse({ niche: false, topics: [] }).success).toBe(false);
   });
 
   it("maps Actors only to Regions that exist", () => {
@@ -59,8 +75,17 @@ describe("reading stored Analyses", () => {
     expect(AnalyzedEvent.parse({ ...event, analysis: legacyAnalysis }).analysis).toEqual(legacyAnalysis);
   });
 
+  it("still reads the v2 shape with the old Topics", () => {
+    expect(AnalysisV2.safeParse(analysisV2).success).toBe(true);
+    expect(AnalyzedEvent.parse({ ...event, analysis: analysisV2 }).analysis).toEqual(analysisV2);
+  });
+
   it("reads the current shape", () => {
     expect(AnalyzedEvent.parse({ ...event, analysis: validAnalysis }).analysis).toEqual(validAnalysis);
+  });
+
+  it("does not show an Event off the Niche as analyzed", () => {
+    expect(AnalyzedEvent.safeParse({ ...event, analysis: { niche: false } }).success).toBe(false);
   });
 });
 

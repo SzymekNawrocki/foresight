@@ -1,8 +1,5 @@
-import type { Region } from "@foresight/shared";
+import type { Company, Region, Topic } from "@foresight/shared";
 import type { Direction } from "./score.js";
-
-// The six Topics of the Niche (ADR 0010). Dispatch v3 moves them into `shared`.
-export type NicheTopic = "cyber" | "drones" | "space" | "chips" | "ai" | "defence-industry";
 
 // Golden cases for `pnpm eval`: real headlines from the events table (October 2026) plus one
 // injection attempt, labelled for the Niche (ADR 0010). Only facts that are hard to dispute are
@@ -12,9 +9,9 @@ interface NicheCase {
   title: string;
   niche: true;
   /** At least one of these Topics must be present. */
-  topicsAny: NicheTopic[];
+  topicsAny: Topic[];
   /** Every Company returned must be a key here; a fixed direction must match ("any" = either). */
-  companies?: Record<string, Direction | "any">;
+  companies?: Partial<Record<Company, Direction | "any">>;
   weight: [min: 1 | 2 | 3, max: 1 | 2 | 3];
   /** Not scored yet; kept for the reader and for a later Region check. */
   regions?: Region[];

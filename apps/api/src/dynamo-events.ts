@@ -1,5 +1,5 @@
 import { type DynamoDBDocumentClient, QueryCommand, type QueryCommandInput } from "@aws-sdk/lib-dynamodb";
-import { type AnalyzedEvent, Event, StoredAnalysis } from "@foresight/shared";
+import { type AnalyzedEvent, Event, OffNiche, StoredAnalysis } from "@foresight/shared";
 import type { EventReader } from "./events.js";
 
 // Data model: docs/data-model.md → "Latest N Events". The web role may Query only this index.
@@ -48,10 +48,11 @@ export class DynamoEventReader implements EventReader {
 }
 
 // Items came from feeds and the LLM (untrusted): only what still matches the contract reaches
-// the page. A broken Analysis is dropped on its own, so the Event still shows.
+// the page. A broken Analysis is dropped on its own, so the Event still shows. An Event off the
+// Niche is shown nowhere (ADR 0010).
 function toAnalyzedEvent(item: Record<string, unknown>): AnalyzedEvent[] {
   const event = Event.safeParse(item);
-  if (!event.success) return [];
+  if (!event.success || OffNiche.safeParse(item.analysis).success) return [];
   const analysis = StoredAnalysis.safeParse(item.analysis);
   return [analysis.success ? { ...event.data, analysis: analysis.data } : event.data];
 }

@@ -1,6 +1,6 @@
 // Local AI Analysis of the newest real Events: `pnpm --filter @foresight/ingest analyze`.
 // The Groq key comes only from the environment, e.g. in PowerShell: $env:GROQ_API_KEY = "gsk_…"
-import type { Analysis } from "@foresight/shared";
+import type { Verdict } from "@foresight/shared";
 import { createPendingAnalysis } from "./analysis/pending.js";
 import { createTokenBudget, DAILY_TOKEN_LIMITS, InMemoryBudgetStore } from "./budget/budget.js";
 import { fetchFeed } from "./feed.js";
@@ -19,7 +19,7 @@ const count = Number(process.env.ANALYZE_COUNT ?? 3);
 const store = new InMemoryEventStore();
 await runIngest({ sources: SOURCES, fetchFeed: (url) => fetchFeed(url), store, now: () => new Date() });
 const events = store.latest(count);
-const done = new Map<string, Analysis>();
+const done = new Map<string, Verdict>();
 
 const analysis = createPendingAnalysis({
   queue: {

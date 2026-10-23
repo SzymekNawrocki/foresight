@@ -2,18 +2,23 @@ export {
   ACTOR_REGION,
   Actor,
   Analysis,
+  AnalysisV2,
   AnalyzedEvent,
   analysisJsonSchema,
   Branch,
   LegacyAnalysis,
+  LegacyTopic,
+  OffNiche,
   Region,
   Scenario,
   StoredAnalysis,
   strictJsonSchema,
   ThreadDecision,
   Topic,
+  Verdict,
   Weight,
 } from "./analysis.js";
+export { COMPANY_NAME, Company, CompanyImpact } from "./company.js";
 export { ConfigResponse, MeResponse } from "./config.js";
 export { Event } from "./event.js";
 export { EventsResponse } from "./events-response.js";

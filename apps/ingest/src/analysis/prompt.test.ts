@@ -1,4 +1,4 @@
-import { Actor } from "@foresight/shared";
+import { Actor, Company, LegacyTopic, Topic } from "@foresight/shared";
 import { describe, expect, it } from "vitest";
 import { buildMessages } from "./prompt.js";
 
@@ -34,6 +34,14 @@ describe("buildMessages", () => {
     const system = buildMessages([event("x")], [])[0]?.content ?? "";
 
     for (const actor of Actor.options) expect(system).toContain(actor);
+  });
+
+  it("lists every Topic and every Company the schema accepts, and none of the old Topics", () => {
+    const system = buildMessages([event("x")], [])[0]?.content ?? "";
+
+    for (const topic of Topic.options) expect(system).toContain(topic);
+    for (const company of Company.options) expect(system).toContain(company);
+    for (const old of LegacyTopic.options.filter((t) => !Topic.options.includes(t as Topic))) expect(system).not.toContain(old);
   });
 
   it("sends the active Threads in their own data block", () => {

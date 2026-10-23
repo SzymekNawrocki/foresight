@@ -1,6 +1,6 @@
 import type { AnalyzedEvent, Branch } from "@foresight/shared";
 import { Link } from "@tanstack/react-router";
-import { ACTOR_LABEL, DIRECTION_ARROW, REGION_LABEL, TOPIC_LABEL, WEIGHT_LABEL } from "./labels.js";
+import { ACTOR_LABEL, DIRECTION_ARROW, isTopic, REGION_LABEL, TOPIC_LABEL, WEIGHT_LABEL } from "./labels.js";
 
 // Czas zawsze po polsku, niezależnie od strefy przeglądarki — Zdarzenia porównujemy między sobą.
 const time = new Intl.DateTimeFormat("pl-PL", {
@@ -55,9 +55,13 @@ export function EventCard({ event }: { event: AnalyzedEvent }) {
             ))}
             {analysis.topics.map((t) => (
               <li key={t}>
-                <Link to="/topic/$topic" params={{ topic: t }} className="tag tag-topic">
-                  {TOPIC_LABEL[t]}
-                </Link>
+                {isTopic(t) ? (
+                  <Link to="/topic/$topic" params={{ topic: t }} className="tag tag-topic">
+                    {TOPIC_LABEL[t]}
+                  </Link>
+                ) : (
+                  <span className="tag tag-topic">{TOPIC_LABEL[t]}</span>
+                )}
               </li>
             ))}
           </ul>

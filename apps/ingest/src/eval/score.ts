@@ -1,13 +1,13 @@
-import type { Analysis, Topic } from "@foresight/shared";
-import type { EvalCase, NicheTopic } from "./cases.js";
+import type { Company, CompanyImpact, Topic, Verdict } from "@foresight/shared";
+import type { EvalCase } from "./cases.js";
 
-export type Direction = "up" | "down" | "uncertain";
+export type Direction = CompanyImpact["direction"];
 
 /** What the eval reads from one dispatch, whatever its version. */
 export interface EvalDispatch {
   niche: boolean;
-  topics: NicheTopic[];
-  companies: { company: string; direction: Direction }[];
+  topics: Topic[];
+  companies: { company: Company; direction: Direction }[];
   weight: number;
 }
 
@@ -19,13 +19,9 @@ export interface CaseScore {
   misses: string[];
 }
 
-// The baseline prompt (v2) has no niche flag. Its closest proxy is a tech Topic; drones and the
-// defence industry have no axis there, so the baseline cannot catch them.
-const V2_TECH: Partial<Record<Topic, NicheTopic>> = { cyber: "cyber", ai: "ai", space: "space", semiconductors: "chips" };
-
-export function fromV2(analysis: Analysis): EvalDispatch {
-  const topics = analysis.topics.flatMap((t) => V2_TECH[t] ?? []);
-  return { niche: topics.length > 0, topics, companies: [], weight: analysis.weight };
+export function fromVerdict(verdict: Verdict): EvalDispatch {
+  if (!verdict.niche) return { niche: false, topics: [], companies: [], weight: 1 };
+  return { niche: true, topics: verdict.topics, companies: verdict.companies, weight: verdict.weight };
 }
 
 function checksOf(expected: EvalCase, got: EvalDispatch): [ok: boolean, miss: string][] {

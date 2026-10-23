@@ -1,4 +1,4 @@
-import type { Analysis, Event } from "@foresight/shared";
+import type { Analysis, Event, Verdict } from "@foresight/shared";
 import type { TokenBudget } from "../budget/budget.js";
 import { estimateTokens, type Llm, type LlmFailure, type LlmRequest } from "../llm/llm.js";
 import { BATCH_SIZE, DispatchBatch, looksLikeInjection, QUARANTINED, REFS, settle } from "./dispatch.js";
@@ -13,6 +13,8 @@ export type AnalysisReport =
       /** Why Events failed: an LLM failure for the whole batch, or `skipped` for a dispatch missing or invalid. */
       reasons?: Partial<Record<LlmFailure | "skipped", number>>;
       quarantined?: number;
+      /** Of the analyzed and reused Events, how many were off the Niche (ADR 0010). */
+      offNiche?: number;
       /** Near-duplicates that took the Analysis of a recent Event, without a model call. */
       reused?: number;
       /** Analyses saved but not put on their Thread's timeline (the Event itself is fine). */
@@ -73,9 +75,14 @@ export function createPendingAnalysis({
   now = () => new Date(),
 }: PendingAnalysisOptions): PendingAnalysis {
   // The Analysis is saved first: a failed timeline write must not put the Event back in the queue.
-  async function save(event: Event, analysis: Analysis, report: RunReport) {
-    await queue.saveAnalysis(event.id, analysis);
-    await link(event, analysis).catch(() => {
+  // An Event off the Niche is saved too, so it leaves the queue, but goes on no Thread.
+  async function save(event: Event, verdict: Verdict, report: RunReport) {
+    await queue.saveAnalysis(event.id, verdict);
+    if (!verdict.niche) {
+      report.offNiche = (report.offNiche ?? 0) + 1;
+      return;
+    }
+    await link(event, verdict).catch(() => {
       report.unlinked = (report.unlinked ?? 0) + 1;
     });
   }

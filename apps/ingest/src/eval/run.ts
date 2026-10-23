@@ -2,12 +2,12 @@
 // Run it before and after a prompt change and put both scores in the PR (ADR 0009).
 // The key comes only from the environment, e.g. in PowerShell: $env:GROQ_API_KEY = "gsk_…"
 import { createHash } from "node:crypto";
-import type { Analysis, Event } from "@foresight/shared";
+import type { Event, Verdict } from "@foresight/shared";
 import { createPendingAnalysis } from "../analysis/pending.js";
 import { createTokenBudget, DAILY_TOKEN_LIMITS, InMemoryBudgetStore } from "../budget/budget.js";
 import { createGroqLlm } from "../llm/groq.js";
 import { CASES } from "./cases.js";
-import { fromV2, scoreCase } from "./score.js";
+import { fromVerdict, scoreCase } from "./score.js";
 
 const apiKey = process.env.GROQ_API_KEY;
 if (!apiKey) {
@@ -24,7 +24,7 @@ const events: Event[] = CASES.map((c) => ({
   publishedAt: now,
   fetchedAt: now,
 }));
-const results = new Map<string, Analysis>();
+const results = new Map<string, Verdict>();
 
 const analysis = createPendingAnalysis({
   queue: {
@@ -43,7 +43,7 @@ const report = await analysis.analyzePending(budget);
 
 const scores = CASES.map((c, i) => {
   const analysis = results.get(events[i]?.id ?? "");
-  return scoreCase(c, analysis && fromV2(analysis));
+  return scoreCase(c, analysis && fromVerdict(analysis));
 });
 for (const s of scores) {
   console.log(`${s.passed === s.total ? "PASS" : "FAIL"} ${s.passed}/${s.total}  ${s.title}`);

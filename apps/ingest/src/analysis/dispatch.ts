@@ -1,4 +1,4 @@
-import { Actor, ACTOR_REGION, Analysis, Region, Topic } from "@foresight/shared";
+import { Actor, ACTOR_REGION, Analysis, Company, CompanyImpact, type OffNiche, Region, Topic, type Verdict } from "@foresight/shared";
 import { z } from "zod";
 
 // The model answers for a whole batch; each dispatch names its Event by position, never by id,
@@ -10,8 +10,25 @@ export const REFS = ["e1", "e2", "e3", "e4", "e5"] as const;
 // once wrote the Actor "lithuania") fails the whole batch with a 400. So labels go to the model
 // as plain strings — the allowed values are listed in the prompt — and settle() keeps the known ones.
 const Labels = z.array(z.string());
-const Dispatch = Analysis.extend({ ref: z.enum(REFS), regions: Labels, topics: Labels, actors: Labels });
+const Impact = CompanyImpact.extend({ company: z.string() });
+
+// Dispatch v3 (ADR 0010): the model first decides whether the Event is in the Niche. An Event off
+// the Niche gets a two-field answer, so most of the stream costs a few tokens. Groq strict mode
+// has no "const" or boolean branches, hence the one-value string enums.
+const NicheDispatch = Analysis.extend({
+  ref: z.enum(REFS),
+  niche: z.enum(["yes"]),
+  regions: Labels,
+  topics: Labels,
+  actors: Labels,
+  companies: z.array(Impact),
+});
+const OffNicheDispatch = z.strictObject({ ref: z.enum(REFS), niche: z.enum(["no"]) });
+const Dispatch = z.union([NicheDispatch, OffNicheDispatch]);
 export type Dispatch = z.infer<typeof Dispatch>;
+type NicheFields = Omit<z.infer<typeof NicheDispatch>, "ref">;
+/** A dispatch without its ref — what the batch answer carries for one Event. */
+export type DispatchFields = NicheFields | Omit<z.infer<typeof OffNicheDispatch>, "ref">;
 
 // One invalid dispatch (say, a sentence over the limit) turns into null instead of failing the
 // whole answer, so only its own Event stays pending. `catch` leaves the JSON schema sent to the
@@ -24,11 +41,26 @@ export type DispatchBatch = z.infer<typeof DispatchBatch>;
 const known = <T extends string>(values: readonly T[], labels: string[]) =>
   [...new Set(labels)].filter((label): label is T => (values as readonly string[]).includes(label));
 
+export const OFF_NICHE: OffNiche = { niche: false };
+
 // What the model may not decide on its own (ADR 0009: rules live in code, not in the prompt):
-// only labels from our lists survive, an Actor always brings its home Region, an attach must
-// name a Thread we actually sent, and only a significant Event may propose a New situation.
+// only labels from our lists survive, an Actor always brings its home Region, a Niche Event
+// without a known Topic is off the Niche, each Company appears once and at most 3 times, an attach
+// must name a Thread we actually sent, and only a significant Event may propose a New situation.
 // Fields are copied one by one, so nothing else the answer carries (such as its ref) is saved.
-export function settle(dispatch: Omit<Dispatch, "ref">, activeThreadIds: ReadonlySet<string>): Analysis {
+// A saved Verdict (a near-duplicate) goes through the same rules again.
+export function settle(dispatch: DispatchFields | Verdict, activeThreadIds: ReadonlySet<string>): Verdict {
+  if (dispatch.niche === "no" || dispatch.niche === false) return OFF_NICHE;
+  return settleNiche(dispatch, activeThreadIds);
+}
+
+function settleNiche(dispatch: Omit<NicheFields, "niche">, activeThreadIds: ReadonlySet<string>): Verdict {
+  const topics = known(Topic.options, dispatch.topics);
+  if (topics.length === 0) return OFF_NICHE;
+  const companies = dispatch.companies
+    .filter((c, i, all): c is CompanyImpact => Company.safeParse(c.company).success && all.findIndex((o) => o.company === c.company) === i)
+    .slice(0, 3)
+    .map(({ company, direction, mechanism }) => ({ company, direction, mechanism }));
   const actors = known(Actor.options, dispatch.actors).slice(0, 4);
   const homes = actors.flatMap((actor): Region[] => {
     const home = ACTOR_REGION[actor];
@@ -39,9 +71,11 @@ export function settle(dispatch: Omit<Dispatch, "ref">, activeThreadIds: Readonl
   const keep =
     (thread.kind === "attach" && activeThreadIds.has(thread.threadId)) || (thread.kind === "propose" && dispatch.weight >= 2);
   return {
+    niche: true,
     regions: regions.length ? regions : ["global"],
-    topics: known(Topic.options, dispatch.topics),
+    topics,
     actors,
+    companies,
     weight: dispatch.weight,
     whyItMatters: dispatch.whyItMatters,
     thread: keep ? thread : { kind: "none" },
@@ -59,11 +93,5 @@ const INJECTION = [
 
 export const looksLikeInjection = (title: string) => INJECTION.some((pattern) => pattern.test(title));
 
-export const QUARANTINED: Analysis = {
-  regions: ["global"],
-  topics: [],
-  actors: [],
-  weight: 1,
-  whyItMatters: "Tytuł zawiera polecenia dla modelu, więc pominięto go jako możliwą manipulację.",
-  thread: { kind: "none" },
-};
+// A title that talks to the model is treated as off the Niche: saved, shown nowhere.
+export const QUARANTINED: OffNiche = OFF_NICHE;

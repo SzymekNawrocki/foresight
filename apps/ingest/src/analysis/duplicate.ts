@@ -1,9 +1,9 @@
-import type { Analysis } from "@foresight/shared";
+import type { Verdict } from "@foresight/shared";
 
 /** An Event analyzed recently: a new Event with a near-identical title reuses its Analysis. */
 export interface RecentAnalysis {
   title: string;
-  analysis: Analysis;
+  analysis: Verdict;
 }
 
 // Two newsrooms often run the same story under slightly different headlines. Reusing the first
@@ -51,9 +51,9 @@ function similar(a: Fingerprint, b: Fingerprint) {
 export const isNearDuplicate = (a: string, b: string) => similar(fingerprint(a), fingerprint(b)) >= THRESHOLD;
 
 /** The Analysis of the most similar recent Event, if one is close enough. */
-export function findDuplicate(title: string, recent: readonly RecentAnalysis[]): Analysis | undefined {
+export function findDuplicate(title: string, recent: readonly RecentAnalysis[]): Verdict | undefined {
   const target = fingerprint(title);
-  let best: { score: number; analysis: Analysis } | undefined;
+  let best: { score: number; analysis: Verdict } | undefined;
   for (const candidate of recent) {
     const score = similar(target, fingerprint(candidate.title));
     if (score >= THRESHOLD && score > (best?.score ?? 0)) best = { score, analysis: candidate.analysis };

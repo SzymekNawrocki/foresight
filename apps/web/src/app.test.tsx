@@ -117,7 +117,9 @@ describe("Event card", () => {
     const c = within(card);
     expect(c.getByText("Waga 3 · przełomowe")).toBeInTheDocument();
     expect(c.getByRole("link", { name: "Bliski Wschód" })).toHaveAttribute("href", "/region/middle-east");
-    expect(c.getByRole("link", { name: "Sankcje i handel" })).toHaveAttribute("href", "/topic/sanctions-trade");
+    // An old Topic stays readable but has no page since the Niche (ADR 0010).
+    expect(c.getByText("Sankcje i handel")).toBeInTheDocument();
+    expect(c.queryByRole("link", { name: "Sankcje i handel" })).toBeNull();
     expect(within(c.getByRole("list", { name: "Aktorzy" })).getAllByRole("listitem").map((li) => li.textContent)).toEqual([
       "Iran",
       "UE",

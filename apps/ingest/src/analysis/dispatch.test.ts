@@ -1,61 +1,77 @@
-import { Analysis, strictJsonSchema } from "@foresight/shared";
+import { strictJsonSchema } from "@foresight/shared";
 import { describe, expect, it } from "vitest";
-import { DispatchBatch, looksLikeInjection, QUARANTINED, settle } from "./dispatch.js";
-import { validAnalysis } from "./fixtures.js";
+import { DispatchBatch, type DispatchFields, looksLikeInjection, QUARANTINED, settle } from "./dispatch.js";
+import { validAnalysis, validDispatch } from "./fixtures.js";
 
 const active = new Set(["hormuz"]);
+const nicheOf = (dispatch: Partial<Extract<DispatchFields, { niche: "yes" }>> = {}) => {
+  const settled = settle({ ...validDispatch, ...dispatch }, active);
+  if (!settled.niche) throw new Error("expected a niche Analysis");
+  return settled;
+};
 
 describe("settle", () => {
-  it("adds the home Region of every Actor the model named", () => {
-    const analysis = settle({ ...validAnalysis, regions: ["europe"], actors: ["poland", "ukraine"] }, active);
+  it("turns a dispatch in the Niche into an Analysis, without its ref or anything else", () => {
+    expect(settle({ ...validDispatch, ref: "e1" } as typeof validDispatch, active)).toEqual(validAnalysis);
+  });
 
-    expect(analysis.regions).toEqual(["europe", "russia-eurasia"]);
+  it("saves an Event off the Niche as the bare flag", () => {
+    expect(settle({ niche: "no" }, active)).toEqual({ niche: false });
+  });
+
+  it("puts an Event the model kept in the Niche, but with no known Topic, off the Niche", () => {
+    expect(settle({ ...validDispatch, topics: ["battlefield", "energy"] }, active)).toEqual({ niche: false });
+  });
+
+  it("adds the home Region of every Actor the model named", () => {
+    expect(nicheOf({ regions: ["europe"], actors: ["poland", "ukraine"] }).regions).toEqual(["europe", "russia-eurasia"]);
   });
 
   it("keeps only known labels: an Actor, Region or Topic outside our lists is dropped", () => {
-    const analysis = settle(
-      {
-        ...validAnalysis,
-        regions: ["europe", "baltics"],
-        topics: ["battlefield", "drones"],
-        actors: ["ukraine", "lithuania", "poland"],
-      },
-      active,
-    );
-
-    expect(analysis).toMatchObject({
+    expect(
+      nicheOf({ regions: ["europe", "baltics"], topics: ["drones", "battlefield"], actors: ["ukraine", "lithuania", "poland"] }),
+    ).toMatchObject({
       regions: ["europe", "russia-eurasia"],
-      topics: ["battlefield"],
+      topics: ["drones"],
       actors: ["ukraine", "poland"],
     });
   });
 
   it("falls back to global when no known Region is left, and keeps at most 4 Actors", () => {
-    const analysis = settle(
-      { ...validAnalysis, regions: ["moon"], actors: ["un", "nato", "eu", "g7", "brics"] },
-      active,
-    );
+    const analysis = nicheOf({ regions: ["moon"], actors: ["un", "nato", "eu", "g7", "brics"] });
 
     expect(analysis.actors).toEqual(["un", "nato", "eu", "g7"]);
     expect(analysis.regions).toEqual(["europe"]);
-    expect(settle({ ...validAnalysis, regions: ["moon"], actors: [] }, active).regions).toEqual(["global"]);
+    expect(nicheOf({ regions: ["moon"], actors: [] }).regions).toEqual(["global"]);
+  });
+
+  it("drops a Company the model invented, a repeated one, and anything over 3", () => {
+    const impact = (company: string) => ({ company, direction: "up" as const, mechanism: "Popyt rośnie." });
+    const analysis = nicheOf({ companies: ["ANDURIL", "LMT", "LMT", "RHM", "KTOS", "AVAV"].map(impact) });
+
+    expect(analysis.companies.map((c) => c.company)).toEqual(["LMT", "RHM", "KTOS"]);
   });
 
   it("keeps an attach to an active Thread", () => {
     const thread = { kind: "attach" as const, threadId: "hormuz" };
 
-    expect(settle({ ...validAnalysis, thread }, active).thread).toEqual(thread);
+    expect(nicheOf({ thread }).thread).toEqual(thread);
   });
 
   it("drops an attach to a Thread that is not on the active list", () => {
-    expect(settle({ ...validAnalysis, thread: { kind: "attach", threadId: "made-up" } }, active).thread).toEqual({ kind: "none" });
+    expect(nicheOf({ thread: { kind: "attach", threadId: "made-up" } }).thread).toEqual({ kind: "none" });
   });
 
-  it("drops a New situation proposed for noise", () => {
-    const thread = { kind: "propose" as const, name: "Piekarnia" };
+  it("drops a New situation proposed for a minor Event", () => {
+    const thread = { kind: "propose" as const, name: "Drobny incydent" };
 
-    expect(settle({ ...validAnalysis, weight: 1, thread }, active).thread).toEqual({ kind: "none" });
-    expect(settle({ ...validAnalysis, weight: 2, thread }, active).thread).toEqual(thread);
+    expect(nicheOf({ weight: 1, thread }).thread).toEqual({ kind: "none" });
+    expect(nicheOf({ weight: 2, thread }).thread).toEqual(thread);
+  });
+
+  it("settles a saved Verdict again, for a near-duplicate", () => {
+    expect(settle(validAnalysis, active)).toEqual(validAnalysis);
+    expect(settle({ niche: false }, active)).toEqual({ niche: false });
   });
 });
 
@@ -81,42 +97,50 @@ describe("looksLikeInjection", () => {
 });
 
 describe("QUARANTINED", () => {
-  it("is a valid noise Analysis with no Thread", () => {
-    expect(Analysis.parse(QUARANTINED)).toMatchObject({ weight: 1, topics: [], actors: [], thread: { kind: "none" } });
+  it("is off the Niche, so it is shown nowhere and goes on no Thread", () => {
+    expect(QUARANTINED).toEqual({ niche: false });
   });
 });
 
 describe("DispatchBatch", () => {
-  it("accepts dispatches referenced as e1…e5", () => {
-    const batch = { dispatches: [{ ref: "e1", ...validAnalysis }, { ref: "e5", ...validAnalysis }] };
+  const off = { ref: "e2", niche: "no" };
+
+  it("accepts dispatches referenced as e1…e5, in and off the Niche", () => {
+    const batch = { dispatches: [{ ref: "e1", ...validDispatch }, off, { ref: "e5", ...validDispatch }] };
 
     expect(DispatchBatch.safeParse(batch).success).toBe(true);
   });
 
   it.each([
-    ["an unknown ref", { ref: "e6", ...validAnalysis }],
-    ["a dispatch without ref", validAnalysis],
-    ["a sentence over the limit", { ref: "e2", ...validAnalysis, whyItMatters: "x".repeat(301) }],
+    ["an unknown ref", { ref: "e6", ...validDispatch }],
+    ["a dispatch without ref", validDispatch],
+    ["a sentence over the limit", { ref: "e2", ...validDispatch, whyItMatters: "x".repeat(301) }],
+    ["a mechanism over the limit", { ref: "e2", ...validDispatch, companies: [{ company: "LMT", direction: "up", mechanism: "x".repeat(201) }] }],
+    ["an off-Niche answer that carries fields", { ...off, topics: ["cyber"] }],
+    ["a boolean instead of yes or no", { ref: "e2", ...validDispatch, niche: true }],
   ])("drops %s and keeps the rest of the batch", (_, bad) => {
-    const batch = { dispatches: [{ ref: "e1", ...validAnalysis }, bad] };
+    const batch = { dispatches: [{ ref: "e1", ...validDispatch }, bad] };
 
-    expect(DispatchBatch.parse(batch).dispatches).toEqual([{ ref: "e1", ...validAnalysis }, null]);
+    expect(DispatchBatch.parse(batch).dispatches).toEqual([{ ref: "e1", ...validDispatch }, null]);
   });
 
-  it("sends labels to the model as plain strings, so an unknown Actor cannot fail the whole batch at Groq", () => {
+  it("sends labels and Companies to the model as plain strings, so an unknown one cannot fail the whole batch at Groq", () => {
     const schema = JSON.stringify(strictJsonSchema(DispatchBatch));
 
     expect(schema).not.toContain('"lithuania"');
-    expect(schema).not.toContain('"houthis"');
     expect(schema).not.toContain('"russia-eurasia"');
-    expect(schema).not.toContain('"sanctions-trade"');
-    expect(DispatchBatch.parse({ dispatches: [{ ref: "e1", ...validAnalysis, actors: ["lithuania"] }] }).dispatches[0]).toMatchObject({
-      actors: ["lithuania"],
-    });
+    expect(schema).not.toContain('"defence-industry"');
+    expect(schema).not.toContain('"CRWD"');
+    expect(schema).toContain('"enum":["yes"]');
+    expect(schema).toContain('"enum":["no"]');
+    expect(
+      DispatchBatch.parse({ dispatches: [{ ref: "e1", ...validDispatch, companies: [{ company: "ANDURIL", direction: "up", mechanism: "Kontrakt." }] }] })
+        .dispatches[0],
+    ).toMatchObject({ companies: [{ company: "ANDURIL" }] });
   });
 
   it("rejects more than 5 dispatches", () => {
-    const batch = { dispatches: Array(6).fill({ ref: "e1", ...validAnalysis }) };
+    const batch = { dispatches: Array(6).fill({ ref: "e1", ...validDispatch }) };
 
     expect(DispatchBatch.safeParse(batch).success).toBe(false);
   });

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { validAnalysis } from "../analysis/fixtures.js";
-import { type EvalDispatch, fromV2, scoreCase } from "./score.js";
+import { type EvalDispatch, fromVerdict, scoreCase } from "./score.js";
 
 const base = { source: "the-record", title: "APT28 hits Polish grid" };
 
@@ -85,17 +85,17 @@ describe("scoreCase — no answer", () => {
   });
 });
 
-describe("fromV2", () => {
-  it("counts a v2 Analysis with a tech Topic as niche and maps semiconductors to chips", () => {
-    expect(fromV2({ ...validAnalysis, topics: ["semiconductors", "energy"] })).toEqual({
+describe("fromVerdict", () => {
+  it("reads Topics, Companies and weight of a niche Analysis", () => {
+    expect(fromVerdict(validAnalysis)).toEqual({
       niche: true,
-      topics: ["chips"],
-      companies: [],
+      topics: ["cyber"],
+      companies: validAnalysis.companies,
       weight: 2,
     });
   });
 
-  it("counts a v2 Analysis without a tech Topic as out of the niche", () => {
-    expect(fromV2({ ...validAnalysis, topics: ["battlefield", "energy"] })).toMatchObject({ niche: false, topics: [] });
+  it("reads an Event off the Niche as dropped", () => {
+    expect(fromVerdict({ niche: false })).toMatchObject({ niche: false, topics: [], companies: [] });
   });
 });

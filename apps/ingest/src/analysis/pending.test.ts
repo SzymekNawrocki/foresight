@@ -1,10 +1,10 @@
-import type { Analysis, Event } from "@foresight/shared";
+import type { Event, Verdict } from "@foresight/shared";
 import { describe, expect, it, vi } from "vitest";
 import { createTokenBudget, InMemoryBudgetStore } from "../budget/budget.js";
 import { createFakeLlm, type FakeReply } from "../llm/fake.js";
 import { QUARANTINED } from "./dispatch.js";
 import type { RecentAnalysis } from "./duplicate.js";
-import { validAnalysis } from "./fixtures.js";
+import { validAnalysis, validDispatch } from "./fixtures.js";
 import { createPendingAnalysis } from "./pending.js";
 import { type ActiveThread, buildMessages } from "./prompt.js";
 import type { AnalysisQueue } from "./queue.js";
@@ -22,14 +22,14 @@ const eventOf = (letter: string, title = `Event ${letter}`): Event => ({
 const events = ["a", "b", "c", "d", "e", "f", "g"].map((letter) => eventOf(letter));
 
 /** A batch answer with one dispatch per ref. */
-const answer = (refs: string[], dispatch: Partial<Analysis> = {}): FakeReply => ({
-  answer: { dispatches: refs.map((ref) => ({ ref, ...validAnalysis, ...dispatch })) },
+const answer = (refs: string[], dispatch: Partial<typeof validDispatch> = {}): FakeReply => ({
+  answer: { dispatches: refs.map((ref) => ({ ref, ...validDispatch, ...dispatch })) },
 });
 const full = answer(["e1", "e2", "e3", "e4", "e5"]);
 const rest = answer(["e1", "e2"]);
 
 function queueOf(pending: Event[], analyzed: RecentAnalysis[] = []) {
-  const saved = new Map<string, Analysis>();
+  const saved = new Map<string, Verdict>();
   const recent = vi.fn<AnalysisQueue["recent"]>(async () => analyzed);
   const queue: AnalysisQueue = {
     pending: async (limit) => pending.filter((e) => !saved.has(e.id)).slice(0, limit),
@@ -72,7 +72,7 @@ describe("analyzePending", () => {
   });
 
   it("saves each dispatch to the Event its ref points at, without the ref", async () => {
-    const reply = { answer: { dispatches: [{ ref: "e2", ...validAnalysis, weight: 3 }, { ref: "e1", ...validAnalysis }] } };
+    const reply = { answer: { dispatches: [{ ref: "e2", ...validDispatch, weight: 3 }, { ref: "e1", ...validDispatch }] } };
     const { analysis, budget, saved } = setup({ replies: [reply], pending: events.slice(0, 2) });
 
     await analysis.analyzePending(budget);
@@ -93,8 +93,8 @@ describe("analyzePending", () => {
     const reply = {
       answer: {
         dispatches: [
-          { ref: "e1", ...validAnalysis, actors: ["ukraine"], thread: { kind: "attach", threadId: "hormuz" } },
-          { ref: "e2", ...validAnalysis, thread: { kind: "attach", threadId: "made-up" } },
+          { ref: "e1", ...validDispatch, actors: ["ukraine"], thread: { kind: "attach", threadId: "hormuz" } },
+          { ref: "e2", ...validDispatch, thread: { kind: "attach", threadId: "made-up" } },
         ],
       },
     };
@@ -107,10 +107,10 @@ describe("analyzePending", () => {
     await analysis.analyzePending(budget);
 
     expect(saved.get(events[0]?.id as string)).toMatchObject({
-      regions: ["middle-east", "russia-eurasia"],
+      regions: ["europe", "russia-eurasia"],
       thread: { kind: "attach", threadId: "hormuz" },
     });
-    expect(saved.get(events[1]?.id as string)?.thread).toEqual({ kind: "none" });
+    expect(saved.get(events[1]?.id as string)).toMatchObject({ thread: { kind: "none" } });
     expect(threads).toHaveBeenCalledTimes(1);
   });
 
@@ -190,7 +190,7 @@ describe("analyzePending", () => {
   });
 
   it("leaves only an invalid dispatch pending, not its whole batch", async () => {
-    const valid = { ...validAnalysis };
+    const valid = { ...validDispatch };
     const reply = {
       answer: {
         dispatches: [
@@ -268,5 +268,18 @@ describe("analyzePending — Threads", () => {
     await expect(analysis.analyzePending(budget)).resolves.toEqual({ analyzed: 2, failed: 0, unlinked: 1, backlog: 0 });
     expect(link.mock.calls.map(([event]) => event.id)).toEqual(events.slice(0, 2).map((e) => e.id));
     expect(saved.size).toBe(2);
+  });
+
+  it("saves an Event off the Niche so it leaves the queue, counts it, and puts it on no Thread", async () => {
+    const { queue, saved } = queueOf(events.slice(0, 2));
+    const reply = { answer: { dispatches: [{ ref: "e1", niche: "no" }, { ref: "e2", ...validDispatch }] } };
+    const link = vi.fn(async () => {});
+    const analysis = createPendingAnalysis({ queue, llm: async () => createFakeLlm([reply]), link, sleep: async () => {}, now: () => NOW });
+    const budget = createTokenBudget({ store: new InMemoryBudgetStore(), limits: { [MODEL]: 1_000_000 } });
+
+    await expect(analysis.analyzePending(budget)).resolves.toEqual({ analyzed: 2, failed: 0, offNiche: 1, backlog: 0 });
+    expect(saved.get(events[0]?.id as string)).toEqual({ niche: false });
+    expect(saved.get(events[1]?.id as string)).toEqual(validAnalysis);
+    expect(link).toHaveBeenCalledTimes(1);
   });
 });

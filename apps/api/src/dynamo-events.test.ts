@@ -75,6 +75,12 @@ describe("DynamoEventReader", () => {
     await expect(reader().latest(20)).resolves.toEqual([{ ...event, analysis: legacy }]);
   });
 
+  it("leaves out an Event off the Niche altogether (ADR 0010)", async () => {
+    ddb.on(QueryCommand).resolves({ Items: [{ ...event, analysis: { niche: false } }, { ...event, id: "f".repeat(32), analysis }] });
+
+    await expect(reader().latest(20)).resolves.toEqual([{ ...event, id: "f".repeat(32), analysis }]);
+  });
+
   it("keeps the Event but drops an Analysis that breaks the contract", async () => {
     ddb.on(QueryCommand).resolves({ Items: [{ ...event, analysis: { ...analysis, weight: 7 } }] });
 
