@@ -7,7 +7,7 @@ import { createPendingAnalysis } from "../analysis/pending.js";
 import { createTokenBudget, DAILY_TOKEN_LIMITS, InMemoryBudgetStore } from "../budget/budget.js";
 import { createGroqLlm } from "../llm/groq.js";
 import { CASES } from "./cases.js";
-import { scoreCase } from "./score.js";
+import { fromV2, scoreCase } from "./score.js";
 
 const apiKey = process.env.GROQ_API_KEY;
 if (!apiKey) {
@@ -41,7 +41,10 @@ const analysis = createPendingAnalysis({
 const budget = createTokenBudget({ store: new InMemoryBudgetStore(), limits: DAILY_TOKEN_LIMITS });
 const report = await analysis.analyzePending(budget);
 
-const scores = CASES.map((c, i) => scoreCase(c, results.get(events[i]?.id ?? "")));
+const scores = CASES.map((c, i) => {
+  const analysis = results.get(events[i]?.id ?? "");
+  return scoreCase(c, analysis && fromV2(analysis));
+});
 for (const s of scores) {
   console.log(`${s.passed === s.total ? "PASS" : "FAIL"} ${s.passed}/${s.total}  ${s.title}`);
   for (const miss of s.misses) console.log(`       - ${miss}`);
@@ -50,4 +53,9 @@ const passed = scores.reduce((sum, s) => sum + s.passed, 0);
 const total = scores.reduce((sum, s) => sum + s.total, 0);
 const tokens = (await budget.report()).find((line) => line.used > 0)?.used ?? 0;
 console.log(`\nChecks: ${passed}/${total} · cases fully right: ${scores.filter((s) => s.passed === s.total).length}/${scores.length}`);
+// The niche gate on its own: a lost niche Event costs more than noise let in (ADR 0010).
+const lost = CASES.filter((c, i) => c.niche && scores[i]?.misses.some((m) => m.startsWith("niche") || m === "no dispatch")).length;
+const leaked = CASES.filter((c, i) => !c.niche && scores[i]?.passed === 0).length;
+const nicheCount = CASES.filter((c) => c.niche).length;
+console.log(`Niche gate: lost ${lost}/${nicheCount} niche · let in ${leaked}/${CASES.length - nicheCount} off-niche`);
 console.log(`Tokens: ${tokens} (${Math.round(tokens / events.length)} per Event) · run report: ${JSON.stringify(report)}`);
