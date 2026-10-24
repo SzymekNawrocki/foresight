@@ -1,5 +1,5 @@
 import { strictJsonSchema } from "@foresight/shared";
-import type { Llm, LlmRequest, LlmResult, TokenUsage } from "./llm.js";
+import type { Llm, LlmFailure, LlmRequest, LlmResult, TokenUsage } from "./llm.js";
 
 export interface GroqOptions {
   apiKey: string;
@@ -12,6 +12,20 @@ const ENDPOINT = "https://api.groq.com/openai/v1/chat/completions";
 interface Completion {
   choices?: { message?: { content?: unknown } }[];
   usage?: { total_tokens?: unknown };
+}
+
+// Groq's error code tells a schema it refuses from an answer that failed its own check
+// (json_validate_failed). The code is outside input, so only a short slug of it is kept.
+async function httpFailure(res: Response): Promise<LlmFailure> {
+  const base = `http-${res.status}` as const;
+  try {
+    const code = ((await res.json()) as { error?: { code?: unknown } }).error?.code;
+    if (typeof code !== "string") return base;
+    const slug = code.toLowerCase().replace(/[^a-z0-9_]/g, "").slice(0, 40);
+    return slug ? `${base}:${slug}` : base;
+  } catch {
+    return base;
+  }
 }
 
 // The model gets no tools and no streaming; its answer is forced by a strict JSON schema
@@ -43,7 +57,7 @@ export function createGroqLlm({ apiKey, fetch = globalThis.fetch, timeoutMs = 30
       }
 
       if (res.status === 429) return { ok: false, reason: "rate-limited" };
-      if (!res.ok) return { ok: false, reason: `http-${res.status}` };
+      if (!res.ok) return { ok: false, reason: await httpFailure(res) };
 
       let body: Completion;
       try {

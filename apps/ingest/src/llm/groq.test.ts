@@ -96,6 +96,25 @@ describe("createGroqLlm", () => {
     await expect(llmWith(fetch).complete(request)).resolves.toEqual({ ok: false, reason: "http-503" });
   });
 
+  it("names Groq's error code, so a rejected schema differs from a rejected answer", async () => {
+    const fetch = vi.fn(async () =>
+      Response.json(
+        { error: { message: "Failed to validate JSON.", type: "invalid_request_error", code: "json_validate_failed", failed_generation: "{…}" } },
+        { status: 400 },
+      ),
+    );
+
+    await expect(llmWith(fetch).complete(request)).resolves.toEqual({ ok: false, reason: "http-400:json_validate_failed" });
+  });
+
+  it("keeps only a short label from the error code — it ends up in logs and metrics", async () => {
+    const fetch = vi.fn(async () => Response.json({ error: { code: "Bad Code!\n<script>".repeat(10) } }, { status: 400 }));
+
+    const result = await llmWith(fetch).complete(request);
+    expect(result).toMatchObject({ ok: false });
+    expect(result.ok || result.reason).toMatch(/^http-400:[a-z0-9_]{1,40}$/);
+  });
+
   it("reports a timeout", async () => {
     const fetch = vi.fn(async () => {
       throw new DOMException("The operation timed out.", "TimeoutError");
