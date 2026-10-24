@@ -10,8 +10,10 @@ pisze Raport sytuacyjny. Właściciel wybiera z tego tematy na posty.
 Zdarzenia, w których technologia jest w centrum (cyber i hacking, drony, militarny kosmos, chipy,
 AI, zbrojeniówka), w tle jest gra państw, a obok — wpływ na ceny Spółek. Technologia jest
 warunkiem koniecznym, ale nie wystarczającym: potrzebna jest jeszcze gra państw albo wpływ na
-ceny Spółek (spór patentowy Qualcomm–Arm — tak; pisarz oskarżony o użycie AI — nie). Zdarzenie
-spoza Niszy nie pokazuje się nigdzie.
+ceny Spółek (spór patentowy Qualcomm–Arm — tak; pisarz oskarżony o użycie AI — nie). Wyjątek:
+istotny incydent cyber w organizacji (włamanie, wyciek, ransomware, ostrzeżenie agencji przed
+atakami) należy do Niszy zawsze — sprawcy i skutków zwykle nie widać w tytule (poradnik
+o phishingu — nie). Zdarzenie spoza Niszy nie pokazuje się nigdzie.
 _Avoid_: filtr, kategoria
 _W kodzie_: `niche`
 

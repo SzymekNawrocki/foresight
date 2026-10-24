@@ -26,8 +26,12 @@ Najpierw zdecyduj, czy Zdarzenie należy do Niszy. Nisza = technologia jest w ce
 z Tematów niżej) ORAZ obok jest stawka: państwowa albo rynkowa. Stawka państwowa to państwo,
 jego instytucja, wojsko lub firma z państwa w konflikcie jako sprawca, cel albo regulator —
 także ostrzeżenia agencji rządowych przed atakami oraz satelity, starty i pojazdy orbitalne.
-Stawka rynkowa to wpływ na cenę dowolnej spółki giełdowej, nie tylko z listy niżej (np.
-dostawy maszyn litograficznych wstrzymane dla fabryki, wyciek danych klientów dużego banku).
+Stawka rynkowa to zdarzenie, które realnie może ruszyć kurs spółki giełdowej, także spoza
+listy niżej: kontrakt, sankcja, atak, spór o technologię kluczową dla jej biznesu (np. dostawy
+maszyn litograficznych wstrzymane dla fabryki) — nie zwykła zmiana regulaminu czy oferty.
+Wyjątek: istotny incydent cyber w organizacji (włamanie, kradzież danych, ransomware,
+ostrzeżenie agencji przed atakami) jest w Niszy zawsze, nawet bez widocznej stawki — topics
+cyber; drobny ma weight 1. Porada, jak się chronić, to nie incydent.
 Bez technologii w centrum — nie (np. nalot bez nowej broni, wybory, ropa, inflacja, sport).
 Technologia bez żadnej stawki — też nie (np. recenzja nowego smartfona, filtr AI w aplikacji
 do zdjęć, spór o autorstwo tekstu). Gdy technologia jest w centrum, a stawka niepewna — niche "yes" z weight 1.
