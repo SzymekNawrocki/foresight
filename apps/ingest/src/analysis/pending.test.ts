@@ -2,7 +2,7 @@ import type { Event, Verdict } from "@foresight/shared";
 import { describe, expect, it, vi } from "vitest";
 import { createTokenBudget, InMemoryBudgetStore } from "../budget/budget.js";
 import { createFakeLlm, type FakeReply } from "../llm/fake.js";
-import { QUARANTINED } from "./dispatch.js";
+import { BATCH_SIZE, QUARANTINED } from "./dispatch.js";
 import type { RecentAnalysis } from "./duplicate.js";
 import { validAnalysis, validDispatch } from "./fixtures.js";
 import { createPendingAnalysis } from "./pending.js";
@@ -56,11 +56,23 @@ function setup({
   const threads = vi.fn(async () => active);
   const sleep = vi.fn(async () => {});
   const budget = createTokenBudget({ store: new InMemoryBudgetStore(), limits: { [MODEL]: tokenLimit } });
-  const analysis = createPendingAnalysis({ queue, llm: openLlm, threads, limit, pauseMs: 25_000, sleep, now: () => NOW });
+  const analysis = createPendingAnalysis({ queue, llm: openLlm, threads, limit, batchSize: 5, pauseMs: 25_000, sleep, now: () => NOW });
   return { analysis, budget, llm, openLlm, saved, sleep, threads, recent };
 }
 
 describe("analyzePending", () => {
+  it("sends up to 8 Events per call by default, so the instructions and schema are paid for less often", async () => {
+    const { queue } = queueOf(events);
+    const llm = createFakeLlm([{ answer: { dispatches: events.map((_, i) => ({ ref: `e${i + 1}`, ...validDispatch })) } }]);
+    const budget = createTokenBudget({ store: new InMemoryBudgetStore(), limits: { [MODEL]: 1_000_000 } });
+    const analysis = createPendingAnalysis({ queue, llm: async () => llm, sleep: async () => {}, now: () => NOW });
+
+    await expect(analysis.analyzePending(budget)).resolves.toEqual({ analyzed: 7, failed: 0, backlog: 0 });
+    expect(BATCH_SIZE).toBe(8);
+    expect(llm.requests).toHaveLength(1);
+    expect(llm.requests[0]?.messages).toEqual(buildMessages(events, []));
+  });
+
   it("analyzes the pending Events in batches of 5, one gpt-oss-120b call per batch", async () => {
     const { analysis, budget, llm, saved } = setup();
 

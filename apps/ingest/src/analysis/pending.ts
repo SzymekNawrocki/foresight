@@ -38,9 +38,11 @@ export interface PendingAnalysisOptions {
   /** Puts a saved Analysis on its Thread's timeline (slice 10). */
   link?: (event: Event, analysis: Analysis) => Promise<void>;
   model?: string;
+  /** Events per call, at most BATCH_SIZE — bigger batches pay for the instructions and schema less often. */
+  batchSize?: number;
   /** Max Events per run — keeps one run inside the free Groq limits. */
   limit?: number;
-  /** Pause between batches (≈ 8K tokens/min on the free plan, a batch spends ~3K). */
+  /** Pause between batches (≈ 8K tokens/min on the free plan, a batch of 8 spends ~5K). */
   pauseMs?: number;
   sleep?: (ms: number) => Promise<void>;
   now?: () => Date;
@@ -49,7 +51,7 @@ export interface PendingAnalysisOptions {
 /** How far back a near-duplicate may be (SPEC: slice 10, step 3). */
 const DUPLICATE_WINDOW_MS = 48 * 60 * 60 * 1000;
 
-const MAX_COMPLETION_TOKENS = 3_000;
+const MAX_COMPLETION_TOKENS = 4_500;
 const wait = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 const noThreads = async (): Promise<ActiveThread[]> => [];
 
@@ -60,7 +62,7 @@ function fail(report: RunReport, reason: LlmFailure | "skipped", count: number) 
   report.reasons = { ...report.reasons, [reason]: (report.reasons?.[reason] ?? 0) + count };
 }
 
-// Events go to the model in batches of 5, with the instructions and the Thread list sent once
+// Events go to the model in batches of up to 8, with the instructions and the Thread list sent once
 // per batch. An Event without a valid dispatch is not saved, so it stays pending for the next
 // run; a 429 or an exhausted budget ends the run, because every further call would fail too.
 export function createPendingAnalysis({
@@ -69,8 +71,9 @@ export function createPendingAnalysis({
   threads = noThreads,
   link = async () => {},
   model = "openai/gpt-oss-120b",
+  batchSize = BATCH_SIZE,
   limit = 20,
-  pauseMs = 25_000,
+  pauseMs = 40_000,
   sleep = wait,
   now = () => new Date(),
 }: PendingAnalysisOptions): PendingAnalysis {
@@ -117,9 +120,8 @@ export function createPendingAnalysis({
     if (fresh.length === 0) return report;
 
     const client = await llm();
-    const batches = Array.from({ length: Math.ceil(fresh.length / BATCH_SIZE) }, (_, i) =>
-      fresh.slice(i * BATCH_SIZE, (i + 1) * BATCH_SIZE),
-    );
+    const size = Math.min(batchSize, BATCH_SIZE);
+    const batches = Array.from({ length: Math.ceil(fresh.length / size) }, (_, i) => fresh.slice(i * size, (i + 1) * size));
 
     for (const [i, batch] of batches.entries()) {
       const request: LlmRequest<DispatchBatch> = {

@@ -3,8 +3,8 @@ import { z } from "zod";
 
 // The model answers for a whole batch; each dispatch names its Event by position, never by id,
 // so nothing from our table goes to the model.
-export const BATCH_SIZE = 5;
-export const REFS = ["e1", "e2", "e3", "e4", "e5"] as const;
+export const BATCH_SIZE = 8;
+export const REFS = Array.from({ length: BATCH_SIZE }, (_, i) => `e${i + 1}`);
 
 // Groq strict mode checks enums only after generating, and one label outside a list (the model
 // once wrote the Actor "lithuania") fails the whole batch with a 400. So labels go to the model
@@ -14,8 +14,8 @@ const Impact = CompanyImpact.extend({ company: z.string() });
 
 // Groq tells anyOf branches apart by a single enum property; with `ref` an enum too it refused
 // the schema ("multiple candidate properties niche, ref"). So `ref` goes as a string and the
-// e1…e5 check stays in Zod — an unknown ref still drops only its own dispatch.
-const Ref = z.string().refine((ref) => (REFS as readonly string[]).includes(ref));
+// e1…e8 check stays in Zod — an unknown ref still drops only its own dispatch.
+const Ref = z.string().refine((ref) => REFS.includes(ref));
 
 // Dispatch v3 (ADR 0010): the model first decides whether the Event is in the Niche. An Event off
 // the Niche gets a two-field answer, so most of the stream costs a few tokens. Groq strict mode

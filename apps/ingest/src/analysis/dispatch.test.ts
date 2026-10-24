@@ -1,6 +1,6 @@
 import { strictJsonSchema } from "@foresight/shared";
 import { describe, expect, it } from "vitest";
-import { DispatchBatch, type DispatchFields, looksLikeInjection, QUARANTINED, settle } from "./dispatch.js";
+import { BATCH_SIZE, DispatchBatch, type DispatchFields, looksLikeInjection, QUARANTINED, settle } from "./dispatch.js";
 import { validAnalysis, validDispatch } from "./fixtures.js";
 
 const active = new Set(["hormuz"]);
@@ -105,14 +105,15 @@ describe("QUARANTINED", () => {
 describe("DispatchBatch", () => {
   const off = { ref: "e2", niche: "no" };
 
-  it("accepts dispatches referenced as e1…e5, in and off the Niche", () => {
-    const batch = { dispatches: [{ ref: "e1", ...validDispatch }, off, { ref: "e5", ...validDispatch }] };
+  it("accepts dispatches referenced as e1…e8, in and off the Niche", () => {
+    const batch = { dispatches: [{ ref: "e1", ...validDispatch }, off, { ref: "e8", ...validDispatch }] };
 
-    expect(DispatchBatch.safeParse(batch).success).toBe(true);
+    // An invalid dispatch turns into null rather than failing the parse, so check for nulls.
+    expect(DispatchBatch.parse(batch).dispatches).not.toContain(null);
   });
 
   it.each([
-    ["an unknown ref", { ref: "e6", ...validDispatch }],
+    ["an unknown ref", { ref: "e9", ...validDispatch }],
     ["a dispatch without ref", validDispatch],
     ["a sentence over the limit", { ref: "e2", ...validDispatch, whyItMatters: "x".repeat(301) }],
     ["a mechanism over the limit", { ref: "e2", ...validDispatch, companies: [{ company: "LMT", direction: "up", mechanism: "x".repeat(201) }] }],
@@ -149,8 +150,8 @@ describe("DispatchBatch", () => {
     expect(sharedEnums).toEqual(["niche"]);
   });
 
-  it("rejects more than 5 dispatches", () => {
-    const batch = { dispatches: Array(6).fill({ ref: "e1", ...validDispatch }) };
+  it("rejects more than 8 dispatches", () => {
+    const batch = { dispatches: Array(BATCH_SIZE + 1).fill({ ref: "e1", ...validDispatch }) };
 
     expect(DispatchBatch.safeParse(batch).success).toBe(false);
   });
