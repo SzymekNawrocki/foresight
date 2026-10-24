@@ -139,6 +139,16 @@ describe("DispatchBatch", () => {
     ).toMatchObject({ companies: [{ company: "ANDURIL" }] });
   });
 
+  it("gives Groq one discriminator for the Niche branches — two enums shared by both branches are refused with a 400", () => {
+    const branches = (strictJsonSchema(DispatchBatch) as { properties: { dispatches: { items: { anyOf: { properties: Record<string, { enum?: unknown }> }[] } } } })
+      .properties.dispatches.items.anyOf;
+    const sharedEnums = Object.keys(branches[0]?.properties ?? {}).filter((name) =>
+      branches.every((branch) => branch.properties[name]?.enum !== undefined),
+    );
+
+    expect(sharedEnums).toEqual(["niche"]);
+  });
+
   it("rejects more than 5 dispatches", () => {
     const batch = { dispatches: Array(6).fill({ ref: "e1", ...validDispatch }) };
 

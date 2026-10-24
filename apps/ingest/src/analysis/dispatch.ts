@@ -12,18 +12,23 @@ export const REFS = ["e1", "e2", "e3", "e4", "e5"] as const;
 const Labels = z.array(z.string());
 const Impact = CompanyImpact.extend({ company: z.string() });
 
+// Groq tells anyOf branches apart by a single enum property; with `ref` an enum too it refused
+// the schema ("multiple candidate properties niche, ref"). So `ref` goes as a string and the
+// e1…e5 check stays in Zod — an unknown ref still drops only its own dispatch.
+const Ref = z.string().refine((ref) => (REFS as readonly string[]).includes(ref));
+
 // Dispatch v3 (ADR 0010): the model first decides whether the Event is in the Niche. An Event off
 // the Niche gets a two-field answer, so most of the stream costs a few tokens. Groq strict mode
 // has no "const" or boolean branches, hence the one-value string enums.
 const NicheDispatch = Analysis.extend({
-  ref: z.enum(REFS),
+  ref: Ref,
   niche: z.enum(["yes"]),
   regions: Labels,
   topics: Labels,
   actors: Labels,
   companies: z.array(Impact),
 });
-const OffNicheDispatch = z.strictObject({ ref: z.enum(REFS), niche: z.enum(["no"]) });
+const OffNicheDispatch = z.strictObject({ ref: Ref, niche: z.enum(["no"]) });
 const Dispatch = z.union([NicheDispatch, OffNicheDispatch]);
 export type Dispatch = z.infer<typeof Dispatch>;
 type NicheFields = Omit<z.infer<typeof NicheDispatch>, "ref">;
