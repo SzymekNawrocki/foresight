@@ -1,4 +1,4 @@
-import type { Actor, Branch, LikelihoodChange, Region, ScenarioKind, SourceTier, Topic, Weight } from "@foresight/shared";
+import { type Actor, type Branch, type CompanyImpact, type LegacyTopic, type LikelihoodChange, type Region, type ScenarioKind, type SourceTier, Topic, type Weight } from "@foresight/shared";
 
 // Nazwy z CONTEXT.md — kod trzyma identyfikatory po angielsku, strona mówi po polsku.
 export const REGION_LABEL: Record<Region, string> = {
@@ -12,11 +12,18 @@ export const REGION_LABEL: Record<Region, string> = {
   global: "Globalne",
 };
 
-export const TOPIC_LABEL: Record<Topic, string> = {
+/** A Topic of the Niche — an old one has no page any more. */
+export const isTopic = (t: string): t is Topic => Topic.safeParse(t).success;
+
+// The six Topics of the Niche, plus the old ones still on Events from before slice 12.
+export const TOPIC_LABEL: Record<Topic | LegacyTopic, string> = {
   cyber: "Cyber",
-  ai: "AI",
-  battlefield: "Pole walki",
+  drones: "Drony",
   space: "Kosmos",
+  chips: "Chipy",
+  ai: "AI",
+  "defence-industry": "Zbrojeniówka",
+  battlefield: "Pole walki",
   semiconductors: "Półprzewodniki",
   commodities: "Surowce",
   energy: "Energia",
@@ -71,6 +78,9 @@ export const ACTOR_LABEL: Record<Actor, string> = {
 export const WEIGHT_LABEL: Record<Weight, string> = { 1: "szum", 2: "istotne", 3: "przełomowe" };
 
 export const DIRECTION_ARROW: Record<Branch["direction"], string> = { up: "↑", down: "↓" };
+
+// Wpływ na Spółkę: kierunek jakościowy, „?” gdy niepewny.
+export const COMPANY_ARROW: Record<CompanyImpact["direction"], string> = { up: "↑", down: "↓", uncertain: "?" };
 
 export const SCENARIO_LABEL: Record<ScenarioKind, string> = {
   escalation: "Eskalacja",

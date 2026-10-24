@@ -117,13 +117,40 @@ describe("Event card", () => {
     const c = within(card);
     expect(c.getByText("Waga 3 · przełomowe")).toBeInTheDocument();
     expect(c.getByRole("link", { name: "Bliski Wschód" })).toHaveAttribute("href", "/region/middle-east");
-    expect(c.getByRole("link", { name: "Sankcje i handel" })).toHaveAttribute("href", "/topic/sanctions-trade");
+    // An old Topic stays readable but has no page since the Niche (ADR 0010).
+    expect(c.getByText("Sankcje i handel")).toBeInTheDocument();
+    expect(c.queryByRole("link", { name: "Sankcje i handel" })).toBeNull();
     expect(within(c.getByRole("list", { name: "Aktorzy" })).getAllByRole("listitem").map((li) => li.textContent)).toEqual([
       "Iran",
       "UE",
     ]);
     expect(c.getByText(analysis.whyItMatters)).toBeInTheDocument();
     expect(c.queryByText(/Eskalacja/)).not.toBeInTheDocument();
+  });
+
+  it("names the Companies a dispatch may move, with an arrow and the mechanism", async () => {
+    const nicheAnalysis = {
+      niche: true as const,
+      regions: ["europe" as const],
+      topics: ["cyber" as const],
+      actors: ["russia" as const],
+      companies: [
+        { company: "CRWD" as const, direction: "up" as const, mechanism: "Popyt na ochronę po ataku." },
+        { company: "NVDA" as const, direction: "uncertain" as const, mechanism: "Nie wiadomo, czy ucierpią dostawy." },
+      ],
+      weight: 2 as const,
+      whyItMatters: "Atak na sieć energetyczną.",
+      thread: { kind: "none" as const },
+    };
+    renderApp("/region/europe", { since: hoursAgo(72), events: [{ ...pending, analysis: nicheAnalysis }] });
+
+    const card = (await screen.findByRole("link", { name: pending.title })).closest("article");
+    if (!card) throw new Error("no card");
+    const items = within(within(card).getByRole("list", { name: "Spółki" })).getAllByRole("listitem");
+    expect(items.map((li) => li.textContent)).toEqual([
+      "CrowdStrike (CRWD) ↑ Popyt na ochronę po ataku.",
+      "Nvidia (NVDA) ? Nie wiadomo, czy ucierpią dostawy.",
+    ]);
   });
 
   it("still shows both Branches of an Analysis saved in the legacy shape", async () => {

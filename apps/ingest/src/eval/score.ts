@@ -1,37 +1,64 @@
-import type { Analysis } from "@foresight/shared";
+import type { Company, CompanyImpact, Topic, Verdict } from "@foresight/shared";
 import type { EvalCase } from "./cases.js";
+
+export type Direction = CompanyImpact["direction"];
+
+/** What the eval reads from one dispatch, whatever its version. */
+export interface EvalDispatch {
+  niche: boolean;
+  topics: Topic[];
+  companies: { company: Company; direction: Direction }[];
+  weight: number;
+}
 
 export interface CaseScore {
   title: string;
   passed: number;
   total: number;
-  /** What failed, e.g. "regions: no russia-eurasia". Empty when everything passed. */
+  /** What failed, e.g. "topics: none of cyber (got ai)". Empty when everything passed. */
   misses: string[];
 }
 
-// Each expectation in a case is one check; a missing Analysis fails all of them.
-export function scoreCase(expected: EvalCase, analysis: Analysis | undefined): CaseScore {
-  const checks: [ok: boolean, miss: string][] = [];
-  const [min, max] = expected.weight;
-  if (!analysis) {
-    const total = 1 + (expected.regions?.length ?? 0) + (expected.topicsAny ? 1 : 0) + (expected.noTopics ? 1 : 0);
-    return { title: expected.title, passed: 0, total, misses: ["no Analysis"] };
-  }
+export function fromVerdict(verdict: Verdict): EvalDispatch {
+  if (!verdict.niche) return { niche: false, topics: [], companies: [], weight: 1 };
+  return { niche: true, topics: verdict.topics, companies: verdict.companies, weight: verdict.weight };
+}
 
-  for (const region of expected.regions ?? []) {
-    checks.push([analysis.regions.includes(region), `regions: no ${region} (got ${analysis.regions.join(", ")})`]);
-  }
-  if (expected.topicsAny) {
+function checksOf(expected: EvalCase, got: EvalDispatch): [ok: boolean, miss: string][] {
+  if (!expected.niche) return [[!got.niche, "niche: let in an out-of-niche Event"]];
+
+  const checks: [boolean, string][] = [
+    [got.niche, "niche: dropped a niche Event"],
+    [
+      expected.topicsAny.some((t) => got.topics.includes(t)),
+      `topics: none of ${expected.topicsAny.join("/")} (got ${got.topics.join(", ") || "none"})`,
+    ],
+  ];
+  if (expected.companies) {
+    const allowed = expected.companies;
+    const stray = got.companies.filter((c) => !(c.company in allowed)).map((c) => c.company);
+    const wrong = got.companies.filter((c) => {
+      const want = allowed[c.company];
+      return want !== undefined && want !== "any" && want !== c.direction;
+    });
+    checks.push([stray.length === 0, `companies: ${stray.join(", ")} not expected`]);
     checks.push([
-      expected.topicsAny.some((t) => analysis.topics.includes(t)),
-      `topics: none of ${expected.topicsAny.join("/")} (got ${analysis.topics.join(", ") || "none"})`,
+      wrong.length === 0,
+      `direction: ${wrong.map((c) => `${c.company} ${c.direction}, expected ${allowed[c.company]}`).join("; ")}`,
     ]);
   }
-  if (expected.noTopics) {
-    checks.push([analysis.topics.length === 0, `topics: expected none (got ${analysis.topics.join(", ")})`]);
-  }
-  checks.push([analysis.weight >= min && analysis.weight <= max, `weight: ${analysis.weight} not in ${min}–${max}`]);
+  const [min, max] = expected.weight;
+  checks.push([got.weight >= min && got.weight <= max, `weight: ${got.weight} not in ${min}–${max}`]);
+  return checks;
+}
 
+// Each expectation in a case is one check; a missing dispatch fails all of them.
+export function scoreCase(expected: EvalCase, got: EvalDispatch | undefined): CaseScore {
+  if (!got) {
+    const total = expected.niche ? 3 + (expected.companies ? 2 : 0) : 1;
+    return { title: expected.title, passed: 0, total, misses: ["no dispatch"] };
+  }
+  const checks = checksOf(expected, got);
   return {
     title: expected.title,
     passed: checks.filter(([ok]) => ok).length,

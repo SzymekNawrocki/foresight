@@ -19,7 +19,7 @@ export interface TokenUsage {
   tokens: number;
 }
 
-export type LlmFailure = "rate-limited" | "timeout" | "invalid" | `http-${number}` | "network";
+export type LlmFailure = "rate-limited" | "timeout" | "invalid" | `http-${number}` | `http-${number}:${string}` | "network";
 
 /** `usage` is present whenever the model answered, even with an invalid answer — those tokens are spent too. */
 export type LlmResult<T> = { ok: true; data: T; usage: TokenUsage } | { ok: false; reason: LlmFailure; usage?: TokenUsage };

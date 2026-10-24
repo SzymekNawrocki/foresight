@@ -51,10 +51,10 @@ const analyzed = (id: string, hoursAgo: number, weight: number, regions: string[
 
 describe("briefing", () => {
   const events: AnalyzedEvent[] = [
-    analyzed("a", 1, 3, ["europe", "russia-eurasia"], ["battlefield"]),
-    analyzed("b", 2, 2, ["europe"], ["energy"]),
-    analyzed("c", 3, 1, ["europe"], ["energy"]),
-    analyzed("d", 30, 3, ["middle-east"], ["energy"]),
+    analyzed("a", 1, 3, ["europe", "russia-eurasia"], ["drones"]),
+    analyzed("b", 2, 2, ["europe"], ["chips", "energy"]),
+    analyzed("c", 3, 1, ["europe"], ["chips"]),
+    analyzed("d", 30, 3, ["middle-east"], ["chips"]),
     analyzed("e", 5, 2, ["global"], ["ai"]),
     { ...analyzed("f", 1, 1, []), analysis: undefined },
   ];
@@ -72,8 +72,8 @@ describe("briefing", () => {
     });
   });
 
-  it("counts Topics the same way", () => {
-    expect(briefing(events, now).topics).toMatchObject({ battlefield: 1, energy: 1, ai: 1, cyber: 0 });
+  it("counts the Niche Topics the same way, skipping an old Topic still on an Event", () => {
+    expect(briefing(events, now).topics).toEqual({ cyber: 0, drones: 1, space: 0, chips: 1, ai: 1, "defence-industry": 0 });
   });
 
   it("sums up the last 24 h", () => {

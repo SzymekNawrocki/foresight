@@ -232,7 +232,7 @@ export function TopicPage({ topic }: { topic: Topic }) {
         <Dossier
           kind="Temat"
           name={TOPIC_LABEL[topic]}
-          events={events.filter((e) => e.analysis?.topics.includes(topic))}
+          events={events.filter((e) => (e.analysis?.topics as readonly string[] | undefined)?.includes(topic))}
         />
       )}
     </Status>

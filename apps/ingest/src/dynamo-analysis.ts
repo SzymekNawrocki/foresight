@@ -1,5 +1,5 @@
 import { type DynamoDBDocumentClient, QueryCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
-import { Analysis, Event } from "@foresight/shared";
+import { Event, Verdict } from "@foresight/shared";
 import type { RecentAnalysis } from "./analysis/duplicate.js";
 import type { AnalysisQueue } from "./analysis/queue.js";
 
@@ -34,7 +34,7 @@ export class DynamoAnalysisQueue implements AnalysisQueue {
     return events;
   }
 
-  async saveAnalysis(eventId: string, analysis: Analysis) {
+  async saveAnalysis(eventId: string, analysis: Verdict) {
     await this.client.send(
       new UpdateCommand({
         TableName: this.tableName,
@@ -63,7 +63,7 @@ export class DynamoAnalysisQueue implements AnalysisQueue {
   }
 
   // ~400 Events in 48 h read as ~40 RCU once an hour — within the burst of the `latest` index.
-  // Only the current Analysis shape is reused; a legacy one has no Actors or Thread decision.
+  // Only a v3 Verdict is reused; older shapes have no niche flag or Companies.
   async recent(since: string) {
     const found: RecentAnalysis[] = [];
     let start: Record<string, unknown> | undefined;
@@ -81,7 +81,7 @@ export class DynamoAnalysisQueue implements AnalysisQueue {
         }),
       );
       for (const item of res.Items ?? []) {
-        const analysis = Analysis.safeParse(item.analysis);
+        const analysis = Verdict.safeParse(item.analysis);
         if (typeof item.title === "string" && analysis.success) found.push({ title: item.title, analysis: analysis.data });
       }
       start = res.LastEvaluatedKey;
