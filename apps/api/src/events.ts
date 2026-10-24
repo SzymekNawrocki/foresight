@@ -1,5 +1,6 @@
 import type { AnalyzedEvent } from "@foresight/shared";
 
+// Only Events in the Niche (ADR 0010); the in-memory reader holds Events that already are.
 export interface EventReader {
   /** The newest `limit` Events, newest first. */
   latest(limit: number): Promise<AnalyzedEvent[]>;
