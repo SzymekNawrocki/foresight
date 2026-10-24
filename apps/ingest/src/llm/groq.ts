@@ -5,6 +5,8 @@ export interface GroqOptions {
   apiKey: string;
   fetch?: typeof globalThis.fetch;
   timeoutMs?: number;
+  /** Sees the error message of a non-429 HTTP failure — for local diagnostics, never for decisions. */
+  onHttpError?: (status: number, message: string) => void;
 }
 
 const ENDPOINT = "https://api.groq.com/openai/v1/chat/completions";
@@ -16,10 +18,11 @@ interface Completion {
 
 // Groq's error code tells a schema it refuses from an answer that failed its own check
 // (json_validate_failed). The code is outside input, so only a short slug of it is kept.
-async function httpFailure(res: Response): Promise<LlmFailure> {
+async function httpFailure(res: Response, onHttpError?: GroqOptions["onHttpError"]): Promise<LlmFailure> {
   const base = `http-${res.status}` as const;
   try {
-    const code = ((await res.json()) as { error?: { code?: unknown } }).error?.code;
+    const { code, message } = ((await res.json()) as { error?: { code?: unknown; message?: unknown } }).error ?? {};
+    if (typeof message === "string") onHttpError?.(res.status, message);
     if (typeof code !== "string") return base;
     const slug = code.toLowerCase().replace(/[^a-z0-9_]/g, "").slice(0, 40);
     return slug ? `${base}:${slug}` : base;
@@ -30,7 +33,7 @@ async function httpFailure(res: Response): Promise<LlmFailure> {
 
 // The model gets no tools and no streaming; its answer is forced by a strict JSON schema
 // and then validated again with Zod — anything that does not match is dropped.
-export function createGroqLlm({ apiKey, fetch = globalThis.fetch, timeoutMs = 30_000 }: GroqOptions): Llm {
+export function createGroqLlm({ apiKey, fetch = globalThis.fetch, timeoutMs = 30_000, onHttpError }: GroqOptions): Llm {
   return {
     async complete<T>({ model, messages, schema, maxCompletionTokens }: LlmRequest<T>): Promise<LlmResult<T>> {
       let res: Response;
@@ -57,7 +60,7 @@ export function createGroqLlm({ apiKey, fetch = globalThis.fetch, timeoutMs = 30
       }
 
       if (res.status === 429) return { ok: false, reason: "rate-limited" };
-      if (!res.ok) return { ok: false, reason: await httpFailure(res) };
+      if (!res.ok) return { ok: false, reason: await httpFailure(res, onHttpError) };
 
       let body: Completion;
       try {

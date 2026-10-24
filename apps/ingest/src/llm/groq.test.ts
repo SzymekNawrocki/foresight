@@ -107,6 +107,16 @@ describe("createGroqLlm", () => {
     await expect(llmWith(fetch).complete(request)).resolves.toEqual({ ok: false, reason: "http-400:json_validate_failed" });
   });
 
+  it("hands Groq's error message to an optional observer, e.g. the eval", async () => {
+    const onHttpError = vi.fn();
+    const fetch = vi.fn(async () =>
+      Response.json({ error: { message: "response_format: anyOf is not supported", type: "invalid_request_error" } }, { status: 400 }),
+    );
+
+    await expect(createGroqLlm({ apiKey: "k", fetch, onHttpError }).complete(request)).resolves.toEqual({ ok: false, reason: "http-400" });
+    expect(onHttpError).toHaveBeenCalledWith(400, "response_format: anyOf is not supported");
+  });
+
   it("keeps only a short label from the error code — it ends up in logs and metrics", async () => {
     const fetch = vi.fn(async () => Response.json({ error: { code: "Bad Code!\n<script>".repeat(10) } }, { status: 400 }));
 

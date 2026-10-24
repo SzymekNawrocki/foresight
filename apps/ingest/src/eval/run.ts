@@ -26,6 +26,14 @@ const events: Event[] = CASES.map((c) => ({
 }));
 const results = new Map<string, Verdict>();
 
+// A failed call says why only in Groq's message; each distinct one is printed once.
+const httpErrors = new Set<string>();
+const onHttpError = (status: number, message: string) => {
+  const line = `Groq ${status}: ${message.slice(0, 500)}`;
+  if (!httpErrors.has(line)) console.error(line);
+  httpErrors.add(line);
+};
+
 const analysis = createPendingAnalysis({
   queue: {
     pending: async (limit) => events.filter((e) => !results.has(e.id)).slice(0, limit),
@@ -34,7 +42,7 @@ const analysis = createPendingAnalysis({
     // Every case must reach the model, so nothing counts as a near-duplicate here.
     recent: async () => [],
   },
-  llm: async () => createGroqLlm({ apiKey }),
+  llm: async () => createGroqLlm({ apiKey, onHttpError }),
   limit: events.length,
 });
 
