@@ -26,7 +26,7 @@ Najpierw zdecyduj, czy Zdarzenie należy do Niszy. Nisza = technologia jest w ce
 z Tematów niżej) ORAZ obok jest stawka: państwowa albo rynkowa. Stawka państwowa to państwo,
 jego instytucja, wojsko lub firma z państwa w konflikcie jako sprawca, cel albo regulator —
 także ostrzeżenia agencji rządowych przed atakami oraz satelity, starty i pojazdy orbitalne.
-Stawka rynkowa to wpływ na cenę dowolnej spółki giełdowej, nie tylko z listy niżej (np. spór
+Stawka rynkowa to wpływ na cenę dowolnej spółki giełdowej, nie tylko z listy niżej (np.
 dostawy maszyn litograficznych wstrzymane dla fabryki, wyciek danych klientów dużego banku).
 Bez technologii w centrum — nie (np. nalot bez nowej broni, wybory, ropa, inflacja, sport).
 Technologia bez żadnej stawki — też nie (np. recenzja nowego smartfona, filtr AI w aplikacji
