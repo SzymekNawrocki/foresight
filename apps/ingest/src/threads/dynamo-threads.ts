@@ -1,6 +1,7 @@
+import { ConditionalCheckFailedException } from "@aws-sdk/client-dynamodb";
 import { type DynamoDBDocumentClient, PutCommand, QueryCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
-import { SituationReport, Thread, type TimelineEntry, TimelineEntry as TimelineEntrySchema, threadKeys } from "@foresight/shared";
-import type { LinkPatch, ReportSummary, ThreadStore } from "./store.js";
+import { SituationReport, Thread, type ThreadStatus, type TimelineEntry, TimelineEntry as TimelineEntrySchema, threadKeys } from "@foresight/shared";
+import type { LinkPatch, ReportSummary, ThreadChange, ThreadStore } from "./store.js";
 
 // Data model: docs/data-model.md → "threads table". The list of Threads is one partition
 // (`THREADS`), each Thread's timeline and report versions another (`THREAD#<id>`).
@@ -113,6 +114,27 @@ export class DynamoThreadStore implements ThreadStore {
         ExpressionAttributeValues: { ":at": report.createdAt, ":lead": summary.lead, ":moves": summary.moves, ":zero": 0 },
       }),
     );
+  }
+  // Only the owner's seed command calls this; the worker never changes a status or a name.
+  async update(threadId: string, change: ThreadChange, expected: ThreadStatus): Promise<boolean> {
+    const fields = Object.entries(change).filter(([, value]) => value !== undefined);
+    if (fields.length === 0) return true;
+    try {
+      await this.client.send(
+        new UpdateCommand({
+          TableName: this.tableName,
+          Key: { pk: threadKeys.list, sk: threadId },
+          UpdateExpression: `SET ${fields.map(([name]) => `#${name} = :${name}`).join(", ")}`,
+          ConditionExpression: "#status = :expected",
+          ExpressionAttributeNames: names("status", ...fields.map(([name]) => name).filter((n) => n !== "status")),
+          ExpressionAttributeValues: { ":expected": expected, ...Object.fromEntries(fields.map(([name, value]) => [`:${name}`, value])) },
+        }),
+      );
+      return true;
+    } catch (error) {
+      if (error instanceof ConditionalCheckFailedException) return false;
+      throw error;
+    }
   }
 }
 

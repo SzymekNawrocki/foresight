@@ -1,3 +1,4 @@
+import { ConditionalCheckFailedException } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient, PutCommand, QueryCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
 import { mockClient } from "aws-sdk-client-mock";
 import { beforeEach, describe, expect, it } from "vitest";
@@ -46,5 +47,29 @@ describe("DynamoThreadStore", () => {
     expect(ddb.commandCalls(PutCommand)[0]?.args[0].input.Item).toMatchObject({ sk: `REPORT#${report.createdAt}` });
     await expect(store().latestReport("aaaa0001")).resolves.toEqual(report);
     expect(ddb.commandCalls(QueryCommand)[0]?.args[0].input).toMatchObject({ ScanIndexForward: false, Limit: 1 });
+  });
+
+  it("changes a Thread's name or status only while it still has the status the owner saw", async () => {
+    ddb.on(UpdateCommand).resolves({});
+
+    await expect(store().update("aaaa0001", { status: "rejected" }, "proposed")).resolves.toBe(true);
+    expect(ddb.commandCalls(UpdateCommand)[0]?.args[0].input).toEqual({
+      TableName: "threads",
+      Key: { pk: "THREADS", sk: "aaaa0001" },
+      UpdateExpression: "SET #status = :status",
+      ConditionExpression: "#status = :expected",
+      ExpressionAttributeNames: { "#status": "status" },
+      ExpressionAttributeValues: { ":expected": "proposed", ":status": "rejected" },
+    });
+  });
+
+  it("reports a conflict when the status changed meanwhile", async () => {
+    ddb.on(UpdateCommand).rejects(new ConditionalCheckFailedException({ message: "no", $metadata: {} }));
+
+    await expect(store().update("aaaa0001", { name: "Nowa nazwa" }, "active")).resolves.toBe(false);
+    expect(ddb.commandCalls(UpdateCommand)[0]?.args[0].input).toMatchObject({
+      UpdateExpression: "SET #name = :name",
+      ExpressionAttributeNames: { "#status": "status", "#name": "name" },
+    });
   });
 });
