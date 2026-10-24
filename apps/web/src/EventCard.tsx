@@ -1,6 +1,8 @@
-import type { AnalyzedEvent, Branch } from "@foresight/shared";
+import { type AnalyzedEvent, type Branch, COMPANY_NAME, type CompanyImpact } from "@foresight/shared";
 import { Link } from "@tanstack/react-router";
-import { ACTOR_LABEL, DIRECTION_ARROW, isTopic, REGION_LABEL, TOPIC_LABEL, WEIGHT_LABEL } from "./labels.js";
+import { ACTOR_LABEL, COMPANY_ARROW, DIRECTION_ARROW, isTopic, REGION_LABEL, TOPIC_LABEL, WEIGHT_LABEL } from "./labels.js";
+
+const COMPANY_COLOR: Record<CompanyImpact["direction"], string> = { up: "text-ok", down: "text-alert", uncertain: "text-amber" };
 
 // Czas zawsze po polsku, niezależnie od strefy przeglądarki — Zdarzenia porównujemy między sobą.
 const time = new Intl.DateTimeFormat("pl-PL", {
@@ -73,6 +75,19 @@ export function EventCard({ event }: { event: AnalyzedEvent }) {
             </ul>
           )}
           <p className="mt-3 max-w-3xl leading-relaxed text-fg/90">{analysis.whyItMatters}</p>
+          {"companies" in analysis && analysis.companies.length > 0 && (
+            <ul className="mt-3 grid gap-1 border-t border-line pt-3" aria-label="Spółki">
+              {analysis.companies.map((c) => (
+                <li key={c.company} className="text-[12px] leading-relaxed">
+                  <strong className="label text-fg">
+                    {`${COMPANY_NAME[c.company]} (${c.company}) `}
+                    <span className={COMPANY_COLOR[c.direction]}>{COMPANY_ARROW[c.direction]}</span>
+                  </strong>{" "}
+                  <span className="text-dim">{c.mechanism}</span>
+                </li>
+              ))}
+            </ul>
+          )}
           {/* Analizy sprzed plastra 10 miały Scenariusz przy każdym Zdarzeniu; nowe mają go w Raporcie Wątku. */}
           {"scenario" in analysis && (
             <ul className="mt-3 grid gap-2 border-t border-line pt-3 md:grid-cols-2">

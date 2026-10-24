@@ -1,4 +1,4 @@
-import { type Actor, type Branch, type LegacyTopic, type LikelihoodChange, type Region, type ScenarioKind, type SourceTier, Topic, type Weight } from "@foresight/shared";
+import { type Actor, type Branch, type CompanyImpact, type LegacyTopic, type LikelihoodChange, type Region, type ScenarioKind, type SourceTier, Topic, type Weight } from "@foresight/shared";
 
 // Nazwy z CONTEXT.md — kod trzyma identyfikatory po angielsku, strona mówi po polsku.
 export const REGION_LABEL: Record<Region, string> = {
@@ -78,6 +78,9 @@ export const ACTOR_LABEL: Record<Actor, string> = {
 export const WEIGHT_LABEL: Record<Weight, string> = { 1: "szum", 2: "istotne", 3: "przełomowe" };
 
 export const DIRECTION_ARROW: Record<Branch["direction"], string> = { up: "↑", down: "↓" };
+
+// Wpływ na Spółkę: kierunek jakościowy, „?” gdy niepewny.
+export const COMPANY_ARROW: Record<CompanyImpact["direction"], string> = { up: "↑", down: "↓", uncertain: "?" };
 
 export const SCENARIO_LABEL: Record<ScenarioKind, string> = {
   escalation: "Eskalacja",
