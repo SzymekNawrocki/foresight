@@ -54,13 +54,15 @@ export class DynamoThreadStore implements ThreadStore {
         TableName: this.tableName,
         Key: { pk: threadKeys.list, sk: threadId },
         UpdateExpression:
-          "SET #lastEventAt = :lastEventAt, #newWeight = :newWeight, #regions = :regions ADD #eventCount :one, #newEvents :one",
+          "SET #lastEventAt = :lastEventAt, #newWeight = :newWeight, #regions = :regions, #topics = :topics, #actors = :actors ADD #eventCount :one, #newEvents :one",
         ConditionExpression: "attribute_exists(pk)",
-        ExpressionAttributeNames: names("lastEventAt", "newWeight", "regions", "eventCount", "newEvents"),
+        ExpressionAttributeNames: names("lastEventAt", "newWeight", "regions", "topics", "actors", "eventCount", "newEvents"),
         ExpressionAttributeValues: {
           ":lastEventAt": patch.lastEventAt,
           ":newWeight": patch.newWeight,
           ":regions": patch.regions,
+          ":topics": patch.topics,
+          ":actors": patch.actors,
           ":one": 1,
         },
       }),

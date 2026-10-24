@@ -24,7 +24,7 @@ describe("DynamoThreadStore", () => {
     ddb.on(UpdateCommand).resolves({});
     const entry = entryOf("a");
 
-    await store().link("aaaa0001", entry, { lastEventAt: entry.publishedAt, newWeight: 2, regions: ["europe"] });
+    await store().link("aaaa0001", entry, { lastEventAt: entry.publishedAt, newWeight: 2, regions: ["europe"], topics: ["drones"], actors: ["russia"] });
 
     expect(ddb.commandCalls(PutCommand)[0]?.args[0].input.Item).toMatchObject({
       pk: "THREAD#aaaa0001",
@@ -34,6 +34,7 @@ describe("DynamoThreadStore", () => {
     expect(update?.Key).toEqual({ pk: "THREADS", sk: "aaaa0001" });
     expect(update?.UpdateExpression).not.toContain("status");
     expect(update?.UpdateExpression).toContain("ADD #eventCount :one, #newEvents :one");
+    expect(update?.ExpressionAttributeValues).toMatchObject({ ":topics": ["drones"], ":actors": ["russia"] });
   });
 
   it("keeps every report version and reads back the newest", async () => {

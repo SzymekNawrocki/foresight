@@ -67,11 +67,12 @@ Budget lanes (slice 10): dispatches and reports both run on `gpt-oss-120b`, so t
 | Tokens spent today in a lane | `GetItem` on `BUDGET#<day>` / `MODEL#<lane>`; missing item = 0. Read once per run. | worker |
 | Count a call | `UpdateItem`: `ADD tokens :n SET expiresAt = if_not_exists(expiresAt, :ttl)` — atomic | worker |
 | All Threads | `Query pk = THREADS` (all pages). Once per run for the dispatch prompt (active + open proposals, max 30) and once for due reports; once per Briefing view | worker, web |
-| Open a New situation | `PutItem` on `THREADS` with `attribute_not_exists(pk)` | worker |
-| Put a dispatch on a timeline | `PutItem` of the entry, then `UpdateItem` of the Thread: `SET lastEventAt, newWeight, regions ADD eventCount, newEvents` — never `status`, so an owner decision made during a run is not overwritten | worker |
+| Open a New situation | `PutItem` on `THREADS` with `attribute_not_exists(pk)` — unless an open proposal has the same name, or shares a Topic and an Actor and is at most 7 days old: then the dispatch joins it | worker |
+| Put a dispatch on a timeline | `PutItem` of the entry, then `UpdateItem` of the Thread: `SET lastEventAt, newWeight, regions, topics, actors ADD eventCount, newEvents` — never `status`, so an owner decision made during a run is not overwritten | worker |
 | Timeline, newest first | `Query pk = THREAD#<id> AND begins_with(sk, EVENT#)`, `ScanIndexForward = false`, `Limit 100` | worker, web |
 | Latest report | the same with `REPORT#` and `Limit 1` | worker, web |
 | Save a report | `PutItem` of `REPORT#<createdAt>`, then `UpdateItem` of the Thread: `SET reportedAt, lead, moves, newEvents = 0, newWeight = 0` | worker |
+| Seed the Niche (owner command, once) | `PutItem` of each new seed Thread; `UpdateItem` with condition `status = active` to rename or close (`rejected`), `status = proposed` to reject open proposals | owner (local, own credentials) |
 | Owner decision | `GetItem` of the proposal, then `UpdateItem` with condition `status = proposed`; a merge closes the proposal first, then copies its entries (`PutItem` each) and adds them to the target's counters | web (owner route) |
 
 The worker role may `GetItem` / `PutItem` / `UpdateItem` / `Query` items whose partition key is `BUDGET#*`, `THREADS` or `THREAD#*`; the web role the same actions on `THREADS` and `THREAD#*` only (`dynamodb:LeadingKeys`). Neither may delete or scan.

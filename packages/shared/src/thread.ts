@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { Actor, Region, Weight } from "./analysis.js";
+import { Actor, Region, Topic, Weight } from "./analysis.js";
 
 // Threads, their timelines and Situation reports (CONTEXT.md: Wątek, Nowa sytuacja, Raport
 // sytuacyjny, Sygnał ostrzegawczy, Prawdopodobieństwo, Ruch). Items in the `threads` table:
@@ -116,6 +116,9 @@ export const Thread = z.object({
   newEvents: z.int().min(0),
   newWeight: z.int().min(0).max(3),
   regions: z.array(Region).max(8),
+  /** Union over its dispatches since slice 12 — how a similar New situation is recognised. */
+  topics: z.array(Topic).max(6).optional(),
+  actors: z.array(Actor).max(12).optional(),
   reportedAt: z.iso.datetime().optional(),
   lead: z.object({ scenario: z.string().max(120), likelihood: Likelihood, change: LikelihoodChange }).optional(),
   /** Moves of the latest report. */

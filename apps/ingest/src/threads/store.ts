@@ -1,10 +1,12 @@
-import type { Move, Region, SituationReport, Thread, ThreadStatus, TimelineEntry } from "@foresight/shared";
+import type { Actor, Move, Region, SituationReport, Thread, ThreadStatus, TimelineEntry, Topic } from "@foresight/shared";
 
 /** What a new timeline entry changes on its Thread; counters are added by the store. */
 export interface LinkPatch {
   lastEventAt: string;
   newWeight: number;
   regions: Region[];
+  topics: Topic[];
+  actors: Actor[];
 }
 
 /** What the owner may change on a Thread outside the browser. */
