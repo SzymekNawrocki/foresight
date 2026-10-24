@@ -6,6 +6,7 @@
     "dev": "tsx src/dev.ts",
     "analyze": "tsx src/analyze-dev.ts",
     "report": "tsx src/report-dev.ts",
+    "seed-threads": "tsx src/seed-threads.ts",
     "build:lambda": "node scripts/build-lambda.mjs",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",

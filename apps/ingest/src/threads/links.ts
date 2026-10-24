@@ -22,6 +22,23 @@ export interface ThreadLinksOptions {
 
 const sameName = (a: string, b: string) => a.trim().toLocaleLowerCase("pl") === b.trim().toLocaleLowerCase("pl");
 
+/** How long a New situation keeps gathering similar proposals (#65, step 6). */
+const GROUP_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
+
+// The model names one story differently headline by headline (five proposals about Ukraine on
+// 2026-10-22). A proposal that shares a Topic and an Actor with an open one from the last 7 days
+// joins it. Only open proposals: attaching to an active Thread stays the model's decision.
+function similarProposal(threads: Thread[], analysis: Analysis, at: string): Thread | undefined {
+  const since = Date.parse(at) - GROUP_WINDOW_MS;
+  return threads.find(
+    (t) =>
+      t.status === "proposed" &&
+      Date.parse(t.createdAt) >= since &&
+      analysis.topics.some((topic) => t.topics?.includes(topic)) &&
+      analysis.actors.some((actor) => t.actors?.includes(actor)),
+  );
+}
+
 // Active Threads and New situations still waiting for the owner: attaching to a proposal keeps
 // five headlines about one story from opening five proposals. Most recent first, capped.
 export function promptThreads(threads: Thread[], now: Date): ActiveThread[] {
@@ -40,10 +57,11 @@ export function createThreadLinks({
 }: ThreadLinksOptions): ThreadLinks {
   let threads: Thread[] = [];
 
-  async function threadFor(decision: Analysis["thread"], at: string, publishedAt: string): Promise<Thread | undefined> {
+  async function threadFor(analysis: Analysis, at: string, publishedAt: string): Promise<Thread | undefined> {
+    const decision = analysis.thread;
     if (decision.kind === "attach") return threads.find((t) => t.id === decision.threadId);
     if (decision.kind !== "propose") return undefined;
-    const open = threads.find((t) => t.status === "proposed" && sameName(t.name, decision.name));
+    const open = threads.find((t) => t.status === "proposed" && sameName(t.name, decision.name)) ?? similarProposal(threads, analysis, at);
     if (open) return open;
     const created: Thread = {
       id: newId(),
@@ -68,7 +86,7 @@ export function createThreadLinks({
     },
     async link(event, analysis) {
       const linkedAt = now().toISOString();
-      const thread = await threadFor(analysis.thread, linkedAt, event.publishedAt);
+      const thread = await threadFor(analysis, linkedAt, event.publishedAt);
       if (!thread) return;
       const entry: TimelineEntry = {
         eventId: event.id,
@@ -87,6 +105,8 @@ export function createThreadLinks({
         lastEventAt: [thread.lastEventAt, event.publishedAt].toSorted().at(-1) ?? event.publishedAt,
         newWeight: Math.max(thread.newWeight, analysis.weight),
         regions: [...new Set([...thread.regions, ...analysis.regions])].slice(0, 8),
+        topics: [...new Set([...(thread.topics ?? []), ...analysis.topics])].slice(0, 6),
+        actors: [...new Set([...(thread.actors ?? []), ...analysis.actors])].slice(0, 12),
       };
       await store.link(thread.id, entry, patch);
       Object.assign(thread, patch, { eventCount: thread.eventCount + 1, newEvents: thread.newEvents + 1 });

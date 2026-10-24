@@ -1,10 +1,18 @@
-import type { Move, Region, SituationReport, Thread, TimelineEntry } from "@foresight/shared";
+import type { Actor, Move, Region, SituationReport, Thread, ThreadStatus, TimelineEntry, Topic } from "@foresight/shared";
 
 /** What a new timeline entry changes on its Thread; counters are added by the store. */
 export interface LinkPatch {
   lastEventAt: string;
   newWeight: number;
   regions: Region[];
+  topics: Topic[];
+  actors: Actor[];
+}
+
+/** What the owner may change on a Thread outside the browser. */
+export interface ThreadChange {
+  status?: ThreadStatus;
+  name?: string;
 }
 
 /** What a new report changes on its Thread. */
@@ -27,6 +35,8 @@ export interface ThreadStore {
   latestReport(threadId: string): Promise<SituationReport | null>;
   /** Keeps the report as a new version and resets the "new since report" counters. */
   saveReport(threadId: string, report: SituationReport, summary: ReportSummary): Promise<void>;
+  /** An owner change (seed command): applied only while the status is still `expected`; false on conflict. */
+  update(threadId: string, change: ThreadChange, expected: ThreadStatus): Promise<boolean>;
 }
 
 export class InMemoryThreadStore implements ThreadStore {
@@ -76,5 +86,12 @@ export class InMemoryThreadStore implements ThreadStore {
     if (thread) {
       this.threads.set(threadId, { ...thread, ...summary, reportedAt: report.createdAt, newEvents: 0, newWeight: 0 });
     }
+  }
+
+  async update(threadId: string, change: ThreadChange, expected: ThreadStatus) {
+    const thread = this.threads.get(threadId);
+    if (thread?.status !== expected) return false;
+    this.threads.set(threadId, { ...thread, ...change });
+    return true;
   }
 }

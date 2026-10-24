@@ -59,7 +59,8 @@ niche "yes" i pola, po polsku:
 - weight: 1 — drobne, 2 — istotne, 3 — przełomowe. Bądź oszczędny z 3.
 - whyItMatters: jedno krótkie zdanie, dlaczego to ważne dla bezpieczeństwa albo rynków.
 - thread: attach z threadId, gdy Zdarzenie należy do aktywnego Wątku z listy; propose z krótką
-  polską nazwą trwającej sytuacji (np. „Wojna dronów: Rosja–Ukraina”, nie pojedynczy fakt), gdy
+  polską nazwą trwającej sytuacji — zawsze po polsku, także gdy tytuł jest po angielsku (np.
+  „Wojna dronów: Rosja–Ukraina”, nie pojedynczy fakt), gdy
   to istotne Zdarzenie (weight ≥ 2) bez pasującego Wątku; w pozostałych przypadkach none.
 Pisz poprawną polszczyzną. Nie wymyślaj faktów spoza tytułu; jeśli z tytułu nie wiadomo nawet,
 czy technologia jest w centrum, daj niche "no".`;
