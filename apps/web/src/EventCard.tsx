@@ -1,8 +1,11 @@
 import { type AnalyzedEvent, type Branch, COMPANY_NAME, type CompanyImpact, type Weight } from "@foresight/shared";
 import { Link } from "@tanstack/react-router";
+import { ChevronDown } from "lucide-react";
+import { useId, useState } from "react";
 import { ACTOR_LABEL, COMPANY_ARROW, DIRECTION_ARROW, isTopic, REGION_LABEL, TOPIC_LABEL, WEIGHT_LABEL } from "./labels.js";
 import { When } from "./time.js";
 import { Badge } from "./ui/badge.js";
+import { Button } from "./ui/button.js";
 
 const COMPANY_COLOR: Record<CompanyImpact["direction"], string> = { up: "text-sage", down: "text-coral", uncertain: "text-dim" };
 
@@ -10,8 +13,11 @@ const WEIGHT_TONE: Record<Weight, "coral" | "copper" | "neutral"> = { 3: "coral"
 
 // Treść z RSS i od LLM jest niezaufana: React wstawia ją wyłącznie jako tekst,
 // a link przeszedł walidację https w schemacie.
-export function EventCard({ event }: { event: AnalyzedEvent }) {
+// Compact (the Stream): Actors, why it matters and Companies open on click.
+export function EventCard({ event, compact = false }: { event: AnalyzedEvent; compact?: boolean }) {
   const { analysis } = event;
+  const [open, setOpen] = useState(!compact);
+  const detailsId = useId();
   return (
     <article className="rounded-lg border border-line bg-surface p-4 hover:border-faint">
       <header className="flex flex-wrap items-center gap-x-3 gap-y-1">
@@ -53,6 +59,21 @@ export function EventCard({ event }: { event: AnalyzedEvent }) {
               </li>
             ))}
           </ul>
+          {compact && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="-ml-3 mt-1"
+              aria-expanded={open}
+              aria-controls={detailsId}
+              onClick={() => setOpen((o) => !o)}
+            >
+              Szczegóły
+              <ChevronDown className={open ? "rotate-180" : undefined} aria-hidden />
+            </Button>
+          )}
+          {open && (
+          <div id={detailsId}>
           {"actors" in analysis && analysis.actors.length > 0 && (
             <ul className="mt-2 flex flex-wrap gap-x-3 text-[13px] text-dim" aria-label="Aktorzy">
               {analysis.actors.map((a) => (
@@ -81,6 +102,8 @@ export function EventCard({ event }: { event: AnalyzedEvent }) {
               <BranchItem name="Eskalacja" branch={analysis.scenario.escalation} />
               <BranchItem name="Deeskalacja" branch={analysis.scenario.deescalation} />
             </ul>
+          )}
+          </div>
           )}
         </>
       )}
