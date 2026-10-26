@@ -1,7 +1,7 @@
 import type { AnalyzedEvent } from "@foresight/shared";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createMemoryHistory, RouterProvider } from "@tanstack/react-router";
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createAppRouter } from "./router.js";
 
@@ -74,11 +74,9 @@ describe("Stream", () => {
     renderApp("/stream");
 
     expect(await screen.findByRole("heading", { name: "Strumień" })).toBeInTheDocument();
-    const map = within(await screen.findByRole("navigation", { name: "Regiony na mapie" }));
-    const middleEast = map.getByRole("link", { name: /Bliski Wschód/ });
-    expect(middleEast).toHaveTextContent("01");
-    expect(middleEast).toHaveAttribute("href", "/stream?region=middle-east");
-    expect(map.getByRole("link", { name: /Ameryka Północna/ })).toHaveTextContent("00");
+    const map = within(await screen.findByRole("group", { name: "Regiony na mapie" }));
+    expect(map.getByRole("button", { name: /Bliski Wschód/ })).toHaveTextContent(/^Bliski Wschód1/);
+    expect(map.getByRole("button", { name: /Ameryka Północna/ })).toHaveTextContent(/^Ameryka Północna0$/);
   });
 
   it("shows in the header how fresh the data is, and the AI disclaimer in the footer", async () => {
@@ -114,6 +112,7 @@ describe("Event card", () => {
 
     const card = (await screen.findByRole("link", { name: hormuz.title })).closest("article");
     if (!card) throw new Error("no card");
+    fireEvent.click(within(card).getByRole("button", { name: "Szczegóły" }));
     const c = within(card);
     expect(c.getByText("Waga 3 · przełomowe")).toBeInTheDocument();
     expect(c.getByRole("link", { name: "Bliski Wschód" })).toHaveAttribute("href", "/stream?region=middle-east");
@@ -146,6 +145,7 @@ describe("Event card", () => {
 
     const card = (await screen.findByRole("link", { name: pending.title })).closest("article");
     if (!card) throw new Error("no card");
+    fireEvent.click(within(card).getByRole("button", { name: "Szczegóły" }));
     const items = within(within(card).getByRole("list", { name: "Spółki" })).getAllByRole("listitem");
     expect(items.map((li) => li.textContent)).toEqual([
       "CrowdStrike (CRWD) ↑ Popyt na ochronę po ataku.",
@@ -158,6 +158,7 @@ describe("Event card", () => {
 
     const card = (await screen.findByRole("link", { name: pending.title })).closest("article");
     if (!card) throw new Error("no card");
+    fireEvent.click(within(card).getByRole("button", { name: "Szczegóły" }));
     const c = within(card);
     expect(c.getByText(/Eskalacja: ropa/)).toHaveTextContent("Eskalacja: ropa ↑");
     expect(c.getByText(/Deeskalacja: ropa/)).toHaveTextContent("Deeskalacja: ropa ↓");
@@ -204,7 +205,7 @@ describe("Stream filters", () => {
   it("lists only the Events of one Topic", async () => {
     renderApp("/stream?topic=ai");
 
-    expect(await screen.findByText("Brak Zdarzeń z tym filtrem w ostatnich 72 h.")).toBeInTheDocument();
+    expect(await screen.findByText("Żadne Zdarzenie nie pasuje do filtrów.")).toBeInTheDocument();
   });
 
   it("answers 404 for an unknown Region instead of trusting the address", async () => {

@@ -133,7 +133,7 @@ describe("Screens", () => {
   it("say in one line what each one is for", async () => {
     renderApp("/stream");
 
-    expect(await screen.findByText("Wszystkie Zdarzenia z Niszy: mapa, Tematy i pełna lista meldunków.")).toBeInTheDocument();
+    expect(await screen.findByText("Wszystkie Zdarzenia z Niszy z ostatnich 72 h. Filtruj mapą, Tematem i Wagą.")).toBeInTheDocument();
   });
 
   it("show times as relative, with the full Warsaw time kept on the element", async () => {

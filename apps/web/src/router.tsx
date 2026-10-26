@@ -8,29 +8,30 @@ import {
   type RouterHistory,
 } from "@tanstack/react-router";
 import { AuthCallbackPage } from "./auth-ui.js";
-import { NotFoundPage, StreamPage } from "./pages.js";
+import { type StreamSearch, topicsOf } from "./filters.js";
+import { NotFoundPage } from "./pages.js";
 import { RadarPage } from "./radar.js";
 import { Shell } from "./Shell.js";
+import { StreamPage } from "./stream.js";
 import { InboxPage, ThreadPage, ThreadsPage } from "./threads.js";
 
 const rootRoute = createRootRoute({ component: Shell, notFoundComponent: NotFoundPage });
 
 const briefingRoute = createRoute({ getParentRoute: () => rootRoute, path: "/", component: RadarPage });
 
-export interface StreamSearch {
-  region?: Region | undefined;
-  topic?: Topic | undefined;
-}
-
-// Filtry z adresu też są wejściem z zewnątrz: nieznany Region czy Temat zamienia się w brak filtra.
+// Filtry z adresu też są wejściem z zewnątrz: nieznany Region, Temat czy Waga zamienia się w brak filtra.
 // Klucze zostają jawnie (undefined), bo bez tego przebiłaby się surowa wartość z adresu.
 const streamRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/stream",
   validateSearch: (search: Record<string, unknown>): StreamSearch => {
     const region = Region.safeParse(search.region);
-    const topic = Topic.safeParse(search.topic);
-    return { region: region.success ? region.data : undefined, topic: topic.success ? topic.data : undefined };
+    const topics = topicsOf(search.topic);
+    return {
+      region: region.success ? region.data : undefined,
+      topic: topics.length ? topics.join(",") : undefined,
+      weight: search.weight === 2 || search.weight === 3 ? search.weight : undefined,
+    };
   },
   component: function StreamRoute() {
     return <StreamPage filter={streamRoute.useSearch()} />;
