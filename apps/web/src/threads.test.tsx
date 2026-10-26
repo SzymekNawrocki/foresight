@@ -110,30 +110,27 @@ describe("Thread page", () => {
   });
 });
 
-describe("Briefing — Threads", () => {
+describe("Threads and Radar", () => {
   it("lists active Threads with their lead scenario; the inbox stays hidden from visitors", async () => {
-    renderApp("/");
+    renderApp("/threads");
 
     const threads = within(await screen.findByRole("region", { name: /Wątki aktywne/ }));
-    expect(threads.getByRole("link", { name: "Cieśnina Ormuz" })).toHaveAttribute("href", "/thread/aaaa0001");
+    expect(await threads.findByRole("link", { name: "Cieśnina Ormuz" })).toHaveAttribute("href", "/thread/aaaa0001");
     expect(threads.getByText(/Najbardziej prawdopodobne: Napięcie bez blokady — prawdopodobne/)).toBeInTheDocument();
     expect(screen.queryByText(/Nowe sytuacje/)).not.toBeInTheDocument();
   });
 
-  it("leads with the Moves of the last 24 h and counts active Threads per Region on the map", async () => {
+  it("shows the Moves of the last 24 h on the Radar", async () => {
     renderApp("/");
 
     const moves = within(await screen.findByRole("region", { name: /Ruchy · 24 h/ }));
-    expect(moves.getByText(/Napięcie bez blokady — mniej więcej po równo →/)).toHaveTextContent("prawdopodobne");
-    const map = within(screen.getByRole("navigation", { name: "Regiony na mapie" }));
-    expect(map.getByRole("link", { name: /Bliski Wschód/ })).toHaveTextContent("01");
-    expect(map.getByRole("link", { name: /Europa/ })).toHaveTextContent("00");
+    expect(await moves.findByText(/Napięcie bez blokady — mniej więcej po równo →/)).toHaveTextContent("prawdopodobne");
   });
 
   it("says so when nothing moved in 24 h", async () => {
     renderApp("/", { ...thread, reportedAt: hoursAgo(30) });
 
-    expect(await screen.findByText("Bez istotnych zmian w ostatnich 24 h.")).toBeInTheDocument();
+    expect(await screen.findByText("Bez zmian w Raportach z ostatnich 24 h.")).toBeInTheDocument();
   });
 
   it("lets the owner accept a New situation in the Inbox", async () => {

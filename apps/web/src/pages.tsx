@@ -4,13 +4,11 @@ import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { fetchRecent } from "./api.js";
 import { EventCard } from "./EventCard.js";
-import { briefing, type ThreadMove, threadBriefing } from "./intel.js";
+import { briefing } from "./intel.js";
 import { REGION_LABEL, TOPIC_LABEL } from "./labels.js";
 import { LoadError, PageHeader, Panel } from "./panel.js";
 import type { StreamSearch } from "./router.js";
-import { useSession } from "./session.js";
-import { ThreadList, ThreadsPanel, useProposals, useThreads } from "./threads.js";
-import { When } from "./time.js";
+import { ThreadList, useThreads } from "./threads.js";
 import { Loading } from "./ui/skeleton.js";
 import { WorldMap } from "./WorldMap.js";
 
@@ -37,95 +35,11 @@ function EventStream({ events, empty }: { events: AnalyzedEvent[]; empty: string
   );
 }
 
-function Stat({ label, value, tone = "text-fg" }: { label: string; value: number; tone?: string }) {
+export function Stat({ label, value, tone = "text-fg" }: { label: string; value: number; tone?: string }) {
   return (
     <div className="rounded-lg border border-line bg-surface px-3 py-2">
       <dt className="label">{label}</dt>
       <dd className={`data text-[26px] leading-tight font-semibold ${tone}`}>{value}</dd>
-    </div>
-  );
-}
-
-function MoveLine({ item }: { item: ThreadMove }) {
-  const { move } = item;
-  return (
-    <li className="border-b border-line py-2 last:border-b-0">
-      <span className="text-[13px] text-dim">
-        <When iso={item.at} />
-        {" · "}
-      </span>
-      <Link to="/thread/$id" params={{ id: item.thread.id }} className="font-medium">
-        {item.thread.name}
-      </Link>
-      {": "}
-      {move.kind === "shift" ? (
-        <>
-          {`${move.scenario} — ${move.from} → `}
-          <strong className="font-medium text-brass">{move.to}</strong>
-        </>
-      ) : (
-        <>
-          <span className="text-brass" aria-hidden>
-            ●{" "}
-          </span>
-          {`zapalił się sygnał „${move.text}” (${move.scenario})`}
-        </>
-      )}
-    </li>
-  );
-}
-
-function InboxShortcut() {
-  const token = useSession();
-  const proposals = useProposals(Boolean(token));
-  const count = proposals.data?.proposals.length ?? 0;
-  if (!token || count === 0) return null;
-  return (
-    <Link to="/inbox" className="flex items-center justify-between rounded-lg border border-brass/40 bg-brass/5 px-4 py-3 no-underline">
-      <span>{`Nowe sytuacje czekają na decyzję: ${count}`}</span>
-      <span className="text-brass">Otwórz Skrzynkę →</span>
-    </Link>
-  );
-}
-
-// Radar (CONTEXT.md): Moves → map of Threads → active Threads; raw Events live on the Stream.
-export function BriefingPage() {
-  const threads = useThreads();
-  const recent = useRecent();
-  if (threads.isPending) return <Loading label="Ładuję Wątki" />;
-  if (threads.isError) return <LoadError what="Wątków" retry={threads.refetch} />;
-  const now = new Date();
-  const b = threadBriefing(threads.data.threads, now);
-  const events = recent.data ? briefing(recent.data.events, now).totals : null;
-  return (
-    <div className="grid gap-6">
-      <PageHeader title="Radar" subtitle="Co dziś ważne w Niszy: ruchy w Wątkach, mapa i Wątki aktywne.">
-        <dl className="ml-auto grid grid-cols-3 gap-2">
-          <Stat label="Ruchy" value={b.moves.length} tone="text-brass" />
-          <Stat label="Wątki aktywne" value={b.active.length} />
-          <Stat label="Zdarzenia" value={events?.events ?? 0} tone="text-dim" />
-        </dl>
-      </PageHeader>
-
-      <InboxShortcut />
-
-      <Panel title="Ruchy · 24 h" aside="Zmiany Prawdopodobieństwa i zapalone sygnały">
-        {b.moves.length === 0 ? (
-          <p className="text-dim">Bez istotnych zmian w ostatnich 24 h.</p>
-        ) : (
-          <ul>
-            {b.moves.map((m, i) => (
-              <MoveLine key={`${m.thread.id}-${i}`} item={m} />
-            ))}
-          </ul>
-        )}
-      </Panel>
-
-      <Panel title="Mapa Wątków" aside="Aktywne Wątki per Region">
-        <WorldMap counts={b.regions} />
-      </Panel>
-
-      <ThreadsPanel />
     </div>
   );
 }
