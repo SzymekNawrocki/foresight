@@ -4,20 +4,39 @@ import {
   createRoute,
   createRouter,
   notFound,
+  redirect,
   type RouterHistory,
 } from "@tanstack/react-router";
 import { AuthCallbackPage } from "./auth-ui.js";
-import { BriefingPage, NotFoundPage, RegionPage, StreamPage, TopicPage } from "./pages.js";
+import { BriefingPage, NotFoundPage, StreamPage } from "./pages.js";
 import { Shell } from "./Shell.js";
-import { ThreadPage } from "./threads.js";
+import { InboxPage, ThreadPage, ThreadsPage } from "./threads.js";
 
 const rootRoute = createRootRoute({ component: Shell, notFoundComponent: NotFoundPage });
 
 const briefingRoute = createRoute({ getParentRoute: () => rootRoute, path: "/", component: BriefingPage });
 
-const streamRoute = createRoute({ getParentRoute: () => rootRoute, path: "/stream", component: StreamPage });
+export interface StreamSearch {
+  region?: Region | undefined;
+  topic?: Topic | undefined;
+}
 
-// Parametry z adresu też są wejściem z zewnątrz: tylko znane Regiony i Tematy, reszta → 404.
+// Filtry z adresu też są wejściem z zewnątrz: nieznany Region czy Temat zamienia się w brak filtra.
+// Klucze zostają jawnie (undefined), bo bez tego przebiłaby się surowa wartość z adresu.
+const streamRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/stream",
+  validateSearch: (search: Record<string, unknown>): StreamSearch => {
+    const region = Region.safeParse(search.region);
+    const topic = Topic.safeParse(search.topic);
+    return { region: region.success ? region.data : undefined, topic: topic.success ? topic.data : undefined };
+  },
+  component: function StreamRoute() {
+    return <StreamPage filter={streamRoute.useSearch()} />;
+  },
+});
+
+// Strony Regionów i Tematów stały się filtrami Strumienia (#71); stare adresy dalej działają.
 const regionRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/region/$region",
@@ -29,8 +48,8 @@ const regionRoute = createRoute({
     },
     stringify: ({ region }) => ({ region }),
   },
-  component: function RegionRoute() {
-    return <RegionPage region={regionRoute.useParams().region} />;
+  beforeLoad: ({ params }) => {
+    throw redirect({ to: "/stream", search: { region: params.region }, replace: true });
   },
 });
 
@@ -45,10 +64,12 @@ const topicRoute = createRoute({
     },
     stringify: ({ topic }) => ({ topic }),
   },
-  component: function TopicRoute() {
-    return <TopicPage topic={topicRoute.useParams().topic} />;
+  beforeLoad: ({ params }) => {
+    throw redirect({ to: "/stream", search: { topic: params.topic }, replace: true });
   },
 });
+
+const threadsRoute = createRoute({ getParentRoute: () => rootRoute, path: "/threads", component: ThreadsPage });
 
 const threadRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -66,9 +87,20 @@ const threadRoute = createRoute({
   },
 });
 
+const inboxRoute = createRoute({ getParentRoute: () => rootRoute, path: "/inbox", component: InboxPage });
+
 const callbackRoute = createRoute({ getParentRoute: () => rootRoute, path: "/auth/callback", component: AuthCallbackPage });
 
-const routeTree = rootRoute.addChildren([briefingRoute, streamRoute, regionRoute, topicRoute, threadRoute, callbackRoute]);
+const routeTree = rootRoute.addChildren([
+  briefingRoute,
+  streamRoute,
+  regionRoute,
+  topicRoute,
+  threadsRoute,
+  threadRoute,
+  inboxRoute,
+  callbackRoute,
+]);
 
 export function createAppRouter(history?: RouterHistory) {
   return createRouter({ routeTree, ...(history && { history }) });

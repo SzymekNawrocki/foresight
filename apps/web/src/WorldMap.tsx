@@ -50,16 +50,16 @@ export function WorldMap({ counts }: { counts: Record<Region, number> }) {
   return (
     <div className="relative">
       <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} className="block h-auto w-full" role="img" aria-label="Mapa Regionów">
-        <path d={sphere} className="fill-panel stroke-line" />
-        <path d={graticule} className="fill-none stroke-line/60" strokeWidth={0.5} />
+        <path d={sphere} className="fill-bg stroke-line" />
+        <path d={graticule} className="fill-none stroke-line/50" strokeWidth={0.5} />
         {shapes.map((s) => (
           <path
             key={s.name}
             d={s.d}
             data-region={s.region}
-            fill="var(--color-alert)"
+            fill="var(--color-brass)"
             fillOpacity={heat(counts[s.region])}
-            className="stroke-faint/70"
+            className="stroke-line"
             strokeWidth={0.4}
           />
         ))}
@@ -70,13 +70,13 @@ export function WorldMap({ counts }: { counts: Record<Region, number> }) {
           return (
             <Link
               key={region}
-              to="/region/$region"
-              params={{ region }}
-              className="absolute -translate-x-1/2 -translate-y-1/2 border border-line bg-ink/85 px-2 py-1 text-center whitespace-nowrap no-underline backdrop-blur-sm hover:border-alert hover:no-underline"
+              to="/stream"
+              search={{ region }}
+              className="absolute -translate-x-1/2 -translate-y-1/2 rounded-md border border-line bg-bg/85 px-2 py-1 text-center whitespace-nowrap no-underline backdrop-blur-sm hover:border-brass hover:no-underline"
               style={{ left: `${(x / WIDTH) * 100}%`, top: `${(y / HEIGHT) * 100}%` }}
             >
-              <span className="label block text-[10px] text-fg">{REGION_LABEL[region]}</span>
-              <span className={`block text-base font-bold ${counts[region] ? "text-alert" : "text-faint"}`}>
+              <span className="block text-[12px] font-medium text-fg">{REGION_LABEL[region]}</span>
+              <span className={`data block font-semibold ${counts[region] ? "text-brass" : "text-faint"}`}>
                 {String(counts[region]).padStart(2, "0")}
               </span>
             </Link>
@@ -86,13 +86,17 @@ export function WorldMap({ counts }: { counts: Record<Region, number> }) {
       <ul className="mt-3 grid grid-cols-2 gap-2 md:hidden">
         {(Object.keys(ANCHOR) as (keyof typeof ANCHOR)[]).map((region) => (
           <li key={region}>
-            <Link to="/region/$region" params={{ region }} className="tag flex justify-between px-2 py-1.5">
+            <Link to="/stream" search={{ region }} className="tag flex justify-between rounded-md px-2 py-1.5">
               <span>{REGION_LABEL[region]}</span>
-              <strong className={counts[region] ? "text-alert" : "text-faint"}>{String(counts[region]).padStart(2, "0")}</strong>
+              <strong className={`data ${counts[region] ? "text-brass" : "text-faint"}`}>{String(counts[region]).padStart(2, "0")}</strong>
             </Link>
           </li>
         ))}
       </ul>
+      <Link to="/stream" search={{ region: "global" }} className="tag mt-3 gap-3 rounded-md px-3 py-1.5">
+        <span>{REGION_LABEL.global}</span>
+        <strong className={`data ${counts.global ? "text-brass" : "text-faint"}`}>{String(counts.global).padStart(2, "0")}</strong>
+      </Link>
     </div>
   );
 }

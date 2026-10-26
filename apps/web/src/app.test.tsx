@@ -73,20 +73,20 @@ describe("Stream", () => {
   it("shows the 24 h totals and a counter per Region on the map", async () => {
     renderApp("/stream");
 
-    expect(await screen.findByRole("heading", { name: "Strumień · 24 h" })).toBeInTheDocument();
-    const map = within(screen.getByRole("navigation", { name: "Regiony na mapie" }));
+    expect(await screen.findByRole("heading", { name: "Strumień" })).toBeInTheDocument();
+    const map = within(await screen.findByRole("navigation", { name: "Regiony na mapie" }));
     const middleEast = map.getByRole("link", { name: /Bliski Wschód/ });
     expect(middleEast).toHaveTextContent("01");
-    expect(middleEast).toHaveAttribute("href", "/region/middle-east");
+    expect(middleEast).toHaveAttribute("href", "/stream?region=middle-east");
     expect(map.getByRole("link", { name: /Ameryka Północna/ })).toHaveTextContent("00");
   });
 
-  it("shows in the footer how fresh the data is, with the AI disclaimer", async () => {
+  it("shows in the header how fresh the data is, and the AI disclaimer in the footer", async () => {
     renderApp("/stream");
 
-    const footer = within(await screen.findByRole("contentinfo"));
-    expect(await footer.findByText("ostatnie Zdarzenie: przed chwilą")).toBeInTheDocument();
-    expect(footer.getByText(/to nie jest porada inwestycyjna/)).toBeInTheDocument();
+    const header = within(await screen.findByRole("banner"));
+    expect(await header.findByText("ostatnie Zdarzenie: przed chwilą")).toBeInTheDocument();
+    expect(within(screen.getByRole("contentinfo")).getByText(/to nie jest porada inwestycyjna/)).toBeInTheDocument();
   });
 
   it("reports the link to the API in the header", async () => {
@@ -116,7 +116,7 @@ describe("Event card", () => {
     if (!card) throw new Error("no card");
     const c = within(card);
     expect(c.getByText("Waga 3 · przełomowe")).toBeInTheDocument();
-    expect(c.getByRole("link", { name: "Bliski Wschód" })).toHaveAttribute("href", "/region/middle-east");
+    expect(c.getByRole("link", { name: "Bliski Wschód" })).toHaveAttribute("href", "/stream?region=middle-east");
     // An old Topic stays readable but has no page since the Niche (ADR 0010).
     expect(c.getByText("Sankcje i handel")).toBeInTheDocument();
     expect(c.queryByRole("link", { name: "Sankcje i handel" })).toBeNull();
@@ -192,20 +192,19 @@ describe("Event card", () => {
   });
 });
 
-describe("Knowledge base", () => {
+describe("Stream filters", () => {
   it("lists only the Events of one Region", async () => {
-    renderApp("/region/europe");
+    renderApp("/stream?region=europe");
 
-    expect(await screen.findByRole("heading", { name: "Europa" })).toBeInTheDocument();
+    expect(await screen.findByText("Europa", { selector: "span" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: hormuz.title })).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: pending.title })).toBeNull();
   });
 
   it("lists only the Events of one Topic", async () => {
-    renderApp("/topic/ai");
+    renderApp("/stream?topic=ai");
 
-    expect(await screen.findByRole("heading", { name: "AI" })).toBeInTheDocument();
-    expect(screen.getByText("Brak Zdarzeń w tym obszarze w ostatnich 72 h.")).toBeInTheDocument();
+    expect(await screen.findByText("Brak Zdarzeń z tym filtrem w ostatnich 72 h.")).toBeInTheDocument();
   });
 
   it("answers 404 for an unknown Region instead of trusting the address", async () => {

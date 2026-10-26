@@ -136,9 +136,9 @@ describe("Briefing — Threads", () => {
     expect(await screen.findByText("Bez istotnych zmian w ostatnich 24 h.")).toBeInTheDocument();
   });
 
-  it("lets the owner accept a New situation", async () => {
+  it("lets the owner accept a New situation in the Inbox", async () => {
     sessionStorage.setItem("foresight.session", JSON.stringify({ accessToken: "access-1", expiresAt: Date.now() + 3_600_000 }));
-    const fetchMock = renderApp("/");
+    const fetchMock = renderApp("/inbox");
 
     expect(await screen.findByRole("heading", { name: "Wojna w Sudanie" })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Akceptuj" }));
@@ -152,7 +152,7 @@ describe("Briefing — Threads", () => {
   });
 });
 
-describe("Region page — Threads", () => {
+describe("Stream filtered to a Region — Threads", () => {
   it("lists the active Threads of the Region above its Events", async () => {
     renderApp("/region/middle-east");
 
