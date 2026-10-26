@@ -87,11 +87,11 @@ _Avoid_: asset, rynek
 
 ## Widoki
 
-**Briefing**:
-Strona główna: Ruchy z ostatnich 24 h, ciemna mapa z liczbą aktywnych Wątków per Region,
-Wątki aktywne z najbardziej prawdopodobnym Scenariuszem i — dla właściciela — liczba Nowych
-sytuacji.
-_Avoid_: feed, strona główna, przegląd
+**Radar**:
+Ekran startowy (ADR 0011): co dziś ważne w Niszy i co nadaje się na post — pasek Tematów
+z liczbą Zdarzeń, najważniejsze Zdarzenia według Wagi, Wątki z Ruchem, Ruchy z 24 h i —
+dla właściciela — skrót do Skrzynki. Zastąpił Briefing.
+_Avoid_: Briefing, feed, strona główna, przegląd
 
 **Ruch**:
 Zmiana w Wątku warta uwagi: Scenariusz przesunął się na skali Prawdopodobieństwa albo zapalił
@@ -105,8 +105,13 @@ także, z kim najczęściej występuje w jednym Zdarzeniu.
 _Avoid_: wiki, notatki, encyklopedia
 
 **Strumień**:
-Surowa lista wszystkich Zdarzeń, od najnowszych — dla tych, którzy chcą zajrzeć pod Wątki.
+Lista wszystkich Zdarzeń z Niszy z mapą Regionów; Region i Temat to jego filtry (zapisane
+w adresie), a nie osobne strony.
 _Avoid_: feed, timeline
+
+**Skrzynka**:
+Widok właściciela z Nowymi sytuacjami czekającymi na decyzję; liczba w menu.
+_Avoid_: inbox (w tekstach strony), kolejka
 
 ## Sytuacje
 
