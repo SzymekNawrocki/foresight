@@ -1,38 +1,25 @@
-import { Topic } from "@foresight/shared";
 import { useQuery } from "@tanstack/react-query";
 import { Link, Outlet } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { TriangleAlert } from "lucide-react";
+import type { ReactNode } from "react";
 import { fetchHealth } from "./api.js";
 import { AuthButton } from "./auth-ui.js";
 import { freshness } from "./intel.js";
-import { TOPIC_LABEL } from "./labels.js";
 import { useRecent } from "./pages.js";
-
-const clock = new Intl.DateTimeFormat("pl-PL", {
-  dateStyle: "medium",
-  timeStyle: "medium",
-  timeZone: "UTC",
-});
-
-function UtcClock() {
-  const [now, setNow] = useState(() => new Date());
-  useEffect(() => {
-    const id = setInterval(() => setNow(new Date()), 1_000);
-    return () => clearInterval(id);
-  }, []);
-  return <time dateTime={now.toISOString()}>{clock.format(now)} UTC</time>;
-}
+import { useSession } from "./session.js";
+import { useProposals } from "./threads.js";
+import { TooltipProvider } from "./ui/tooltip.js";
 
 function LinkStatus() {
   const health = useQuery({ queryKey: ["health"], queryFn: fetchHealth });
   const [text, color] = health.isPending
-    ? ["Łącze: sprawdzam", "bg-amber"]
+    ? ["Łącze: sprawdzam", "bg-faint"]
     : health.isError
-      ? ["Łącze: zerwane", "bg-alert"]
-      : ["Łącze: aktywne", "bg-ok"];
+      ? ["Łącze: zerwane", "bg-coral"]
+      : ["Łącze: aktywne", "bg-sage"];
   return (
-    <span className="label flex items-center gap-2">
-      <span className={`size-1.5 rounded-full ${color}`} aria-hidden />
+    <span className="flex items-center gap-1.5">
+      <span className={`size-2 rounded-full ${color}`} aria-hidden />
       {text}
     </span>
   );
@@ -43,63 +30,72 @@ function Freshness() {
   const recent = useRecent();
   const fresh = recent.data ? freshness(recent.data.events, new Date()) : null;
   if (!fresh) return null;
-  return <span className={fresh.stale ? "text-amber" : undefined}>{fresh.text}</span>;
+  return (
+    <span className={`flex items-center gap-1.5 ${fresh.stale ? "text-coral" : ""}`}>
+      {fresh.stale && <TriangleAlert className="size-4" aria-hidden />}
+      {fresh.text}
+    </span>
+  );
+}
+
+const navLink =
+  "flex items-center gap-2 rounded-md px-3 py-1.5 text-[14px] font-medium text-dim no-underline hover:bg-raised hover:text-fg hover:no-underline";
+const navActive = { className: "bg-raised text-brass hover:text-brass" };
+
+function NavItem({ to, exact, children }: { to: "/" | "/threads" | "/stream" | "/inbox"; exact?: boolean; children: ReactNode }) {
+  return (
+    <Link to={to} className={navLink} activeProps={navActive} activeOptions={{ exact: exact ?? false }}>
+      {children}
+    </Link>
+  );
+}
+
+// Visible only to the owner; the API checks the token anyway.
+function InboxNavItem() {
+  const token = useSession();
+  const proposals = useProposals(Boolean(token));
+  if (!token) return null;
+  const count = proposals.data?.proposals.length ?? 0;
+  return (
+    <NavItem to="/inbox">
+      Skrzynka
+      {count > 0 && <span className="data rounded-full bg-brass px-1.5 text-[12px] leading-5 font-semibold text-bg">{count}</span>}
+    </NavItem>
+  );
 }
 
 export function Shell() {
   return (
-    <div className="mx-auto min-h-screen max-w-7xl px-4 pb-16">
-      <header className="flex flex-wrap items-end gap-x-6 gap-y-2 border-b border-alert/70 pt-5 pb-3">
-        <Link to="/" className="no-underline hover:no-underline">
-          <span className="flex items-center gap-2 font-display text-2xl font-bold tracking-[0.3em] text-fg">
-            <span className="size-3 bg-alert" aria-hidden />
-            FORESIGHT
-          </span>
-          <span className="label block text-[10px]">Centrum analityczne · geo × tech × rynki</span>
-        </Link>
-        <span className="label ml-auto hidden border border-alert/60 px-2 py-0.5 text-alert sm:inline">
-          Użytek wewnętrzny
-        </span>
-        <div className="flex flex-col items-end gap-1 text-[11px] text-dim">
-          <UtcClock />
-          <span className="flex gap-4">
+    <TooltipProvider>
+      <div className="mx-auto min-h-screen max-w-7xl px-4 pb-16">
+        <header className="flex flex-wrap items-center gap-x-6 gap-y-3 border-b border-line py-4">
+          <Link to="/" className="flex items-center gap-2 no-underline hover:no-underline">
+            <span className="size-2.5 rotate-45 bg-brass" aria-hidden />
+            <span className="text-[18px] font-semibold tracking-[0.06em] text-fg">FORESIGHT</span>
+          </Link>
+          <nav aria-label="Główne" className="flex flex-wrap gap-1">
+            <NavItem to="/" exact>
+              Radar
+            </NavItem>
+            <NavItem to="/threads">Wątki</NavItem>
+            <NavItem to="/stream">Strumień</NavItem>
+            <InboxNavItem />
+          </nav>
+          <div className="ml-auto flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px] text-dim">
+            <Freshness />
             <LinkStatus />
             <AuthButton />
-          </span>
-        </div>
-      </header>
+          </div>
+        </header>
 
-      <nav aria-label="Tematy" className="flex flex-wrap gap-x-4 gap-y-1 border-b border-line py-2">
-        <Link to="/" className="label no-underline hover:text-alert" activeProps={{ className: "text-alert" }} activeOptions={{ exact: true }}>
-          Briefing
-        </Link>
-        <Link to="/stream" className="label no-underline hover:text-alert" activeProps={{ className: "text-alert" }}>
-          Strumień
-        </Link>
-        <span className="text-faint" aria-hidden>
-          //
-        </span>
-        {Topic.options.map((t) => (
-          <Link
-            key={t}
-            to="/topic/$topic"
-            params={{ topic: t }}
-            className="label no-underline hover:text-alert"
-            activeProps={{ className: "text-alert" }}
-          >
-            {TOPIC_LABEL[t]}
-          </Link>
-        ))}
-      </nav>
+        <main className="pt-8">
+          <Outlet />
+        </main>
 
-      <main className="pt-6">
-        <Outlet />
-      </main>
-
-      <footer className="label mt-12 flex flex-wrap gap-x-6 gap-y-1 border-t border-line pt-3 text-[10px] text-dim">
-        <Freshness />
-        <span>Analizy generuje AI na podstawie nagłówków; to nie jest porada inwestycyjna.</span>
-      </footer>
-    </div>
+        <footer className="mt-12 flex flex-wrap gap-x-6 gap-y-1 border-t border-line pt-3 text-[13px] text-dim">
+          <span>Analizy generuje AI na podstawie nagłówków; to nie jest porada inwestycyjna.</span>
+        </footer>
+      </div>
+    </TooltipProvider>
   );
 }

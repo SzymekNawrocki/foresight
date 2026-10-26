@@ -3,6 +3,8 @@ import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { fetchConfig, fetchMe } from "./api.js";
 import { completeSignIn, signIn, signOut, useSession } from "./session.js";
+import { Badge } from "./ui/badge.js";
+import { Button } from "./ui/button.js";
 
 export function useAuthConfig() {
   return useQuery({ queryKey: ["config"], queryFn: fetchConfig, staleTime: Infinity });
@@ -15,16 +17,16 @@ export function AuthButton() {
   if (!auth) return null;
   const origin = window.location.origin;
   return token ? (
-    <span className="flex gap-3">
+    <span className="flex items-center gap-2">
       <OwnerBadge token={token} />
-      <button type="button" onClick={() => signOut(auth, origin)} className="label hover:text-alert">
+      <Button variant="ghost" size="sm" onClick={() => signOut(auth, origin)}>
         Wyloguj
-      </button>
+      </Button>
     </span>
   ) : (
-    <button type="button" onClick={() => void signIn(auth, origin)} className="label text-fg hover:text-alert">
+    <Button size="sm" onClick={() => void signIn(auth, origin)}>
       Zaloguj
-    </button>
+    </Button>
   );
 }
 
@@ -32,10 +34,10 @@ export function AuthButton() {
 function OwnerBadge({ token }: { token: string }) {
   const me = useQuery({ queryKey: ["me", token], queryFn: fetchMe, retry: false });
   if (me.isPending) return null;
-  return me.isSuccess ? <span className="label text-ok">Właściciel</span> : <span className="label text-alert">Sesja nieważna</span>;
+  return me.isSuccess ? <Badge>Właściciel</Badge> : <Badge tone="coral">Sesja nieważna</Badge>;
 }
 
-/** /auth/callback — Cognito odsyła tu kod; wymieniamy go na token i wracamy do Briefingu. */
+/** /auth/callback — Cognito odsyła tu kod; wymieniamy go na token i wracamy na Radar. */
 export function AuthCallbackPage() {
   const config = useAuthConfig();
   const navigate = useNavigate();
@@ -51,5 +53,5 @@ export function AuthCallbackPage() {
       .catch(() => setError("Logowanie nie powiodło się. Spróbuj ponownie."));
   }, [config.data, navigate]);
 
-  return <p className={`label ${error ? "text-alert" : ""}`}>{error ?? "Weryfikuję tożsamość…"}</p>;
+  return <p className={error ? "text-coral" : "text-dim"}>{error ?? "Weryfikuję tożsamość…"}</p>;
 }
