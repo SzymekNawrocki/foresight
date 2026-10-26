@@ -85,22 +85,38 @@ export interface ThreadMove {
   at: string;
 }
 
-export interface ThreadBriefing {
-  /** Active (not dormant) Threads touching each Region. */
-  regions: Record<Region, number>;
-  active: ListedThread[];
-  /** Moves of reports written in the last 24 h, newest first. */
-  moves: ThreadMove[];
-}
-
-export function threadBriefing(threads: readonly ListedThread[], now: Date): ThreadBriefing {
+/** Moves of reports written in the last 24 h, newest first. */
+export function threadMoves(threads: readonly ListedThread[], now: Date): ThreadMove[] {
   const since = new Date(now.getTime() - 24 * 3_600_000).toISOString();
-  const active = threads.filter((t) => !t.dormant);
-  const regions = zeros(Region.options);
-  for (const t of active) for (const r of t.regions) regions[r]++;
-  const moves = threads
+  return threads
     .filter((t) => t.reportedAt && t.reportedAt >= since)
     .toSorted((a, b) => (b.reportedAt ?? "").localeCompare(a.reportedAt ?? ""))
     .flatMap((t) => (t.moves ?? []).map((move) => ({ thread: { id: t.id, name: t.name }, move, at: t.reportedAt ?? "" })));
-  return { regions, active, moves };
+}
+
+export interface Radar {
+  /** Niche Events of the last 24 h per Topic, any Weight. */
+  topics: Record<Topic, number>;
+  /** Up to 8 analyzed Events of the last 24 h: Weight descending, then newest. */
+  top: AnalyzedEvent[];
+}
+
+export function radar(events: readonly AnalyzedEvent[], now: Date): Radar {
+  const since = new Date(now.getTime() - 24 * 3_600_000).toISOString();
+  const day = events.filter((e) => e.analysis && e.publishedAt >= since);
+  const topics = zeros(Topic.options);
+  for (const { analysis } of day) for (const t of analysis?.topics ?? []) if (isTopic(t)) topics[t]++;
+  const top = day
+    .toSorted((a, b) => (b.analysis?.weight ?? 0) - (a.analysis?.weight ?? 0) || b.publishedAt.localeCompare(a.publishedAt))
+    .slice(0, 8);
+  return { topics, top };
+}
+
+/** Active Threads with new Events since their Report or a Move in the last 24 h; most new Events first. */
+export function movedThreads(threads: readonly ListedThread[], now: Date): ListedThread[] {
+  const since = new Date(now.getTime() - 24 * 3_600_000).toISOString();
+  const movedToday = (t: ListedThread) => Boolean(t.moves?.length && t.reportedAt && t.reportedAt >= since);
+  return threads
+    .filter((t) => !t.dormant && (t.newEvents > 0 || movedToday(t)))
+    .toSorted((a, b) => b.newEvents - a.newEvents || b.lastEventAt.localeCompare(a.lastEventAt));
 }

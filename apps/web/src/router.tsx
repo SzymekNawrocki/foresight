@@ -8,13 +8,14 @@ import {
   type RouterHistory,
 } from "@tanstack/react-router";
 import { AuthCallbackPage } from "./auth-ui.js";
-import { BriefingPage, NotFoundPage, StreamPage } from "./pages.js";
+import { NotFoundPage, StreamPage } from "./pages.js";
+import { RadarPage } from "./radar.js";
 import { Shell } from "./Shell.js";
 import { InboxPage, ThreadPage, ThreadsPage } from "./threads.js";
 
 const rootRoute = createRootRoute({ component: Shell, notFoundComponent: NotFoundPage });
 
-const briefingRoute = createRoute({ getParentRoute: () => rootRoute, path: "/", component: BriefingPage });
+const briefingRoute = createRoute({ getParentRoute: () => rootRoute, path: "/", component: RadarPage });
 
 export interface StreamSearch {
   region?: Region | undefined;
