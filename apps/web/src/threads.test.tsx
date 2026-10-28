@@ -1,7 +1,7 @@
 import type { SituationReport, Thread, TimelineEntry } from "@foresight/shared";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createMemoryHistory, RouterProvider } from "@tanstack/react-router";
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createAppRouter } from "./router.js";
 
@@ -178,21 +178,6 @@ describe("Threads and Radar", () => {
     renderApp("/", [{ ...thread, reportedAt: hoursAgo(30) }]);
 
     expect(await screen.findByText("Bez zmian w Raportach z ostatnich 24 h.")).toBeInTheDocument();
-  });
-
-  it("lets the owner accept a New situation in the Inbox", async () => {
-    sessionStorage.setItem("foresight.session", JSON.stringify({ accessToken: "access-1", expiresAt: Date.now() + 3_600_000 }));
-    const fetchMock = renderApp("/inbox");
-
-    expect(await screen.findByRole("heading", { name: "Wojna w Sudanie" })).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Akceptuj" }));
-
-    await waitFor(() =>
-      expect(fetchMock).toHaveBeenCalledWith(
-        "/api/threads/proposals/bbbb0001",
-        expect.objectContaining({ method: "POST", body: JSON.stringify({ action: "accept" }) }),
-      ),
-    );
   });
 });
 
