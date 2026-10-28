@@ -1,4 +1,4 @@
-# Foresight — SPEC v0.6
+# Foresight — SPEC v0.7
 
 Nazwa: Foresight (dawniej robocza „WarRoom”, zmieniona 2026-09-23). Ustalenia z sesji grillingu
 2026-09-15; kierunek produktu zmieniony w grillingu 2026-10-13 ([ADR 0007](docs/adr/0007-intelligence-hub-not-just-a-game.md))
@@ -7,11 +7,13 @@ Po starcie MVP grilling 2026-10-19 doprecyzował kierunek świata, Poziomy Źró
 ([ADR 0009](docs/adr/0009-tracked-signals-and-token-budget.md)).
 Audyt 2026-10-22 zawęził produkt do niszy tech × geo × rynki
 ([ADR 0010](docs/adr/0010-tech-first-niche-radar.md)).
+Redesign UI 2026-10-28 (#71, [ADR 0011](docs/adr/0011-visual-system-graphite-and-brass.md)) zastąpił Briefing
+Radarem, a strony Regionów i Tematów — filtrami Strumienia.
 
 Appka jest **radarem tematów na stronę właściciela w jednej niszy**: technologia w centrum
 (cyber i hacking, drony, militarny kosmos, chipy, AI, zbrojeniówka), w tle gra państw, obok wpływ
-na ceny Spółek. Wątki z Raportami sytuacyjnymi, Briefing „co się ruszyło”, Karty postów,
-Baza wiedzy po Regionach, Tematach i Aktorach.
+na ceny Spółek. Radar „co dziś ważne”, Wątki z Raportami sytuacyjnymi, Strumień z mapą
+i filtrami, Skrzynka decyzji właściciela, a od plastra 14 Karty postów.
 Zarazem pozostaje **pojazdem treningowym** Fazy 8 Ścieżki 01 (IaC + chmura) z Mapy DevSecOps,
 budowanym procesem Ścieżki 05 (AI Native SDLC).
 Słownik domeny: `CONTEXT.md`. Decyzje trudne do odwrócenia: `docs/adr/`.
@@ -31,14 +33,14 @@ Słownik domeny: `CONTEXT.md`. Decyzje trudne do odwrócenia: `docs/adr/`.
 
 Przecięcie trzech osi: **tech × geostrategia × rynki**, z technologią na pierwszym miejscu
 (ADR 0010). Zdarzenie spoza Niszy (np. czysta geopolityka bez technologii) jest zapisywane, ale
-nie pokazuje się nigdzie. Główna czynność: otwierasz Briefing, widzisz 3 Karty postów i Wątki,
+nie pokazuje się nigdzie. Główna czynność: otwierasz Radar, widzisz 3 Karty postów i Wątki,
 które się ruszyły, i wchodzisz w Raport sytuacyjny Wątku, o którym chcesz pisać. Foresight nie ocenia, czy ktoś miał rację — pokazuje, jak zmieniała się sytuacja.
 Kierunek świata to **ruch między Scenariuszami w czasie**: Sygnały ostrzegawcze zapalają się
 na podstawie Zdarzeń, a Prawdopodobieństwo Scenariuszy przesuwa się na skali.
 
 1. **Ingest** — co godzinę Zdarzenia ze Źródeł z Poziomem A (oficjalne), B (rzetelne serwisy)
    albo C (analizy). Fakty z A i B, interpretacje z C.
-2. **Analiza AI (meldunek)** — `gpt-oss-120b`, paczki po 5 Zdarzeń w jednym wywołaniu, po polsku:
+2. **Analiza AI (meldunek)** — `gpt-oss-120b`, paczki po 8 Zdarzeń w jednym wywołaniu, po polsku:
    najpierw „czy w Niszy?” (poza Niszą — tylko `niche: false`), potem Regiony, Tematy, do 4
    Aktorów, do 3 Wpływów na Spółkę (Spółka z ustalonej listy, kierunek ↑ ↓ ↕, jedno zdanie
    mechanizmu), Waga (1–3), jedno zdanie „dlaczego ważne” i przypięcie do aktywnego
@@ -55,12 +57,17 @@ na podstawie Zdarzeń, a Prawdopodobieństwo Scenariuszy przesuwa się na skali.
    Sygnał zapala się tylko z dowodem — id Zdarzenia ze Źródła A lub B (sprawdza kod); strzałkę
    i powód zmiany Prawdopodobieństwa liczy kod względem poprzedniej wersji. Każda wersja zostaje
    (dziennik sytuacji).
-5. **Briefing** — Ruchy · 24 h (przesunięcia Scenariuszy i zapalone Sygnały) → mapa aktywnych
-   Wątków per Region → Wątki aktywne → Nowe sytuacje (właściciel); surowe Zdarzenia na osobnej
-   stronie **Strumień**. W stopce świeżość: ostatni ingest i ostatni Raport.
-6. **Karty postów** (od plastra 14) — codziennie 3 na Briefingu: hak, technologia, gra państw,
+5. **Widoki** (ADR 0011) — menu Radar · Wątki · Strumień · Skrzynka; w nagłówku świeżość danych.
+   - **Radar** (start): pasek Tematów z licznikami, do 8 najważniejszych Zdarzeń z 24 h (Waga,
+     potem czas), Wątki w ruchu, Ruchy · 24 h, skrót do Skrzynki dla właściciela.
+   - **Wątki**: siatka kart („+N nowe” najpierw), uśpione zwinięte; strona Wątku ze spisem treści
+     i osią czasu.
+   - **Strumień**: wszystkie Zdarzenia z Niszy z 72 h z mapą; Region, Tematy i Waga to filtry
+     w adresie (`/topic/:t` i `/region/:r` przekierowują tutaj).
+   - **Skrzynka** (właściciel): Nowe sytuacje — śledź, dołącz do Wątku (podpowiedzi po wspólnym
+     Temacie lub Aktorze), odrzuć z 5 s na cofnięcie.
+6. **Karty postów** (od plastra 14) — codziennie 3 na Radarze: hak, technologia, gra państw,
    Spółki z kierunkiem, linki do Źródeł. Posty pisze właściciel; tylko w appce, bez maila.
-7. **Baza wiedzy** — strony Regionów, Tematów i Aktorów (u Aktora: „najczęściej razem”).
 
 **Tematy (6, stała lista niszy — ADR 0010):** Cyber, Drony, Kosmos, Chipy, AI, Zbrojeniówka.
 Energia, surowce i sankcje nie są Tematami — pojawiają się jako Wpływ na Spółkę. Stare Analizy
@@ -273,9 +280,22 @@ strumienia.
 |---|---|---|
 | **12 Pętla i nisza** | Decyzje właściciela działają (POST przez CloudFront), meldunek v3 z bramką Niszy, 6 Tematów niszy i Wpływami na Spółki, ~8 Wątków startowych, łączenie podobnych Nowych sytuacji, widoki tylko z Niszy | Eval przepisany pod Niszę (trafność bramki: nic z niszy nie ginie, szum odpada), lista dozwolonych wartości w kodzie (Spółki), ordered behavior CloudFronta tylko dla tras właściciela |
 | **13 Źródła niszy** | Research Źródeł branżowych i oficjalnych dla cyber, obronności, kosmosu i chipów → akceptacja właściciela; mniej ogólnych serwisów | Zdrowie Źródeł (ile wpisów i ile w Niszy per Źródło w raporcie workera) |
-| **14 Karty postów** | 3 Karty postów dziennie na Briefingu; Wpływy na Spółki w Raporcie zamiast Klas aktywów | Wynik AI w nowej części tabeli `threads`, renderowany jako tekst; budżet tokenów dla Kart |
+| **14 Karty postów** | 3 Karty postów dziennie na Radarze; Wpływy na Spółki w Raporcie zamiast Klas aktywów | Wynik AI w nowej części tabeli `threads`, renderowany jako tekst; budżet tokenów dla Kart |
 
 Później: ceny przy Spółkach (#60) — czy rynek faktycznie zareagował.
+
+Audyt 2026-10-28 (po #71, dane z produkcji): 29 Zdarzeń w Niszy w 72 h (8 w 24 h), zero z Wagą 3;
+5 z 8 Wątków startowych bez Zdarzenia po 4 dniach, a „Rafinerie i energetyka” wypada poza Niszę;
+Wpływy na Spółki odruchowe (każdy incydent cyber → PANW ↑, CRWD ↑); brak CSP w nagłówkach;
+763 KB JS z mapą w głównej paczce. Kolejność:
+
+1. **Wątki żyją** (przed 13): dlaczego Zdarzenia o dronach i chipach nie trafiają do swoich
+   Wątków (logi workera), poprawiona lista Wątków startowych, konkretny mechanizm Wpływu na
+   Spółkę zamiast ogólnika, kalibracja Wagi (z #59).
+2. **13 Źródła niszy** jak wyżej, z kanałami Atom (#57) i zdrowiem Źródeł (#30).
+3. **Hardening**: własna polityka nagłówków CloudFronta z CSP, mapa ładowana leniwie tylko
+   w Strumieniu, alerty Dependabota włączone, #5.
+4. **14 Karty postów.**
 
 ## Odłożone (decyzja w plastrze, który tego potrzebuje)
 

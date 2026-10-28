@@ -99,9 +99,9 @@ się Sygnał ostrzegawczy. Brak Ruchów w 24 h to też informacja („bez istotn
 _Avoid_: aktualizacja, zmiana, update
 _W kodzie_: `Move`
 
-**Baza wiedzy**:
-Automatyczne strony Regionów, Tematów i Aktorów: Wątki i Zdarzenia z tego obszaru; u Aktora
-także, z kim najczęściej występuje w jednym Zdarzeniu.
+**Baza wiedzy** (wycofana w #71):
+Dawne strony Regionów i Tematów; dziś Region i Temat to filtry Strumienia. Strony Aktorów nie
+powstały.
 _Avoid_: wiki, notatki, encyklopedia
 
 **Strumień**:
