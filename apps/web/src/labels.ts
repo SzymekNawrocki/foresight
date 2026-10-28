@@ -91,3 +91,6 @@ export const SCENARIO_LABEL: Record<ScenarioKind, string> = {
 export const CHANGE_ARROW: Record<LikelihoodChange, string> = { up: "↑", down: "↓", same: "=", new: "•" };
 
 export const TIER_LABEL: Record<SourceTier, string> = { A: "A · oficjalne", B: "B · redakcja", C: "C · analiza" };
+
+// The word that goes with the arrow, so the change is never carried by a symbol alone.
+export const CHANGE_LABEL: Record<LikelihoodChange, string> = { up: "rośnie", down: "spada", same: "bez zmian", new: "nowy" };

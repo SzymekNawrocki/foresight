@@ -3,17 +3,36 @@ import { type ReactNode, useId } from "react";
 import { Button } from "./ui/button.js";
 import { Card } from "./ui/card.js";
 
-export function Panel({ title, children, aside }: { title: string; children: ReactNode; aside?: ReactNode }) {
+type SectionProps = { title: string; children: ReactNode; aside?: ReactNode; /** Anchor for a table of contents. */ anchor?: string };
+
+function Heading({ id, title, aside, className }: { id: string; title: string; aside?: ReactNode; className: string }) {
+  return (
+    <h2 id={id} className={`flex flex-wrap items-baseline gap-x-3 ${className}`}>
+      <span className="label text-fg">{title}</span>
+      {aside && <span className="ml-auto text-[13px] text-dim">{aside}</span>}
+    </h2>
+  );
+}
+
+export function Panel({ title, children, aside, anchor }: SectionProps) {
   const id = useId();
   return (
-    <section aria-labelledby={id}>
+    <section id={anchor} aria-labelledby={id} className="scroll-mt-16">
       <Card>
-        <h2 id={id} className="flex flex-wrap items-baseline gap-x-3 border-b border-line px-4 py-3">
-          <span className="label text-fg">{title}</span>
-          {aside && <span className="ml-auto text-[13px] text-dim">{aside}</span>}
-        </h2>
+        <Heading id={id} title={title} aside={aside} className="border-b border-line px-4 py-3" />
         <div className="p-4">{children}</div>
       </Card>
+    </section>
+  );
+}
+
+/** A titled section without a card around it — for content that is itself made of cards. */
+export function Section({ title, children, aside, anchor }: SectionProps) {
+  const id = useId();
+  return (
+    <section id={anchor} aria-labelledby={id} className="grid scroll-mt-16 gap-3">
+      <Heading id={id} title={title} aside={aside} className="" />
+      {children}
     </section>
   );
 }
