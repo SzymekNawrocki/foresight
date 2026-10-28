@@ -1,16 +1,14 @@
 import type { ReportScenario, SituationReport, ThreadResponse, ThreadsResponse, TimelineEntry, Weight } from "@foresight/shared";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { ChevronRight } from "lucide-react";
 import { useEffect, useState } from "react";
-import { decideProposal, fetchProposals, fetchThread, fetchThreads } from "./api.js";
+import { fetchProposals, fetchThread, fetchThreads } from "./api.js";
 import { threadGrid } from "./intel.js";
 import { CHANGE_ARROW, CHANGE_LABEL, isTopic, REGION_LABEL, SCENARIO_LABEL, TIER_LABEL, TOPIC_LABEL, WEIGHT_LABEL } from "./labels.js";
 import { LoadError, PageHeader, Panel, Section } from "./panel.js";
-import { useSession } from "./session.js";
 import { When } from "./time.js";
 import { Badge } from "./ui/badge.js";
-import { Button } from "./ui/button.js";
 import { Loading } from "./ui/skeleton.js";
 
 // A change of Likelihood is neither good nor bad: an arrow plus a word in brass, "changed, look here" (ADR 0011).
@@ -129,7 +127,7 @@ export function ThreadsPage() {
 // The dot on the timeline follows the colour semantics; the Weight is also written out next to it.
 const WEIGHT_DOT: Record<Weight, string> = { 1: "bg-faint", 2: "bg-copper", 3: "bg-coral" };
 
-function Timeline({ entries, label }: { entries: TimelineEntry[]; label: string }) {
+export function Timeline({ entries, label }: { entries: TimelineEntry[]; label: string }) {
   return (
     <ol aria-label={label} className="ml-1 grid gap-4 border-l border-line pl-5">
       {entries.map((entry) => (
@@ -146,110 +144,6 @@ function Timeline({ entries, label }: { entries: TimelineEntry[]; label: string 
         </li>
       ))}
     </ol>
-  );
-}
-
-/** /inbox — New situations; visible only to the owner, the API checks the token on every call anyway. */
-export function InboxPage() {
-  const token = useSession();
-  return (
-    <div className="grid gap-6">
-      <PageHeader title="Skrzynka" subtitle="Nowe sytuacje zaproponowane przez AI: zacznij śledzić, połącz z Wątkiem albo odrzuć." />
-      {token ? <Inbox /> : <p className="text-dim">Skrzynka jest dostępna po zalogowaniu.</p>}
-    </div>
-  );
-}
-
-function Inbox() {
-  const client = useQueryClient();
-  const proposals = useProposals(true);
-  const threads = useThreads();
-  const [error, setError] = useState<string | null>(null);
-  const decide = useMutation({
-    mutationFn: ({ id, decision }: { id: string; decision: Parameters<typeof decideProposal>[1] }) => decideProposal(id, decision),
-    onSuccess: async () => {
-      setError(null);
-      await Promise.all([client.invalidateQueries({ queryKey: ["proposals"] }), client.invalidateQueries({ queryKey: ["threads"] })]);
-    },
-    onError: () => setError("Decyzja nie przeszła — odśwież i spróbuj ponownie."),
-  });
-  const list = proposals.data?.proposals ?? [];
-  const targets = threads.data?.threads ?? [];
-
-  if (proposals.isPending) return <Loading label="Ładuję Skrzynkę" />;
-  if (proposals.isError) return <LoadError what="Skrzynki" retry={proposals.refetch} />;
-  return (
-    <>
-      {list.length === 0 ? (
-        <p className="text-dim">Skrzynka pusta. Nowe sytuacje pojawiają się po godzinnych przebiegach workera.</p>
-      ) : (
-        <ul className="grid gap-4">
-          {list.map(({ thread, timeline }) => (
-            <li key={thread.id} className="rounded-lg border border-line bg-surface p-4">
-              <h3 className="text-[17px] font-medium">{thread.name}</h3>
-              <p className="mb-3 text-[14px] text-dim">
-                {`${thread.eventCount} Zdarzeń · ${thread.regions.map((r) => REGION_LABEL[r]).join(", ") || "bez Regionu"}`}
-              </p>
-              <Timeline entries={timeline.slice(0, 5)} label={`Nagłówki: ${thread.name}`} />
-              <MergeControls
-                id={thread.id}
-                targets={targets.filter((t) => t.id !== thread.id)}
-                busy={decide.isPending}
-                onDecide={(decision) => decide.mutate({ id: thread.id, decision })}
-              />
-            </li>
-          ))}
-        </ul>
-      )}
-      {error && (
-        <p role="alert" className="text-coral">
-          {error}
-        </p>
-      )}
-    </>
-  );
-}
-
-function MergeControls({
-  id,
-  targets,
-  busy,
-  onDecide,
-}: {
-  id: string;
-  targets: ListedThread[];
-  busy: boolean;
-  onDecide: (decision: Parameters<typeof decideProposal>[1]) => void;
-}) {
-  const [into, setInto] = useState("");
-  return (
-    <div className="mt-3 flex flex-wrap items-center gap-2">
-      <Button variant="primary" size="sm" disabled={busy} onClick={() => onDecide({ action: "accept" })}>
-        Akceptuj
-      </Button>
-      <label className="flex items-center gap-2 text-[14px]">
-        <span className="text-dim">Połącz z</span>
-        <select
-          aria-label={`Połącz ${id} z Wątkiem`}
-          value={into}
-          onChange={(e) => setInto(e.target.value)}
-          className="h-8 rounded-md border border-line bg-bg px-2"
-        >
-          <option value="">—</option>
-          {targets.map((t) => (
-            <option key={t.id} value={t.id}>
-              {t.name}
-            </option>
-          ))}
-        </select>
-      </label>
-      <Button size="sm" disabled={busy || !into} onClick={() => onDecide({ action: "merge", into })}>
-        Połącz
-      </Button>
-      <Button size="sm" disabled={busy} onClick={() => onDecide({ action: "reject" })}>
-        Odrzuć
-      </Button>
-    </div>
   );
 }
 

@@ -1,6 +1,6 @@
 import type { AnalyzedEvent, ThreadsResponse } from "@foresight/shared";
 import { describe, expect, it } from "vitest";
-import { briefing, freshness, regionOfCountry, threadGrid } from "./intel.js";
+import { briefing, freshness, joinCandidates, regionOfCountry, threadGrid } from "./intel.js";
 
 describe("threadGrid", () => {
   const listed = (id: string, lastEventAt: string, newEvents: number, dormant = false): ThreadsResponse["threads"][number] => ({
@@ -151,5 +151,46 @@ describe("freshness", () => {
 
   it("has nothing to say without Events", () => {
     expect(freshness([], now)).toBeNull();
+  });
+});
+
+describe("joinCandidates", () => {
+  const listed = (id: string, name: string, extra: Partial<ThreadsResponse["threads"][number]> = {}): ThreadsResponse["threads"][number] => ({
+    id,
+    name,
+    status: "active",
+    createdAt: "2026-10-01T00:00:00.000Z",
+    lastEventAt: "2026-10-27T00:00:00.000Z",
+    eventCount: 3,
+    newEvents: 0,
+    newWeight: 0,
+    regions: [],
+    dormant: false,
+    ...extra,
+  });
+  const proposal = { id: "bbbb0001", topics: ["drones" as const], actors: ["iran" as const, "usa" as const] };
+  const threads = [
+    listed("aaaa0001", "Tajwan – chipy", { topics: ["chips"], actors: ["china"], lastEventAt: "2026-10-28T00:00:00.000Z" }),
+    listed("aaaa0002", "Cieśnina Ormuz", { actors: ["iran"] }),
+    listed("aaaa0003", "Drony nad Bałtykiem", { topics: ["drones"], actors: ["usa"] }),
+    listed("bbbb0001", "Sama propozycja", { topics: ["drones"] }),
+  ];
+
+  it("suggests Threads sharing a Topic or Actor first, most shared first, and leaves out the proposal itself", () => {
+    const { suggested, others } = joinCandidates(proposal, threads, "");
+
+    expect(suggested.map((c) => [c.thread.id, c.topics, c.actors])).toEqual([
+      ["aaaa0003", ["drones"], ["usa"]],
+      ["aaaa0002", [], ["iran"]],
+    ]);
+    expect(others.map((c) => c.thread.id)).toEqual(["aaaa0001"]);
+  });
+
+  it("filters by name ignoring case and Polish letters", () => {
+    const { suggested, others } = joinCandidates(proposal, threads, "baltyk");
+
+    expect(suggested.map((c) => c.thread.id)).toEqual(["aaaa0003"]);
+    expect(others).toEqual([]);
+    expect(joinCandidates(proposal, threads, "CIESNINA").suggested.map((c) => c.thread.id)).toEqual(["aaaa0002"]);
   });
 });

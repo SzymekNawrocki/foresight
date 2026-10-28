@@ -1,4 +1,4 @@
-import { type AnalyzedEvent, type Move, Region, type ThreadsResponse, Topic } from "@foresight/shared";
+import { type Actor, type AnalyzedEvent, type Move, Region, type ThreadsResponse, Topic } from "@foresight/shared";
 import { isTopic } from "./labels.js";
 
 // Państwo → Region (CONTEXT.md). Granice teatrów są umowne: najpierw wyjątki po nazwie,
@@ -128,4 +128,33 @@ export function threadGrid(threads: readonly ListedThread[]): { active: ListedTh
     active: threads.filter((t) => !t.dormant).toSorted((a, b) => Number(b.newEvents > 0) - Number(a.newEvents > 0) || latest(a, b)),
     dormant: threads.filter((t) => t.dormant).toSorted(latest),
   };
+}
+
+export interface JoinCandidate {
+  thread: ListedThread;
+  /** What it has in common with the New situation — why it is suggested. */
+  topics: Topic[];
+  actors: Actor[];
+}
+
+// "Ł" has no combining form, so NFD leaves it alone.
+const fold = (s: string) => s.normalize("NFD").replace(/\p{M}/gu, "").replace(/ł/gi, "l").toLowerCase();
+
+/** Threads a New situation may join: those sharing a Topic or Actor first (most shared, then latest), the rest after. */
+export function joinCandidates(
+  proposal: { id: string; topics?: readonly Topic[]; actors?: readonly Actor[] },
+  threads: readonly ListedThread[],
+  query: string,
+): { suggested: JoinCandidate[]; others: JoinCandidate[] } {
+  const wanted = fold(query.trim());
+  const candidates = threads
+    .filter((t) => t.id !== proposal.id && fold(t.name).includes(wanted))
+    .map((thread) => ({
+      thread,
+      topics: (thread.topics ?? []).filter((t) => proposal.topics?.includes(t)),
+      actors: (thread.actors ?? []).filter((a) => proposal.actors?.includes(a)),
+    }))
+    .toSorted((a, b) => b.topics.length + b.actors.length - (a.topics.length + a.actors.length) || b.thread.lastEventAt.localeCompare(a.thread.lastEventAt));
+  const shares = (c: JoinCandidate) => c.topics.length + c.actors.length > 0;
+  return { suggested: candidates.filter(shares), others: candidates.filter((c) => !shares(c)) };
 }

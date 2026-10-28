@@ -13,7 +13,8 @@ import { NotFoundPage } from "./pages.js";
 import { RadarPage } from "./radar.js";
 import { Shell } from "./Shell.js";
 import { StreamPage } from "./stream.js";
-import { InboxPage, ThreadPage, ThreadsPage } from "./threads.js";
+import { InboxPage } from "./inbox.js";
+import { ThreadPage, ThreadsPage } from "./threads.js";
 
 const rootRoute = createRootRoute({ component: Shell, notFoundComponent: NotFoundPage });
 
