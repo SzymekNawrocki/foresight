@@ -120,3 +120,12 @@ export function movedThreads(threads: readonly ListedThread[], now: Date): Liste
     .filter((t) => !t.dormant && (t.newEvents > 0 || movedToday(t)))
     .toSorted((a, b) => b.newEvents - a.newEvents || b.lastEventAt.localeCompare(a.lastEventAt));
 }
+
+/** The Threads page: active Threads with new Events since their Report first, then by latest Event; dormant ones apart. */
+export function threadGrid(threads: readonly ListedThread[]): { active: ListedThread[]; dormant: ListedThread[] } {
+  const latest = (a: ListedThread, b: ListedThread) => b.lastEventAt.localeCompare(a.lastEventAt);
+  return {
+    active: threads.filter((t) => !t.dormant).toSorted((a, b) => Number(b.newEvents > 0) - Number(a.newEvents > 0) || latest(a, b)),
+    dormant: threads.filter((t) => t.dormant).toSorted(latest),
+  };
+}

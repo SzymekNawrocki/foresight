@@ -1,17 +1,22 @@
-import type { LikelihoodChange, ReportScenario, SituationReport, ThreadResponse, ThreadsResponse, TimelineEntry } from "@foresight/shared";
+import type { ReportScenario, SituationReport, ThreadResponse, ThreadsResponse, TimelineEntry, Weight } from "@foresight/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { ChevronRight } from "lucide-react";
+import { useEffect, useState } from "react";
 import { decideProposal, fetchProposals, fetchThread, fetchThreads } from "./api.js";
-import { CHANGE_ARROW, REGION_LABEL, SCENARIO_LABEL, TIER_LABEL, WEIGHT_LABEL } from "./labels.js";
-import { LoadError, PageHeader, Panel } from "./panel.js";
+import { threadGrid } from "./intel.js";
+import { CHANGE_ARROW, CHANGE_LABEL, isTopic, REGION_LABEL, SCENARIO_LABEL, TIER_LABEL, TOPIC_LABEL, WEIGHT_LABEL } from "./labels.js";
+import { LoadError, PageHeader, Panel, Section } from "./panel.js";
 import { useSession } from "./session.js";
 import { When } from "./time.js";
+import { Badge } from "./ui/badge.js";
 import { Button } from "./ui/button.js";
 import { Loading } from "./ui/skeleton.js";
 
-// A change of Likelihood is neither good nor bad: brass means "changed, look here" (ADR 0011).
-const CHANGE_TONE: Record<LikelihoodChange, string> = { up: "text-brass", down: "text-brass", same: "text-dim", new: "text-brass" };
+// A change of Likelihood is neither good nor bad: an arrow plus a word in brass, "changed, look here" (ADR 0011).
+function Change({ change }: { change: ReportScenario["change"] }) {
+  return <span className={change === "same" ? "text-dim" : "text-brass"}>{`${CHANGE_ARROW[change]} ${CHANGE_LABEL[change]}`}</span>;
+}
 
 export function useThreads() {
   return useQuery({ queryKey: ["threads"], queryFn: fetchThreads, refetchInterval: 5 * 60_000 });
@@ -24,88 +29,123 @@ export function useProposals(enabled: boolean) {
 
 type ListedThread = ThreadsResponse["threads"][number];
 
-function ThreadRow({ thread }: { thread: ListedThread }) {
+function ThreadCard({ thread }: { thread: ListedThread }) {
+  const topics = (thread.topics ?? []).filter(isTopic);
   return (
-    <li className="border-b border-line py-2.5 last:border-b-0">
-      <Link to="/thread/$id" params={{ id: thread.id }} className="text-[17px] font-medium">
-        {thread.name}
-      </Link>
-      <p className="text-[14px] text-dim">
-        {thread.lead ? (
-          <>
-            <span className={CHANGE_TONE[thread.lead.change]}>{CHANGE_ARROW[thread.lead.change]}</span>{" "}
-            {`Najbardziej prawdopodobne: ${thread.lead.scenario} — ${thread.lead.likelihood}`}
-          </>
-        ) : (
-          "Raport sytuacyjny w przygotowaniu"
+    <article className="flex h-full flex-col gap-2 rounded-lg border border-line bg-surface p-4">
+      <div className="flex flex-wrap items-start gap-2">
+        <h3 className="text-[17px] leading-snug font-medium">
+          <Link to="/thread/$id" params={{ id: thread.id }}>
+            {thread.name}
+          </Link>
+        </h3>
+        {thread.newEvents > 0 && (
+          <Badge tone="brass" className="ml-auto">
+            {`+${thread.newEvents} nowe`}
+          </Badge>
         )}
+      </div>
+      {thread.lead ? (
+        <p className="text-[14px]">
+          {`Najbardziej prawdopodobne: ${thread.lead.scenario} — ${thread.lead.likelihood}`} · <Change change={thread.lead.change} />
+        </p>
+      ) : (
+        <p className="text-[14px] text-dim">Raport sytuacyjny w przygotowaniu</p>
+      )}
+      {topics.length > 0 && (
+        <ul aria-label="Tematy" className="flex flex-wrap gap-1">
+          {topics.map((t) => (
+            <li key={t}>
+              <Badge>{TOPIC_LABEL[t]}</Badge>
+            </li>
+          ))}
+        </ul>
+      )}
+      <p className="mt-auto pt-1 text-[13px] text-dim">
+        {thread.regions.map((r) => REGION_LABEL[r]).join(", ") || "bez Regionu"}
         {" · "}
         <span className="data">{thread.eventCount}</span>
-        {" Zdarzeń, ostatnie "}
+        {" Zdarzeń · ostatnie "}
         <When iso={thread.lastEventAt} />
-        {thread.moves?.length ? ` · Ruchy: ${thread.moves.length}` : ""}
       </p>
-    </li>
+    </article>
   );
 }
 
-export function ThreadList({ threads }: { threads: ListedThread[] }) {
+export function ThreadGrid({ threads, label }: { threads: ListedThread[]; label: string }) {
   return (
-    <ul>
+    <ul aria-label={label} className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
       {threads.map((t) => (
-        <ThreadRow key={t.id} thread={t} />
+        <li key={t.id}>
+          <ThreadCard thread={t} />
+        </li>
       ))}
     </ul>
   );
 }
 
-export function ThreadsPanel() {
-  const threads = useThreads();
-  const active = threads.data?.threads.filter((t) => !t.dormant) ?? [];
-  return (
-    <Panel title="Wątki aktywne" aside="Zdarzenie w ostatnich 14 dniach">
-      {threads.isPending ? (
-        <Loading label="Ładuję Wątki" rows={2} />
-      ) : threads.isError ? (
-        <LoadError what="Wątków" retry={threads.refetch} />
-      ) : active.length === 0 ? (
-        <p className="text-dim">Brak aktywnych Wątków — propozycje czekają w Skrzynce.</p>
-      ) : (
-        <ThreadList threads={active} />
-      )}
-    </Panel>
-  );
-}
-
-/** /threads — every Thread; the card grid comes with the Threads PR of #71. */
+/** /threads — a card grid of the active Threads; dormant ones fold away at the bottom. */
 export function ThreadsPage() {
   const threads = useThreads();
-  const dormant = threads.data?.threads.filter((t) => t.dormant) ?? [];
   return (
     <div className="grid gap-6">
       <PageHeader title="Wątki" subtitle="Sytuacje, które Foresight śledzi w czasie, z Raportem sytuacyjnym raz na dobę." />
-      <ThreadsPanel />
-      {dormant.length > 0 && (
-        <Panel title="Uśpione" aside="Bez Zdarzenia od 14 dni">
-          <ThreadList threads={dormant} />
-        </Panel>
+      {threads.isPending ? (
+        <Loading label="Ładuję Wątki" rows={3} />
+      ) : threads.isError ? (
+        <LoadError what="Wątków" retry={threads.refetch} />
+      ) : (
+        (() => {
+          const { active, dormant } = threadGrid(threads.data.threads);
+          return (
+            <>
+              <Section title="Aktywne" aside="Zdarzenie w ostatnich 14 dniach · nowe od Raportu najpierw">
+                {active.length === 0 ? (
+                  <p className="text-dim">Brak aktywnych Wątków — propozycje czekają w Skrzynce.</p>
+                ) : (
+                  <ThreadGrid threads={active} label="Wątki aktywne" />
+                )}
+              </Section>
+              {dormant.length > 0 && (
+                <details className="group">
+                  <summary className="flex w-fit cursor-pointer list-none items-center gap-1 rounded-md py-1 [&::-webkit-details-marker]:hidden">
+                    <ChevronRight aria-hidden className="size-4 text-dim transition-transform group-open:rotate-90 motion-reduce:transition-none" />
+                    <span className="label text-fg">{`Uśpione · ${dormant.length}`}</span>
+                    <span className="ml-2 text-[13px] text-dim">bez Zdarzenia od 14 dni</span>
+                  </summary>
+                  <div className="mt-3">
+                    <ThreadGrid threads={dormant} label="Wątki uśpione" />
+                  </div>
+                </details>
+              )}
+            </>
+          );
+        })()
       )}
     </div>
   );
 }
 
-function EntryLine({ entry }: { entry: TimelineEntry }) {
+// The dot on the timeline follows the colour semantics; the Weight is also written out next to it.
+const WEIGHT_DOT: Record<Weight, string> = { 1: "bg-faint", 2: "bg-copper", 3: "bg-coral" };
+
+function Timeline({ entries, label }: { entries: TimelineEntry[]; label: string }) {
   return (
-    <li className="border-l-2 border-line py-1 pl-3">
-      <span className="data text-dim">
-        <When iso={entry.publishedAt} /> · {entry.source} · Poziom {TIER_LABEL[entry.tier]} · Waga {entry.weight} ({WEIGHT_LABEL[entry.weight]})
-      </span>
-      <br />
-      <a href={entry.url} target="_blank" rel="noopener noreferrer">
-        {entry.title}
-      </a>
-      <p className="text-[14px] text-dim">{entry.whyItMatters}</p>
-    </li>
+    <ol aria-label={label} className="ml-1 grid gap-4 border-l border-line pl-5">
+      {entries.map((entry) => (
+        <li key={entry.eventId} className="relative">
+          <span aria-hidden className={`absolute top-1.5 -left-[26px] size-2.5 rounded-full ring-4 ring-surface ${WEIGHT_DOT[entry.weight]}`} />
+          <span className="data text-[13px] text-dim">
+            <When iso={entry.publishedAt} /> · {entry.source} · Poziom {TIER_LABEL[entry.tier]} · Waga {entry.weight} ({WEIGHT_LABEL[entry.weight]})
+          </span>
+          <br />
+          <a href={entry.url} target="_blank" rel="noopener noreferrer">
+            {entry.title}
+          </a>
+          <p className="text-[14px] text-dim">{entry.whyItMatters}</p>
+        </li>
+      ))}
+    </ol>
   );
 }
 
@@ -147,14 +187,10 @@ function Inbox() {
           {list.map(({ thread, timeline }) => (
             <li key={thread.id} className="rounded-lg border border-line bg-surface p-4">
               <h3 className="text-[17px] font-medium">{thread.name}</h3>
-              <p className="text-[14px] text-dim">
+              <p className="mb-3 text-[14px] text-dim">
                 {`${thread.eventCount} Zdarzeń · ${thread.regions.map((r) => REGION_LABEL[r]).join(", ") || "bez Regionu"}`}
               </p>
-              <ol className="mt-2 grid gap-1">
-                {timeline.slice(0, 5).map((e) => (
-                  <EntryLine key={e.eventId} entry={e} />
-                ))}
-              </ol>
+              <Timeline entries={timeline.slice(0, 5)} label={`Nagłówki: ${thread.name}`} />
               <MergeControls
                 id={thread.id}
                 targets={targets.filter((t) => t.id !== thread.id)}
@@ -226,7 +262,8 @@ function ScenarioCard({ scenario, mostLikely }: { scenario: ReportScenario; most
       </p>
       <h3 className="text-[17px] font-medium">{scenario.name}</h3>
       <p className="mt-1">
-        <strong className={CHANGE_TONE[scenario.change]}>{CHANGE_ARROW[scenario.change]}</strong> {scenario.likelihood}
+        <strong className={scenario.change === "same" ? "text-dim" : "text-brass"}>{CHANGE_ARROW[scenario.change]}</strong>{" "}
+        <span className={scenario.change === "same" ? "text-dim" : "text-brass"}>{CHANGE_LABEL[scenario.change]}</span> · {scenario.likelihood}
       </p>
       <p className="text-[13px] text-dim">{scenario.reason}</p>
       <p className="mt-2 text-[14px]">{scenario.description}</p>
@@ -252,10 +289,19 @@ function ScenarioCard({ scenario, mostLikely }: { scenario: ReportScenario; most
   );
 }
 
+const REPORT_CONTENTS = [
+  { anchor: "stan", title: "Stan teraz" },
+  { anchor: "scenariusze", title: "Scenariusze" },
+  { anchor: "aktorzy", title: "Aktorzy" },
+  { anchor: "rynki", title: "Rynki" },
+] as const;
+const TIMELINE_CONTENTS = { anchor: "os-czasu", title: "Oś czasu" } as const;
+
 function Report({ report }: { report: SituationReport }) {
   return (
-    <div className="grid gap-6">
+    <>
       <Panel
+        anchor="stan"
         title="Stan teraz"
         aside={
           <>
@@ -266,13 +312,15 @@ function Report({ report }: { report: SituationReport }) {
         <p className="max-w-3xl">{report.state}</p>
         <p className="mt-2 text-[14px] text-dim">Co się zmieniło: {report.whatChanged}</p>
       </Panel>
-      <div className="grid gap-3 md:grid-cols-3">
-        {report.scenarios.map((s) => (
-          <ScenarioCard key={s.kind} scenario={s} mostLikely={s.kind === report.mostLikely} />
-        ))}
-      </div>
+      <Section anchor="scenariusze" title="Scenariusze" aside="Trzy drogi i sygnały, które je zapalają">
+        <div className="grid gap-3 md:grid-cols-3">
+          {report.scenarios.map((s) => (
+            <ScenarioCard key={s.kind} scenario={s} mostLikely={s.kind === report.mostLikely} />
+          ))}
+        </div>
+      </Section>
       <div className="grid gap-6 md:grid-cols-2">
-        <Panel title="Aktorzy i interesy">
+        <Panel anchor="aktorzy" title="Aktorzy i interesy">
           <ul className="grid gap-1 text-[14px]">
             {report.actors.map((a) => (
               <li key={a.name}>
@@ -281,7 +329,7 @@ function Report({ report }: { report: SituationReport }) {
             ))}
           </ul>
         </Panel>
-        <Panel title="Rynki i relacje">
+        <Panel anchor="rynki" title="Rynki i relacje">
           <ul className="grid gap-1 text-[14px]">
             {report.assets.map((a) => (
               <li key={a.name}>
@@ -293,7 +341,55 @@ function Report({ report }: { report: SituationReport }) {
           <p className="mt-2 text-[14px]">{report.relations}</p>
         </Panel>
       </div>
-    </div>
+    </>
+  );
+}
+
+/** The section in view, for the table of contents; without IntersectionObserver (tests) nothing is marked. */
+function useSectionInView(anchors: readonly string[]): string | undefined {
+  const [current, setCurrent] = useState<string>();
+  const key = anchors.join(" ");
+  useEffect(() => {
+    if (typeof IntersectionObserver === "undefined") return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries.filter((e) => e.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
+        if (visible[0]) setCurrent(visible[0].target.id);
+      },
+      { rootMargin: "-10% 0px -60% 0px" },
+    );
+    for (const anchor of key.split(" ")) {
+      const el = document.getElementById(anchor);
+      if (el) observer.observe(el);
+    }
+    return () => observer.disconnect();
+  }, [key]);
+  return current;
+}
+
+/** Sticky contents: a column beside the page on desktop, a horizontal bar at the top on mobile. */
+function Contents({ items }: { items: readonly { anchor: string; title: string }[] }) {
+  const current = useSectionInView(items.map((i) => i.anchor));
+  return (
+    <nav
+      aria-label="Spis treści"
+      className="sticky top-0 z-10 -mx-4 overflow-x-auto border-b border-line bg-bg/95 px-4 py-2 backdrop-blur lg:top-6 lg:mx-0 lg:border-0 lg:bg-transparent lg:p-0"
+    >
+      <p className="label mb-2 hidden lg:block">Spis treści</p>
+      <ol className="flex gap-1 lg:flex-col">
+        {items.map(({ anchor, title }) => (
+          <li key={anchor}>
+            <a
+              href={`#${anchor}`}
+              aria-current={current === anchor ? "location" : undefined}
+              className="block rounded-md px-2 py-1 whitespace-nowrap text-dim no-underline hover:text-fg hover:no-underline aria-[current=location]:bg-brass/10 aria-[current=location]:text-brass lg:border-l-2 lg:border-transparent lg:rounded-none lg:aria-[current=location]:border-brass"
+            >
+              {title}
+            </a>
+          </li>
+        ))}
+      </ol>
+    </nav>
   );
 }
 
@@ -303,6 +399,7 @@ export function ThreadPage({ id }: { id: string }) {
   if (query.isError) return <LoadError what="Wątku" retry={query.refetch} />;
   if (!query.data) return <p className="text-coral">Nie ma takiego Wątku.</p>;
   const { thread, report, timeline } = query.data;
+  const contents = report ? [...REPORT_CONTENTS, TIMELINE_CONTENTS] : [TIMELINE_CONTENTS];
   return (
     <div className="grid gap-6">
       <div>
@@ -312,14 +409,15 @@ export function ThreadPage({ id }: { id: string }) {
           {thread.regions.map((r) => REGION_LABEL[r]).join(", ")} · {thread.eventCount} Zdarzeń · ostatnie <When iso={thread.lastEventAt} />
         </p>
       </div>
-      {report ? <Report report={report} /> : <p className="text-dim">Pierwszy Raport sytuacyjny powstanie w ciągu godziny.</p>}
-      <Panel title="Oś czasu · od najnowszych">
-        <ol className="grid gap-2">
-          {timeline.map((e) => (
-            <EntryLine key={e.eventId} entry={e} />
-          ))}
-        </ol>
-      </Panel>
+      <div className="grid items-start gap-6 lg:grid-cols-[11rem_minmax(0,1fr)]">
+        <Contents items={contents} />
+        <div className="grid min-w-0 gap-6">
+          {report ? <Report report={report} /> : <p className="text-dim">Pierwszy Raport sytuacyjny powstanie w ciągu godziny.</p>}
+          <Panel anchor={TIMELINE_CONTENTS.anchor} title="Oś czasu" aside="od najnowszych">
+            <Timeline entries={timeline} label="Oś czasu" />
+          </Panel>
+        </div>
+      </div>
     </div>
   );
 }

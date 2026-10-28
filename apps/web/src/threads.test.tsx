@@ -17,6 +17,7 @@ const thread: Thread = {
   newEvents: 0,
   newWeight: 0,
   regions: ["middle-east"],
+  topics: ["drones", "chips"],
   reportedAt: hoursAgo(2),
   lead: { scenario: "Napięcie bez blokady", likelihood: "prawdopodobne", change: "up" },
   moves: [{ kind: "shift", scenario: "Napięcie bez blokady", from: "mniej więcej po równo", to: "prawdopodobne" }],
@@ -66,13 +67,16 @@ const report: SituationReport = {
 
 const proposal: Thread = { ...thread, id: "bbbb0001", name: "Wojna w Sudanie", status: "proposed", lead: undefined, moves: undefined };
 
-function renderApp(path: string, listed: Thread = thread) {
+const quiet: Thread = { ...thread, id: "aaaa0002", name: "Tajwan – chipy", lastEventAt: hoursAgo(0.5), lead: undefined, moves: undefined };
+const asleep: Thread = { ...thread, id: "aaaa0003", name: "Arktyka", lastEventAt: hoursAgo(24 * 20) };
+
+function renderApp(path: string, listed: (Thread & { dormant?: boolean })[] = [thread]) {
   const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
     if (url === "/api/health") return Response.json({ status: "ok" });
     if (url === "/api/config") return Response.json({ auth: { domain: "https://login.example.com", clientId: "client-1" } });
     if (url === "/api/me") return Response.json({ signedIn: true });
     if (url === "/api/recent") return Response.json({ since: hoursAgo(72), events: [] });
-    if (url === "/api/threads") return Response.json({ threads: [{ ...listed, dormant: false }] });
+    if (url === "/api/threads") return Response.json({ threads: listed.map((t) => ({ dormant: false, ...t })) });
     if (url === "/api/threads/aaaa0001") return Response.json({ thread: { ...thread, dormant: false }, report, timeline: [entry] });
     if (url === "/api/threads/proposals") return Response.json({ proposals: [{ thread: proposal, timeline: [entry] }] });
     if (url === "/api/threads/proposals/bbbb0001" && init?.method === "POST") return Response.json({ ok: true });
@@ -103,6 +107,26 @@ describe("Thread page", () => {
     expect(within(signals).getByRole("link", { name: entry.title })).toHaveAttribute("href", entry.url);
   });
 
+  it("has a table of contents that links to each section of the page", async () => {
+    renderApp("/thread/aaaa0001");
+
+    const toc = within(await screen.findByRole("navigation", { name: "Spis treści" }));
+    const links = toc.getAllByRole("link");
+    expect(links.map((l) => l.textContent)).toEqual(["Stan teraz", "Scenariusze", "Aktorzy", "Rynki", "Oś czasu"]);
+    for (const link of links) {
+      const target = document.getElementById(link.getAttribute("href")?.slice(1) ?? "");
+      expect(target).toHaveAccessibleName(new RegExp(`^${link.textContent}`));
+    }
+  });
+
+  it("puts the timeline entries on a line with their Weight in words", async () => {
+    renderApp("/thread/aaaa0001");
+
+    const timeline = within(await screen.findByRole("list", { name: "Oś czasu" }));
+    expect(timeline.getByRole("link", { name: entry.title })).toHaveAttribute("href", entry.url);
+    expect(timeline.getByText(/Waga 3 \(przełomowe\)/)).toBeInTheDocument();
+  });
+
   it("answers an unknown id format with the 404 page", async () => {
     renderApp("/thread/not-an-id");
 
@@ -110,16 +134,39 @@ describe("Thread page", () => {
   });
 });
 
-describe("Threads and Radar", () => {
-  it("lists active Threads with their lead scenario; the inbox stays hidden from visitors", async () => {
-    renderApp("/threads");
+describe("Threads page", () => {
+  it("shows a card per active Thread, those with new Events first, with a +N new badge", async () => {
+    renderApp("/threads", [quiet, { ...thread, newEvents: 2 }]);
 
-    const threads = within(await screen.findByRole("region", { name: /Wątki aktywne/ }));
-    expect(await threads.findByRole("link", { name: "Cieśnina Ormuz" })).toHaveAttribute("href", "/thread/aaaa0001");
-    expect(threads.getByText(/Najbardziej prawdopodobne: Napięcie bez blokady — prawdopodobne/)).toBeInTheDocument();
+    const grid = within(await screen.findByRole("list", { name: "Wątki aktywne" }));
+    const cards = grid.getAllByRole("article");
+    expect(cards.map((c) => within(c).getByRole("heading").textContent)).toEqual(["Cieśnina Ormuz", "Tajwan – chipy"]);
+    const lead = within(cards[0] as HTMLElement);
+    expect(lead.getByRole("link", { name: "Cieśnina Ormuz" })).toHaveAttribute("href", "/thread/aaaa0001");
+    expect(lead.getByText("+2 nowe")).toBeInTheDocument();
+    expect(lead.getByText(/Napięcie bez blokady — prawdopodobne/)).toBeInTheDocument();
+    expect(lead.getByText("↑ rośnie")).toBeInTheDocument();
+    expect(lead.getByText("Chipy")).toBeInTheDocument();
+    expect(lead.getByText("Drony")).toBeInTheDocument();
+    expect(lead.getByText(/Bliski Wschód/)).toBeInTheDocument();
+    const second = within(cards[1] as HTMLElement);
+    expect(second.queryByText(/nowe$/)).not.toBeInTheDocument();
+    expect(second.getByText("Raport sytuacyjny w przygotowaniu")).toBeInTheDocument();
     expect(screen.queryByText(/Nowe sytuacje/)).not.toBeInTheDocument();
   });
 
+  it("folds dormant Threads into a collapsed section at the bottom", async () => {
+    renderApp("/threads", [thread, { ...asleep, dormant: true }]);
+
+    const toggle = await screen.findByText("Uśpione · 1");
+    const sleeper = screen.getByRole("link", { name: "Arktyka" });
+    expect(sleeper).not.toBeVisible();
+    fireEvent.click(toggle);
+    expect(sleeper).toBeVisible();
+  });
+});
+
+describe("Threads and Radar", () => {
   it("shows the Moves of the last 24 h on the Radar", async () => {
     renderApp("/");
 
@@ -128,7 +175,7 @@ describe("Threads and Radar", () => {
   });
 
   it("says so when nothing moved in 24 h", async () => {
-    renderApp("/", { ...thread, reportedAt: hoursAgo(30) });
+    renderApp("/", [{ ...thread, reportedAt: hoursAgo(30) }]);
 
     expect(await screen.findByText("Bez zmian w Raportach z ostatnich 24 h.")).toBeInTheDocument();
   });

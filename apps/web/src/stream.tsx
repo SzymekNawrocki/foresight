@@ -4,8 +4,8 @@ import { EventCard } from "./EventCard.js";
 import { matches, type StreamSearch, topicsOf } from "./filters.js";
 import { TOPIC_LABEL } from "./labels.js";
 import { useRecent } from "./pages.js";
-import { LoadError, PageHeader, Panel } from "./panel.js";
-import { ThreadList, useThreads } from "./threads.js";
+import { LoadError, PageHeader, Section } from "./panel.js";
+import { ThreadGrid, useThreads } from "./threads.js";
 import { Button } from "./ui/button.js";
 import { Loading } from "./ui/skeleton.js";
 import { Toggle, ToggleGroup } from "./ui/toggle-group.js";
@@ -95,9 +95,9 @@ function RegionThreads({ region }: { region: Region }) {
   const here = threads.data?.threads.filter((t) => !t.dormant && t.regions.includes(region)) ?? [];
   if (!threads.isSuccess || here.length === 0) return null;
   return (
-    <Panel title="Wątki w tym Regionie">
-      <ThreadList threads={here} />
-    </Panel>
+    <Section title="Wątki w tym Regionie">
+      <ThreadGrid threads={here} label="Wątki w tym Regionie" />
+    </Section>
   );
 }
 
