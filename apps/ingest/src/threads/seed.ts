@@ -1,23 +1,68 @@
-import type { Region, Thread } from "@foresight/shared";
+import type { Region, Thread, Topic } from "@foresight/shared";
 import type { ThreadStore } from "./store.js";
 
 /** A Thread the Niche starts with; `reuse` names an active Thread to rename instead of a new one. */
 export interface SeedThread {
   name: string;
   regions: Region[];
+  /** Sent to the model with `scope`, so an Event can attach before the Thread has any (#79). */
+  topics: Topic[];
+  /** One sentence on what belongs in the Thread; it costs input tokens on every batch, so keep it short. */
+  scope: string;
   reuse?: string;
 }
 
 // Accepted by the owner in #65. "Ukraina – Starlink" already has 9 dispatches, so it is renamed.
 export const SEED_THREADS: SeedThread[] = [
-  { name: "Wojna dronów: Rosja–Ukraina", regions: ["russia-eurasia", "europe"] },
-  { name: "Uderzenia w rosyjskie rafinerie i energetykę", regions: ["russia-eurasia"] },
-  { name: "Starlink i alternatywy dla Ukrainy", regions: ["europe", "russia-eurasia", "north-america"], reuse: "1b890b15" },
-  { name: "Kontrola eksportu chipów USA–Chiny", regions: ["north-america", "asia-pacific"] },
-  { name: "Tajwan i TSMC", regions: ["asia-pacific"] },
-  { name: "Ataki państwowych grup APT na infrastrukturę", regions: ["global"] },
-  { name: "Wyścig zbrojeń w Europie (kontrakty i zakupy)", regions: ["europe"] },
-  { name: "Militaryzacja kosmosu (USA, Chiny, Rosja)", regions: ["global"] },
+  {
+    name: "Wojna dronów: Rosja–Ukraina",
+    regions: ["russia-eurasia", "europe"],
+    topics: ["drones"],
+    scope: "Drony i obrona przed nimi w wojnie Rosji z Ukrainą, także incydenty w krajach NATO.",
+  },
+  {
+    name: "Uderzenia w rosyjskie rafinerie i energetykę",
+    regions: ["russia-eurasia"],
+    topics: ["drones"],
+    scope: "Ataki na rafinerie, elektrownie i sieci energetyczne Rosji.",
+  },
+  {
+    name: "Starlink i alternatywy dla Ukrainy",
+    regions: ["europe", "russia-eurasia", "north-america"],
+    topics: ["space"],
+    scope: "Łączność satelitarna Ukrainy: Starlink, spory z Muskiem, alternatywy.",
+    reuse: "1b890b15",
+  },
+  {
+    name: "Kontrola eksportu chipów USA–Chiny",
+    regions: ["north-america", "asia-pacific"],
+    topics: ["chips", "ai"],
+    scope: "Ograniczenia eksportu chipów i GPU z USA, także do krajów trzecich, i odpowiedzi Chin.",
+  },
+  {
+    name: "Tajwan i TSMC",
+    regions: ["asia-pacific"],
+    topics: ["chips", "defence-industry"],
+    scope: "Presja Chin na Tajwan i ryzyko dla produkcji TSMC.",
+  },
+  {
+    name: "Ataki państwowych grup APT na infrastrukturę",
+    regions: ["global"],
+    topics: ["cyber"],
+    scope: "Ataki hakerów powiązanych z państwami na firmy, infrastrukturę i rządy.",
+  },
+  {
+    name: "Wyścig zbrojeń w Europie (kontrakty i zakupy)",
+    regions: ["europe"],
+    topics: ["defence-industry", "drones"],
+    scope: "Zakupy uzbrojenia, kontrakty i fabryki zbrojeniowe w każdym kraju Europy.",
+  },
+  {
+    name: "Militaryzacja kosmosu (USA, Chiny, Rosja)",
+    regions: ["global"],
+    topics: ["space"],
+    scope: "Satelity wojskowe, broń antysatelitarna i manewry na orbicie.",
+  },
 ];
 
 export interface SeedPlan {

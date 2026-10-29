@@ -113,7 +113,7 @@ describe("analyzePending", () => {
     const { analysis, budget, saved, threads } = setup({
       replies: [reply],
       pending: events.slice(0, 2),
-      active: [{ id: "hormuz", name: "Cieśnina Ormuz" }],
+      active: [{ id: "hormuz", name: "Cieśnina Ormuz", regions: [], topics: [] }],
     });
 
     await analysis.analyzePending(budget);

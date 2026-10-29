@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { validAnalysis } from "../analysis/fixtures.js";
 import { eventOf, NOW, threadOf } from "./fixtures.js";
 import { createThreadLinks, MAX_PROMPT_THREADS, promptThreads } from "./links.js";
+import { SEED_THREADS } from "./seed.js";
 import { InMemoryThreadStore } from "./store.js";
 
 function setup(threads = [threadOf("aaaa0001")]) {
@@ -26,9 +27,22 @@ describe("promptThreads", () => {
       threadOf("aaaa0005", { status: "merged" }),
     ];
 
+    expect(promptThreads(list, NOW).map((t) => t.id)).toEqual(["aaaa0002", "aaaa0001"]);
+  });
+
+  it("sends each Thread's Regions and Topics", () => {
+    const list = [threadOf("aaaa0001", { regions: ["europe"], topics: ["cyber"] })];
+
+    expect(promptThreads(list, NOW)).toEqual([{ id: "aaaa0001", name: "Wątek aaaa0001", regions: ["europe"], topics: ["cyber"] }]);
+  });
+
+  it("adds a seed Thread's scope and seed Topics, matched by name", () => {
+    const [seed] = SEED_THREADS;
+    if (!seed) throw new Error("expected a seed Thread");
+    const list = [threadOf("aaaa0001", { name: seed.name, topics: ["ai"] })];
+
     expect(promptThreads(list, NOW)).toEqual([
-      { id: "aaaa0002", name: "Wątek aaaa0002" },
-      { id: "aaaa0001", name: "Wątek aaaa0001" },
+      expect.objectContaining({ scope: seed.scope, topics: [...new Set(["ai", ...seed.topics])] }),
     ]);
   });
 
