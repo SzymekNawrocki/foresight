@@ -14,7 +14,13 @@ tych nazw w kodzie i tekstach), `docs/adr/` (decyzje trudne do odwrócenia).
 
 1 issue = 1 gałąź = 1 PR. TDD: czerwony → zielony → refaktor. Conventional Commits
 (`feat:`, `fix:`, `chore:`, `docs:`, `ci:`, `test:`), po angielsku, tryb rozkazujący.
-Merge robi człowiek.
+Dwie ścieżki (ADR 0012), wybiera je check `Lane`:
+
+- **szybka** — tylko kod appki: agent otwiera PR i włącza `gh pr merge --auto --merge`;
+  merge i deploy dzieją się same po zielonych bramkach. Po merge'u agent sprawdza
+  `gh run list --workflow Deploy` i smoke na prodzie.
+- **wolna** — `infra/`, `.github/`, `scripts/`, prompt, eval, Wątki startowe: agent NIE włącza
+  auto-merge i NIE dodaje etykiety `owner-approved` — robi to tylko człowiek, on też merguje.
 
 ## Stos i komendy
 
