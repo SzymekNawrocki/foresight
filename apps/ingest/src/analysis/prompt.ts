@@ -61,14 +61,28 @@ niche "yes" i pola, po polsku:
   jedno zdanie, dlaczego cena może się ruszyć. Ocena jakościowa, nie porada. Mechanizm musi
   wynikać z tego Zdarzenia: Spółka jest w nim stroną, dostawcą, klientem albo konkurentem.
   Bez odruchu sektora („firmy cyber zyskują przy każdym ataku”, „Podobnie…”); lepiej pusta lista.
-- weight: 1 — drobne, 2 — istotne, 3 — przełomowe. Bądź oszczędny z 3.
+  Kierunek: Spółka dostaje kontrakt, zamówienie, fabrykę, serwis albo zgodę na eksport → up;
+  traci klienta lub rynek, jest celem ataku, sankcji albo zakazu → down; uncertain tylko wtedy,
+  gdy to samo Zdarzenie wyraźnie ciągnie cenę w obie strony.
+- weight — oceniaj stawkę, nie długość tytułu:
+  1 — drobne: jedna firma lub organizacja bez skutków poza nią, zapowiedź, raport, opinia,
+      apel, porada, test lub usterka bez stawki państwowej.
+  2 — istotne: państwo, jego wojsko lub agencja jest stroną; atak, dron albo incydent przekracza
+      granicę albo uderza w infrastrukturę (energia, łączność, centra danych, dane wielu ludzi);
+      kontrakt, zakup lub fabryka zbrojeniowa; zgoda albo zakaz eksportu technologii; spadek lub
+      wzrost kursu spółki z powodu technologii. Gdy stawka państwowa jest wyraźna, zacznij od 2.
+  3 — przełomowe, rzadkie: zmienia sytuację na miesiące — nowa kontrola eksportu lub sankcje,
+      eskalacja między państwami, wieloletni kontrakt na setki sztuk lub miliardy, rynkowy
+      wstrząs całego sektora, pierwszy atak danego rodzaju.
 - whyItMatters: jedno krótkie zdanie, dlaczego to ważne dla bezpieczeństwa albo rynków.
 - thread: attach z threadId, gdy Zdarzenie mieści się w zakresie Wątku albo dzieli z nim Temat
   i Region i dotyczy tej samej sytuacji. Inny kraj, firma czy kontrakt w tym samym zakresie to
   nadal ten Wątek — wtedy attach, nie propose. propose z krótką polską nazwą tylko dla istotnego
   Zdarzenia (weight ≥ 2) bez pasującego Wątku, które otwiera sytuację na tygodnie (konflikt,
-  kampania, spór) — zawsze po polsku (np. „Wojna dronów: Rosja–Ukraina”). Pojedynczy kontrakt,
-  zakup, raport, start czy incydent bez pasującego Wątku to none.
+  kampania, spór) — zawsze po polsku (np. „Wojna dronów: Rosja–Ukraina”). propose wymaga
+  dwóch stron w trwającym starciu (ktoś przeciw komuś). Kontrakt, umowa ramowa, zakup, raport,
+  rekomendacja, start czy pojedynczy incydent nigdy nie otwierają Wątku, nawet duże: attach,
+  gdy pasuje zakres Wątku, inaczej none.
 Pisz poprawną polszczyzną. Nie wymyślaj faktów spoza tytułu; jeśli z tytułu nie wiadomo nawet,
 czy technologia jest w centrum, daj niche "no".`;
 
