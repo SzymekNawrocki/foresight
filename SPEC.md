@@ -90,8 +90,9 @@ cotygodniowe podsumowania AI, powiadomienia, Zdarzenia spoza Niszy.
 
 ## Role i proces (Ścieżka 05)
 
-- **Człowiek = tech lead / owner**: zatwierdza issue i plan, robi review i merge, zatwierdza
-  `apply` i deploy, sam odpala komendy operacyjne (`terraform`, `aws`, `gh`, `pnpm`).
+- **Człowiek = tech lead / owner**: zatwierdza **zamiar** (issue i plan) i **wynik** (prod,
+  wynik evala), a nie każdy krok pośredni (ADR 0012). Robi review i merge PR-ów z wolnej
+  ścieżki, zatwierdza `apply` w HCP, sam odpala komendy operacyjne (`terraform`, `aws`).
 - **Agent = implementacja**.
 - Źródło prawdy: spec, słownik i ADR-y w repo; plastry w GitHub Issues; 1 issue = 1 PR.
 - Instrukcje agenta: `AGENTS.md`, `CLAUDE.md` tylko importuje `AGENTS.md`.
@@ -105,9 +106,13 @@ Cykl plastra:
 4. PR z sekcjami „Co i dlaczego" oraz „Czego uczy ten plaster" (odnośniki do mapy).
 5. AI review lokalnie (`/code-review` w Claude Code), wynik jako komentarz w PR.
    Nie w GitHub Actions — płatne API łamie zasadę 0 zł.
-6. Bramki CI (automat).
-7. Review i merge — człowiek.
-8. Deploy — człowiek zatwierdza `apply` w HCP i/lub deploy w GitHub Environment.
+6. Bramki CI (automat), w tym check `Lane`, który wybiera ścieżkę (ADR 0012):
+   - **szybka** (tylko `apps/`, `packages/` poza promptem/evalem): auto-merge po zielonych
+     bramkach → deploy bez zatwierdzania → smoke test → automatyczny rollback, gdy padnie;
+   - **wolna** (`infra/`, `.github/`, `scripts/`, prompt, eval, Wątki startowe): `Lane` czeka
+     na etykietę `owner-approved`, review i merge robi człowiek.
+7. Zmiany promptu: eval w CI wkleja wynik do PR; człowiek porównuje z baseline'em z `main`.
+8. Infrastruktura — człowiek zatwierdza `apply` w HCP.
 9. Domknięcie — wpis w `devsecops/learning-records/`, człowiek odhacza mapę.
 
 Lekcja HTML (teoria + 10 ABCD) tylko dla zupełnie nowego tematu i na prośbę.
@@ -172,9 +177,14 @@ CloudWatch (alarmy) ─► SNS ─► e-mail właściciela
 **GitHub Actions (każdy PR):** `pnpm install --frozen-lockfile`, testy, `tsc`, lint,
 Semgrep, gitleaks, SCA (Trivy `fs`), Checkov na `infra/`, reguła 0 zł.
 
-**GitHub Actions (merge do `main`, Environment z zatwierdzeniem):** build ZIP → SBOM (Syft) →
-podpis `cosign sign-blob` (keyless, OIDC GitHub) → `cosign verify-blob` → rola `deploy` →
-nowa wersja → alias `live`.
+**GitHub Actions (PR):** `Lane` (szybka/wolna ścieżka); eval modelu (Groq, darmowy plan) na PR-ach
+dotykających analizy, LLM, evala i Wątków — wynik jako komentarz; auto-merge Dependabota npm
+patch/minor.
+
+**GitHub Actions (merge do `main` + co tydzień we wtorek, Environment bez zatwierdzania):** build ZIP →
+SBOM (Syft) → podpis `cosign sign-blob` (keyless, OIDC GitHub) → `cosign verify-blob` → rola
+`deploy` → zapis bieżącego kodu → nowa wersja → smoke test (`/`, `/api/health`, `/api/threads`)
+→ przy porażce przywrócenie poprzedniego kodu.
 
 **HCP Terraform:** speculative plan jako status check na PR; `apply` po merge'u i ręcznym
 zatwierdzeniu.

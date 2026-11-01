@@ -1,6 +1,7 @@
 name: Deploy
 
-# Merge to main → build ZIPs → SBOM → keyless signatures → (approval) → verify → Lambdas.
+# Merge to main → build ZIPs → SBOM → keyless signatures → verify → Lambdas → smoke test,
+# and the previous code goes back if the smoke test fails.
 on:
   push:
     branches: [main]
@@ -12,6 +13,10 @@ on:
       - "pnpm-lock.yaml"
       - "pnpm-workspace.yaml"
       - ".github/workflows/deploy.yml"
+  # Merges made with GITHUB_TOKEN (Dependabot auto-merge) do not trigger `push`.
+  # A weekly run after Dependabot's Monday updates puts main on prod anyway.
+  schedule:
+    - cron: "0 9 * * 2"
   workflow_dispatch:
 
 permissions:
@@ -42,7 +47,7 @@ jobs:
         with:
           persist-credentials: false
       - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
           cache: pnpm
@@ -69,7 +74,7 @@ jobs:
             cosign sign-blob --yes --bundle "foresight-$name.zip.sigstore.json" "foresight-$name.zip"
           done
 
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: foresight-lambdas
           path: |
@@ -82,11 +87,11 @@ jobs:
     name: Verify and deploy
     needs: build
     runs-on: ubuntu-latest
-    environment: production # approval gate + the only `sub` the AWS role trusts
+    environment: production # the only `sub` the AWS role trusts; no reviewer since ADR 0012
     permissions:
       id-token: write # OIDC to AWS
     steps:
-      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: foresight-lambdas
 
@@ -110,6 +115,14 @@ jobs:
           aws-region: eu-central-1
           role-session-name: deploy-${{ github.run_id }}
 
+      # The rollback point: the code that is live now (GetFunction gives a short-lived URL to it).
+      - name: Save the current code
+        run: |
+          for name in $FUNCTIONS; do
+            url=$(aws lambda get-function --function-name "foresight-prod-$name" --query Code.Location --output text)
+            curl --fail --silent --show-error --output "previous-$name.zip" "$url"
+          done
+
       - name: Upload code and publish versions
         run: |
           for name in $FUNCTIONS; do
@@ -122,4 +135,21 @@ jobs:
           done
 
       - name: Smoke test
-        run: curl --fail --silent --show-error --retry 3 --retry-delay 5 "$SITE_URL/api/health"
+        id: smoke
+        run: |
+          for path in /api/health /api/threads /; do
+            curl --fail --silent --show-error --output /dev/null \
+              --retry 3 --retry-delay 5 --retry-all-errors "$SITE_URL$path"
+            echo "200 $path"
+          done
+
+      - name: Roll back
+        if: failure() && steps.smoke.outcome == 'failure'
+        run: |
+          for name in $FUNCTIONS; do
+            fn="foresight-prod-$name"
+            aws lambda update-function-code --function-name "$fn" \
+              --zip-file "fileb://previous-$name.zip" --output text --query CodeSha256
+            aws lambda wait function-updated-v2 --function-name "$fn"
+          done
+          echo "::error::Smoke test failed; the previous code is back on prod."

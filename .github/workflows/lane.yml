@@ -1,0 +1,48 @@
+name: Lane
+
+# Fast lane: app code merges itself once every required check is green.
+# Slow lane: changes that can cost money, widen access or change the model's behaviour
+# wait for the owner. This check fails until the owner adds the `owner-approved` label.
+# It guards against accidents, not against someone with write access (they can add the label).
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+
+permissions:
+  contents: read
+
+jobs:
+  lane:
+    name: Lane
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Pick the lane
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          APPROVED: ${{ contains(github.event.pull_request.labels.*.name, 'owner-approved') }}
+        run: |
+          slow=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" | grep -E \
+            -e '^infra/' \
+            -e '^\.github/' \
+            -e '^scripts/' \
+            -e '^apps/ingest/src/analysis/prompt\.ts$' \
+            -e '^apps/ingest/src/eval/' \
+            -e '^apps/ingest/src/threads/seed\.ts$' \
+            -e '^apps/ingest/src/llm/' || true)
+          if [ -z "$slow" ]; then
+            echo "Fast lane: app code only."
+            exit 0
+          fi
+          echo "Slow lane, because of:"
+          echo "$slow" | sed 's/^/  /'
+          if [ "$APPROVED" = "true" ]; then
+            echo "Label owner-approved is set."
+            exit 0
+          fi
+          echo "::error::Slow lane: the owner reviews this PR and adds the owner-approved label."
+          exit 1
