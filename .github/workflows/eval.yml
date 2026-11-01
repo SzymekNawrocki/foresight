@@ -1,0 +1,69 @@
+name: Eval
+
+# Runs the model eval on PRs that can change what the model decides, and posts the score.
+# A manual run on main gives the baseline. Groq is on the free plan, so this costs 0 PLN.
+on:
+  pull_request:
+    paths:
+      - "apps/ingest/src/analysis/**"
+      - "apps/ingest/src/eval/**"
+      - "apps/ingest/src/llm/**"
+      - "apps/ingest/src/threads/**"
+      - "packages/shared/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: eval-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  eval:
+    name: Model eval
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write # the score goes into a PR comment
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      - name: Run the eval
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+        run: |
+          if [ -z "$GROQ_API_KEY" ]; then
+            echo "::warning::No GROQ_API_KEY secret (fork PR or not set yet), eval skipped."
+            echo '_Eval skipped: no `GROQ_API_KEY` secret._' > eval.md
+            exit 0
+          fi
+          pnpm eval 2>&1 | tee eval.log
+          {
+            echo "### Model eval · ${GITHUB_SHA::7}"
+            echo
+            grep -E '^(Checks|Thread decisions|Niche gate|Tokens):' eval.log | sed 's/^/- /'
+            echo
+            echo "<details><summary>Cases</summary>"
+            echo
+            echo '```'
+            grep -E '^(PASS|FAIL)|^ +- ' eval.log
+            echo '```'
+            echo "</details>"
+          } > eval.md
+          cat eval.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Post the score on the PR
+        if: github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+        run: gh pr comment "$PR" -R "$GITHUB_REPOSITORY" --body-file eval.md --edit-last --create-if-none
