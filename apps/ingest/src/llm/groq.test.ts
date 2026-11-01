@@ -78,6 +78,21 @@ describe("createGroqLlm", () => {
     });
   });
 
+  it("tells an answer cut off at the token cap apart from a wrong one", async () => {
+    const fetch = vi.fn(async () =>
+      Response.json({
+        choices: [{ message: { role: "assistant", content: '{"weig' }, finish_reason: "length" }],
+        usage: { total_tokens: 4_600 },
+      }),
+    );
+
+    await expect(llmWith(fetch).complete(request)).resolves.toEqual({
+      ok: false,
+      reason: "truncated",
+      usage: { model: "openai/gpt-oss-20b", tokens: 4_600 },
+    });
+  });
+
   it("rejects an answer without a usage report — its spend could not be counted", async () => {
     const fetch = vi.fn(async () => completion(JSON.stringify({ weight: 2 }), null));
 
