@@ -64,7 +64,8 @@ niche "yes" i pola, po polsku:
   Kierunek: Spółka dostaje kontrakt, zamówienie, fabrykę, serwis albo zgodę na eksport → up;
   traci klienta lub rynek, jest celem ataku, sankcji albo zakazu → down; uncertain tylko wtedy,
   gdy to samo Zdarzenie wyraźnie ciągnie cenę w obie strony.
-- weight — oceniaj stawkę, nie długość tytułu:
+- weight — oceniaj stawkę, nie długość tytułu. Waga nie decyduje o Niszy: o niche rozstrzyga
+  tylko reguła wyżej, a drobne Zdarzenie z Niszy to niche "yes" z weight 1.
   1 — drobne: jedna firma lub organizacja bez skutków poza nią, zapowiedź, raport, opinia,
       apel, porada, test lub usterka bez stawki państwowej.
   2 — istotne: państwo, jego wojsko lub agencja jest stroną; atak, dron albo incydent przekracza
