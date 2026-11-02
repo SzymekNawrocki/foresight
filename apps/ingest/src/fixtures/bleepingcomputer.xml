@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Trimmed from https://www.bleepingcomputer.com/feed/ on 2026-11-02: three items, title/link/date only. -->
+<rss version="2.0">
+  <channel>
+    <title>bleepingcomputer</title>
+    <item>
+      <title>Over 1,000 GitLab servers vulnerable to ongoing RCE attacks</title>
+      <link>https://www.bleepingcomputer.com/news/security/over-1-000-gitlab-servers-vulnerable-to-code-execution-attacks/</link>
+      <pubDate>Mon, 02 Nov 2026 07:47:00 -0500</pubDate>
+    </item>
+    <item>
+      <title>Synology warns of C3RB3R ransomware attacks targeting NAS devices</title>
+      <link>https://www.bleepingcomputer.com/news/security/synology-warns-customers-of-ongoing-c3rb3r-ransomware-attacks/</link>
+      <pubDate>Mon, 02 Nov 2026 06:28:42 -0500</pubDate>
+    </item>
+    <item>
+      <title>Ivanti patches two more Connect Secure zero-days chained in attacks</title>
+      <link>https://www.bleepingcomputer.com/news/security/ivanti-patches-two-more-connect-secure-zero-days-chained-in-attacks/</link>
+      <pubDate>Mon, 02 Nov 2026 04:33:26 -0500</pubDate>
+    </item>
+  </channel>
+</rss>

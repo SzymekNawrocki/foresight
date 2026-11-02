@@ -235,7 +235,11 @@ Plaster 10 (2026-10-20) nadał Źródłom Poziomy i dodał 8 oficjalnych Źróde
 na dobę): Biały Dom (akty prezydenta), Departament Obrony USA, ONZ (komunikaty i UN News), Rada UE,
 EBC, Fed, CISA. Poziom B: BBC, Al Jazeera, CNBC, Notes from Poland, The Record, Breaking Defense,
 SpaceNews; poziom C: OilPrice, The Diplomat, MIT Technology Review, EE Times. Przy zaległościach
-Meldunki powstają najpierw z A i B. Wpisy starsze niż 48 h są pomijane, więc nowe Źródło nie
+Meldunki powstają najpierw z A i B. Plaster 13 (2026-11-02, #85) usunął ogólne Źródła spoza Niszy
+(Al Jazeera, CNBC, OilPrice, ONZ, EBC, Fed; ~95 wpisów na dobę) i dodał niszowe: CERT Polska (A),
+Kyiv Independent, The War Zone, Defense News, DefenseScoop, BleepingComputer, CyberScoop (B),
+DIGITIMES Asia (C, ~60 na dobę, z resztek budżetu). Raport workera pokazuje zdrowie Źródeł
+(Meldunki w Niszy i poza nią per Źródło). Wpisy starsze niż 48 h są pomijane, więc nowe Źródło nie
 zasypuje kolejki swoim archiwum. Odrzucone: Komisja Europejska (szum), NATO, Departament Stanu,
 IEA, OPEC, MSZ Rosji i Japonii (blokują boty lub nie mają RSS), OFAC (martwy feed).
 

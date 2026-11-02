@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Trimmed from https://cert.pl/en/rss.xml on 2026-11-02: three items, title/link/date only. -->
+<rss version="2.0">
+  <channel>
+    <title>cert-pl</title>
+    <item>
+      <title>Vulnerabilities in Request Tracker and RT for Incident Response software</title>
+      <link>https://cert.pl/en/posts/2026/10/CVE-2026-105454/</link>
+      <pubDate>Fri, 30 Oct 2026 14:55:00 +0100</pubDate>
+    </item>
+    <item>
+      <title>Vulnerabilities in Płatnik software</title>
+      <link>https://cert.pl/en/posts/2026/10/CVE-2026-110970/</link>
+      <pubDate>Fri, 30 Oct 2026 12:55:00 +0100</pubDate>
+    </item>
+    <item>
+      <title>Vulnerabilities in ARKETEAM Protectel software</title>
+      <link>https://cert.pl/en/posts/2026/10/CVE-2025-68391/</link>
+      <pubDate>Fri, 30 Oct 2026 11:55:00 +0100</pubDate>
+    </item>
+  </channel>
+</rss>

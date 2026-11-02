@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Trimmed from https://kyivindependent.com/news-archive/rss/ on 2026-11-02: three items, title/link/date only. -->
+<rss version="2.0">
+  <channel>
+    <title>kyiv-independent</title>
+    <item>
+      <title><![CDATA[Su-57 destroyed in engine fire at Akhtubinsk airfield in Russia, HUR confirms]]></title>
+      <link>https://kyivindependent.com/su-57-destroyed-in-engine-fire-at-akhtubinsk-airfield-in-russia-hur-confirms/</link>
+      <pubDate>Mon, 02 Nov 2026 13:08:45 GMT</pubDate>
+    </item>
+    <item>
+      <title><![CDATA[Nearly 800 people evacuated from Oleshky, Melania Trump says, as Kyiv, Moscow withhold figures]]></title>
+      <link>https://kyivindependent.com/nearly-800-people-evacuated-from-oleshky-melania-trump-says-as-kyiv-moscow-withhold-figures/</link>
+      <pubDate>Mon, 02 Nov 2026 12:48:10 GMT</pubDate>
+    </item>
+    <item>
+      <title><![CDATA[Russia formally leaves Council of Europe's anti-torture convention]]></title>
+      <link>https://kyivindependent.com/russia-formally-leaves-council-of-europes-anti-torture-convention/</link>
+      <pubDate>Mon, 02 Nov 2026 12:27:13 GMT</pubDate>
+    </item>
+  </channel>
+</rss>

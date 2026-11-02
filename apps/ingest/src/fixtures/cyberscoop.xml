@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Trimmed from https://cyberscoop.com/feed/ on 2026-11-02: three items, title/link/date only. -->
+<rss version="2.0">
+  <channel>
+    <title>cyberscoop</title>
+    <item>
+      <title>Could Nick Andersen&#8217;s leadership outlast the clock on his acting role?</title>
+      <link>https://cyberscoop.com/nick-andersen-cisa-acting-director-nomination/</link>
+      <pubDate>Mon, 02 Nov 2026 11:00:00 +0000</pubDate>
+    </item>
+    <item>
+      <title>Federal court tosses Trump lawsuit challenging Alaska Senate certification</title>
+      <link>https://cyberscoop.com/judge-dismisses-alaska-senate-lawsuit-peltola-sullivan/</link>
+      <pubDate>Sun, 01 Nov 2026 22:47:26 +0000</pubDate>
+    </item>
+    <item>
+      <title>China-backed threat group used agentic AI pentesting tool to compromise 140 sensitive targets in 11 days</title>
+      <link>https://cyberscoop.com/china-vapor-panda-agentic-ai-artex-campaign-crowdstrike/</link>
+      <pubDate>Fri, 30 Oct 2026 21:30:00 +0000</pubDate>
+    </item>
+  </channel>
+</rss>

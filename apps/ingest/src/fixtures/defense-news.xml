@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Trimmed from https://www.defensenews.com/arc/outboundfeeds/rss/?outputType=xml on 2026-11-02: three items, title/link/date only. -->
+<rss version="2.0">
+  <channel>
+    <title>defense-news</title>
+    <item>
+      <title>Australia unveils secretive Ghost Shark underwater drone payloads</title>
+      <link>https://www.defensenews.com/naval/2026/11/02/australia-unveils-secretive-ghost-shark-underwater-drone-payloads/</link>
+      <pubDate>Mon, 02 Nov 2026 08:00:24 +0000</pubDate>
+    </item>
+    <item>
+      <title>‘Open the hives’ — Why France is turning tank gunners into FPV pilots</title>
+      <link>https://www.defensenews.com/global/europe/2026/10/30/open-the-hives-why-france-is-turning-tank-gunners-into-fpv-pilots/</link>
+      <pubDate>Fri, 30 Oct 2026 17:57:48 +0000</pubDate>
+    </item>
+    <item>
+      <title>From tanks to space, Norway and Germany forge ahead with ‘Hansa’ defense pact</title>
+      <link>https://www.defensenews.com/global/europe/2026/10/30/from-tanks-to-space-norway-and-germany-forge-ahead-with-hansa-defense-pact/</link>
+      <pubDate>Fri, 30 Oct 2026 15:58:31 +0000</pubDate>
+    </item>
+  </channel>
+</rss>
