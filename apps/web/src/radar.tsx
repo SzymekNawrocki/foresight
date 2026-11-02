@@ -1,11 +1,13 @@
 import { type AnalyzedEvent, Topic } from "@foresight/shared";
 import { Link } from "@tanstack/react-router";
+import { useState } from "react";
 import { EventCard } from "./EventCard.js";
-import { freshness, movedThreads, radar, type ThreadMove, threadMoves } from "./intel.js";
+import { freshness, movedThreads, radar, theatre, threadCodes, type ThreadMove, threadMoves } from "./intel.js";
 import { CHANGE_ARROW, TOPIC_LABEL } from "./labels.js";
 import { useRecent } from "./pages.js";
 import { LoadError, PageHeader, Panel } from "./panel.js";
 import { useSession } from "./session.js";
+import { TheatreMap } from "./TheatreMap.js";
 import { useProposals, useThreads } from "./threads.js";
 import { When } from "./time.js";
 import { Badge } from "./ui/badge.js";
@@ -40,10 +42,20 @@ function EmptyDay({ events }: { events: readonly AnalyzedEvent[] }) {
   );
 }
 
-function MovedThread({ thread }: { thread: ListedThread }) {
+type Lighting = { lit: string | null; onLight: (id: string | null) => void };
+
+function MovedThread({ thread, code, lit, onLight }: { thread: ListedThread; code?: string | undefined } & Lighting) {
+  const on = lit === thread.id;
   return (
-    <li className="border-b border-border py-2.5 last:border-b-0">
+    <li
+      className={`-mx-3 border-b border-l-2 border-b-border px-3 py-2.5 transition-colors last:border-b-0 ${on ? "border-l-amber bg-amber-wash" : "border-l-transparent"}`}
+      onMouseEnter={() => onLight(thread.id)}
+      onMouseLeave={() => onLight(null)}
+      onFocus={() => onLight(thread.id)}
+      onBlur={() => onLight(null)}
+    >
       <div className="flex flex-wrap items-center gap-2">
+        {code && <span className={`data text-xs font-semibold ${on ? "text-amber" : "text-faint"}`}>{code}</span>}
         <Link to="/thread/$id" params={{ id: thread.id }} className="font-medium">
           {thread.name}
         </Link>
@@ -109,71 +121,92 @@ function InboxShortcut() {
   );
 }
 
-function ThreadsColumn() {
-  const threads = useThreads();
-  if (threads.isPending) return <Loading label="Ładuję Wątki" rows={2} />;
-  if (threads.isError) return <LoadError what="Wątków" retry={threads.refetch} />;
-  const now = new Date();
-  const moved = movedThreads(threads.data.threads, now);
-  const moves = threadMoves(threads.data.threads, now);
+function MovedPanel({ threads, codes, ...lighting }: { threads: ListedThread[]; codes: Map<string, string> } & Lighting) {
   return (
-    <>
-      <Panel title="Wątki w ruchu" aside="Nowe Zdarzenia od Raportu">
-        {moved.length === 0 ? (
-          <p className="text-muted">Żaden Wątek nie dostał dziś nowych Zdarzeń.</p>
-        ) : (
-          <ul>
-            {moved.map((t) => (
-              <MovedThread key={t.id} thread={t} />
-            ))}
-          </ul>
-        )}
-      </Panel>
-      <Panel title="Ruchy · 24 h" aside="Prawdopodobieństwo i sygnały">
-        {moves.length === 0 ? (
-          <p className="text-muted">Bez zmian w Raportach z ostatnich 24 h.</p>
-        ) : (
-          <ul>
-            {moves.map((m, i) => (
-              <MoveLine key={`${m.thread.id}-${i}`} item={m} />
-            ))}
-          </ul>
-        )}
-      </Panel>
-    </>
+    <Panel title="Wątki w ruchu" aside="Nowe Zdarzenia od Raportu">
+      {threads.length === 0 ? (
+        <p className="text-muted">Żaden Wątek nie dostał dziś nowych Zdarzeń.</p>
+      ) : (
+        <ul>
+          {threads.map((t) => (
+            <MovedThread key={t.id} thread={t} code={codes.get(t.id)} {...lighting} />
+          ))}
+        </ul>
+      )}
+    </Panel>
   );
 }
 
-// Radar (CONTEXT.md, ADR 0011): what matters in the Niche today and what is worth a post.
-// Two columns on desktop, one on mobile in the same order; no map — that lives on the Stream.
+function MovesPanel({ moves }: { moves: ThreadMove[] }) {
+  return (
+    <Panel title="Ruchy · 24 h" aside="Prawdopodobieństwo i sygnały">
+      {moves.length === 0 ? (
+        <p className="text-muted">Bez zmian w Raportach z ostatnich 24 h.</p>
+      ) : (
+        <ul>
+          {moves.map((m, i) => (
+            <MoveLine key={`${m.thread.id}-${i}`} item={m} />
+          ))}
+        </ul>
+      )}
+    </Panel>
+  );
+}
+
+// Radar (CONTEXT.md, ADR 0013): what matters in the Niche today and what is worth a post.
+// The map is the theatre in the centre; Threads in motion on the left, Moves and the Inbox on
+// the right. Below xl the map comes first, then the two side columns, then the Events.
 export function RadarPage() {
   const recent = useRecent();
-  const today = recent.data ? radar(recent.data.events, new Date()) : null;
+  const threads = useThreads();
+  const [lit, setLit] = useState<string | null>(null);
+  const now = new Date();
+  const today = recent.data ? radar(recent.data.events, now) : null;
+  const list = threads.data?.threads ?? [];
+  const codes = threadCodes(list);
+  // The newest fetch time, shown on the map as "STAN 13:15Z".
+  const updatedAt = recent.data?.events.reduce<string | undefined>((max, e) => (!max || e.fetchedAt > max ? e.fetchedAt : max), undefined);
+
+  const threadPanels =
+    threads.isPending ? (
+      <Loading label="Ładuję Wątki" rows={2} />
+    ) : threads.isError ? (
+      <LoadError what="Wątków" retry={threads.refetch} />
+    ) : null;
+
   return (
-    <div className="grid gap-6">
+    <div className="grid gap-4">
       <PageHeader title="Radar" subtitle="Co dziś ważne w Niszy i co nadaje się na post." />
       {today && <TopicBar counts={today.topics} />}
-      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
-        <Panel title="Najważniejsze dziś" aside="Waga, potem czas · 24 h">
-          {recent.isPending ? (
-            <Loading label="Ładuję Zdarzenia" />
-          ) : recent.isError ? (
-            <LoadError what="Zdarzeń" retry={recent.refetch} />
-          ) : today?.top.length ? (
-            <ol className="grid gap-3">
-              {today.top.map((e) => (
-                <li key={e.id}>
-                  <EventCard event={e} />
-                </li>
-              ))}
-            </ol>
-          ) : (
-            <EmptyDay events={recent.data.events} />
+      <div className="grid items-start gap-4 lg:grid-cols-2 xl:grid-cols-[17rem_minmax(0,1fr)_19rem]">
+        <div className="grid gap-4 lg:col-span-2 xl:col-span-1 xl:col-start-2 xl:row-start-1">
+          {recent.data && threads.data && (
+            <TheatreMap theatre={theatre(recent.data.events, list, now)} lit={lit} onLight={setLit} updatedAt={updatedAt} />
           )}
-        </Panel>
-        <div className="grid gap-6">
+          <Panel title="Najważniejsze dziś" aside="Waga, potem czas · 24 h">
+            {recent.isPending ? (
+              <Loading label="Ładuję Zdarzenia" />
+            ) : recent.isError ? (
+              <LoadError what="Zdarzeń" retry={recent.refetch} />
+            ) : today?.top.length ? (
+              <ol className="grid gap-2">
+                {today.top.map((e) => (
+                  <li key={e.id}>
+                    <EventCard event={e} />
+                  </li>
+                ))}
+              </ol>
+            ) : (
+              <EmptyDay events={recent.data.events} />
+            )}
+          </Panel>
+        </div>
+        <div className="grid gap-4 xl:col-start-1 xl:row-start-1">
+          {threadPanels ?? <MovedPanel threads={movedThreads(list, now)} codes={codes} lit={lit} onLight={setLit} />}
+        </div>
+        <div className="grid gap-4 xl:col-start-3 xl:row-start-1">
           <InboxShortcut />
-          <ThreadsColumn />
+          {threadPanels ?? <MovesPanel moves={threadMoves(list, now)} />}
         </div>
       </div>
     </div>

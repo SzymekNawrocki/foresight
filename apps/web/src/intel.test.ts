@@ -1,6 +1,6 @@
 import type { AnalyzedEvent, ThreadsResponse } from "@foresight/shared";
 import { describe, expect, it } from "vitest";
-import { briefing, freshness, joinCandidates, regionOfCountry, threadGrid } from "./intel.js";
+import { briefing, freshness, joinCandidates, regionOfCountry, theatre, threadCodes, threadGrid } from "./intel.js";
 
 describe("threadGrid", () => {
   const listed = (id: string, lastEventAt: string, newEvents: number, dormant = false): ThreadsResponse["threads"][number] => ({
@@ -192,5 +192,77 @@ describe("joinCandidates", () => {
     expect(suggested.map((c) => c.thread.id)).toEqual(["aaaa0003"]);
     expect(others).toEqual([]);
     expect(joinCandidates(proposal, threads, "CIESNINA").suggested.map((c) => c.thread.id)).toEqual(["aaaa0002"]);
+  });
+});
+
+describe("threadCodes", () => {
+  const thread = (id: string, createdAt: string): ThreadsResponse["threads"][number] => ({
+    id,
+    name: id,
+    status: "active",
+    createdAt,
+    lastEventAt: createdAt,
+    eventCount: 1,
+    newEvents: 0,
+    newWeight: 0,
+    regions: [],
+    dormant: false,
+  });
+
+  it("numbers Threads by when they were created, dormant ones included, so a code does not move", () => {
+    const codes = threadCodes([
+      thread("bbbb0002", "2026-10-20T00:00:00.000Z"),
+      { ...thread("bbbb0003", "2026-10-01T00:00:00.000Z"), dormant: true },
+      thread("bbbb0001", "2026-10-10T00:00:00.000Z"),
+    ]);
+
+    expect(Object.fromEntries(codes)).toEqual({ bbbb0003: "W-01", bbbb0001: "W-02", bbbb0002: "W-03" });
+  });
+});
+
+describe("theatre", () => {
+  const thread = (id: string, regions: ThreadsResponse["threads"][number]["regions"], extra: Partial<ThreadsResponse["threads"][number]> = {}) => ({
+    id,
+    name: `Wątek ${id}`,
+    status: "active" as const,
+    createdAt: `2026-10-0${id.at(-1)}T00:00:00.000Z`,
+    lastEventAt: "2026-10-28T08:00:00.000Z",
+    eventCount: 4,
+    newEvents: 1,
+    newWeight: 2,
+    regions,
+    dormant: false,
+    ...extra,
+  });
+
+  it("counts Niche Events of the last 24 h per Region and marks a Region with a Breakthrough", () => {
+    const { regions, events } = theatre(
+      [analyzed("a", 1, 3, ["europe", "russia-eurasia"]), analyzed("b", 2, 1, ["europe"]), analyzed("c", 30, 3, ["africa"])],
+      [],
+      now,
+    );
+
+    expect(regions.europe).toEqual({ events: 2, breakthrough: true });
+    expect(regions["russia-eurasia"]).toEqual({ events: 1, breakthrough: true });
+    expect(regions.africa).toEqual({ events: 0, breakthrough: false });
+    expect(events).toBe(2);
+  });
+
+  it("puts every active Thread on its first Region that is not global, with its code; dormant and global-only ones stay off", () => {
+    const { markers } = theatre(
+      [],
+      [
+        thread("cccc0001", ["global", "asia-pacific", "north-america"], { newWeight: 3 }),
+        thread("cccc0002", ["europe"], { dormant: true }),
+        thread("cccc0003", ["global"]),
+        thread("cccc0004", ["europe"], { newEvents: 0, newWeight: 0 }),
+      ],
+      now,
+    );
+
+    expect(markers).toEqual([
+      { id: "cccc0001", code: "W-01", name: "Wątek cccc0001", region: "asia-pacific", newEvents: 1, hot: true },
+      { id: "cccc0004", code: "W-04", name: "Wątek cccc0004", region: "europe", newEvents: 0, hot: false },
+    ]);
   });
 });

@@ -158,3 +158,50 @@ export function joinCandidates(
   const shares = (c: JoinCandidate) => c.topics.length + c.actors.length > 0;
   return { suggested: candidates.filter(shares), others: candidates.filter((c) => !shares(c)) };
 }
+
+/** Stable short codes W-01, W-02… in the order Threads were created, dormant ones included. */
+export function threadCodes(threads: readonly ListedThread[]): Map<string, string> {
+  const ordered = threads.toSorted((a, b) => a.createdAt.localeCompare(b.createdAt) || a.id.localeCompare(b.id));
+  return new Map(ordered.map((t, i) => [t.id, `W-${String(i + 1).padStart(2, "0")}`]));
+}
+
+export interface TheatreMarker {
+  id: string;
+  code: string;
+  name: string;
+  region: Exclude<Region, "global">;
+  newEvents: number;
+  /** A Breakthrough (Weight 3) among its Entries since the last Report. */
+  hot: boolean;
+}
+
+export interface Theatre {
+  /** Niche Events of the last 24 h per Region, and whether one of them is a Breakthrough. */
+  regions: Record<Region, { events: number; breakthrough: boolean }>;
+  /** Niche Events of the last 24 h, each counted once. */
+  events: number;
+  /** Active Threads on their first Region that is not global. */
+  markers: TheatreMarker[];
+}
+
+/** The map in the centre of the Radar (ADR 0013): Region activity and active Threads. */
+export function theatre(events: readonly AnalyzedEvent[], threads: readonly ListedThread[], now: Date): Theatre {
+  const since = new Date(now.getTime() - 24 * 3_600_000).toISOString();
+  const regions = Object.fromEntries(Region.options.map((r) => [r, { events: 0, breakthrough: false }])) as Theatre["regions"];
+  let total = 0;
+  for (const { analysis, publishedAt } of events) {
+    if (!analysis || publishedAt < since) continue;
+    total++;
+    for (const r of new Set(analysis.regions)) {
+      regions[r].events++;
+      if (analysis.weight === 3) regions[r].breakthrough = true;
+    }
+  }
+  const codes = threadCodes(threads);
+  const markers = threads.flatMap((t) => {
+    const region = t.regions.find((r): r is TheatreMarker["region"] => r !== "global");
+    if (t.dormant || !region) return [];
+    return [{ id: t.id, code: codes.get(t.id) ?? "", name: t.name, region, newEvents: t.newEvents, hot: t.newWeight === 3 }];
+  });
+  return { regions, events: total, markers };
+}
