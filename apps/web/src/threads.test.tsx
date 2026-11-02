@@ -149,7 +149,11 @@ describe("Threads page", () => {
     expect(lead.getByText("Chipy")).toBeInTheDocument();
     expect(lead.getByText("Drony")).toBeInTheDocument();
     expect(lead.getByText(/Bliski Wschód/)).toBeInTheDocument();
+    // The code follows creation order; the gauge fills 5 of the 7 ICD 203 steps for "prawdopodobne".
+    expect(lead.getByText("W-01")).toBeInTheDocument();
+    expect(cards[0]?.querySelector('[data-rank="5"]')).not.toBeNull();
     const second = within(cards[1] as HTMLElement);
+    expect(second.getByText("W-02")).toBeInTheDocument();
     expect(second.queryByText(/nowe$/)).not.toBeInTheDocument();
     expect(second.getByText("Raport sytuacyjny w przygotowaniu")).toBeInTheDocument();
     expect(screen.queryByText(/Nowe sytuacje/)).not.toBeInTheDocument();
