@@ -4,14 +4,15 @@ import { Link } from "@tanstack/react-router";
 import { ChevronRight } from "lucide-react";
 import { useEffect, useState } from "react";
 import { fetchProposals, fetchThread, fetchThreads } from "./api.js";
-import { threadGrid } from "./intel.js";
+import { threadCodes, threadGrid } from "./intel.js";
 import { CHANGE_ARROW, CHANGE_LABEL, isTopic, REGION_LABEL, SCENARIO_LABEL, TIER_LABEL, TOPIC_LABEL, WEIGHT_LABEL } from "./labels.js";
 import { LoadError, PageHeader, Panel, Section } from "./panel.js";
 import { When } from "./time.js";
 import { Badge } from "./ui/badge.js";
+import { LikelihoodGauge } from "./ui/gauge.js";
 import { Loading } from "./ui/skeleton.js";
 
-// A change of Likelihood is neither good nor bad: an arrow plus a word in amber, "changed, look here" (ADR 0011).
+// A change of Likelihood is neither good nor bad: an arrow plus a word in amber, "changed, look here" (ADR 0013).
 function Change({ change }: { change: ReportScenario["change"] }) {
   return <span className={change === "same" ? "text-muted" : "text-amber"}>{`${CHANGE_ARROW[change]} ${CHANGE_LABEL[change]}`}</span>;
 }
@@ -27,10 +28,14 @@ export function useProposals(enabled: boolean) {
 
 type ListedThread = ThreadsResponse["threads"][number];
 
-function ThreadCard({ thread }: { thread: ListedThread }) {
+function ThreadCard({ thread, code }: { thread: ListedThread; code?: string | undefined }) {
   const topics = (thread.topics ?? []).filter(isTopic);
   return (
-    <article className="flex h-full flex-col gap-2 frame p-3">
+    <article className="flex h-full flex-col gap-2 frame p-3 hover:frame-strong">
+      <p className="data flex gap-2 text-xs text-faint">
+        {code && <span className={thread.newEvents > 0 ? "font-semibold text-amber" : "font-semibold"}>{code}</span>}
+        <span className="truncate">{thread.regions.map((r) => REGION_LABEL[r]).join(" · ") || "bez Regionu"}</span>
+      </p>
       <div className="flex flex-wrap items-start gap-2">
         <h3 className="text-lg leading-snug font-medium">
           <Link to="/thread/$id" params={{ id: thread.id }}>
@@ -44,9 +49,12 @@ function ThreadCard({ thread }: { thread: ListedThread }) {
         )}
       </div>
       {thread.lead ? (
-        <p className="text-base">
-          {`Najbardziej prawdopodobne: ${thread.lead.scenario} — ${thread.lead.likelihood}`} · <Change change={thread.lead.change} />
-        </p>
+        <div className="grid gap-1.5">
+          <p className="text-base">
+            {`Najbardziej prawdopodobne: ${thread.lead.scenario} — ${thread.lead.likelihood}`} · <Change change={thread.lead.change} />
+          </p>
+          <LikelihoodGauge value={thread.lead.likelihood} />
+        </div>
       ) : (
         <p className="text-base text-muted">Raport sytuacyjny w przygotowaniu</p>
       )}
@@ -59,9 +67,7 @@ function ThreadCard({ thread }: { thread: ListedThread }) {
           ))}
         </ul>
       )}
-      <p className="mt-auto pt-1 text-sm text-muted">
-        {thread.regions.map((r) => REGION_LABEL[r]).join(", ") || "bez Regionu"}
-        {" · "}
+      <p className="mt-auto border-t border-border pt-2 text-sm text-muted">
         <span className="data">{thread.eventCount}</span>
         {" Zdarzeń · ostatnie "}
         <When iso={thread.lastEventAt} />
@@ -70,12 +76,12 @@ function ThreadCard({ thread }: { thread: ListedThread }) {
   );
 }
 
-export function ThreadGrid({ threads, label }: { threads: ListedThread[]; label: string }) {
+export function ThreadGrid({ threads, label, codes }: { threads: ListedThread[]; label: string; codes?: Map<string, string> }) {
   return (
-    <ul aria-label={label} className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+    <ul aria-label={label} className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
       {threads.map((t) => (
         <li key={t.id}>
-          <ThreadCard thread={t} />
+          <ThreadCard thread={t} code={codes?.get(t.id)} />
         </li>
       ))}
     </ul>
@@ -86,7 +92,7 @@ export function ThreadGrid({ threads, label }: { threads: ListedThread[]; label:
 export function ThreadsPage() {
   const threads = useThreads();
   return (
-    <div className="grid gap-6">
+    <div className="grid gap-4">
       <PageHeader title="Wątki" subtitle="Sytuacje, które Foresight śledzi w czasie, z Raportem sytuacyjnym raz na dobę." />
       {threads.isPending ? (
         <Loading label="Ładuję Wątki" rows={3} />
@@ -95,13 +101,14 @@ export function ThreadsPage() {
       ) : (
         (() => {
           const { active, dormant } = threadGrid(threads.data.threads);
+          const codes = threadCodes(threads.data.threads);
           return (
             <>
               <Section title="Aktywne" aside="Zdarzenie w ostatnich 14 dniach · nowe od Raportu najpierw">
                 {active.length === 0 ? (
                   <p className="text-muted">Brak aktywnych Wątków — propozycje czekają w Skrzynce.</p>
                 ) : (
-                  <ThreadGrid threads={active} label="Wątki aktywne" />
+                  <ThreadGrid threads={active} label="Wątki aktywne" codes={codes} />
                 )}
               </Section>
               {dormant.length > 0 && (
@@ -112,7 +119,7 @@ export function ThreadsPage() {
                     <span className="ml-2 text-sm text-muted">bez Zdarzenia od 14 dni</span>
                   </summary>
                   <div className="mt-3">
-                    <ThreadGrid threads={dormant} label="Wątki uśpione" />
+                    <ThreadGrid threads={dormant} label="Wątki uśpione" codes={codes} />
                   </div>
                 </details>
               )}
@@ -150,7 +157,7 @@ export function Timeline({ entries, label }: { entries: TimelineEntry[]; label: 
 function ScenarioCard({ scenario, mostLikely }: { scenario: ReportScenario; mostLikely: boolean }) {
   return (
     <article className={`frame p-3 ${mostLikely ? "frame-accent" : ""}`}>
-      <p className="label">
+      <p className={`label ${mostLikely ? "text-amber" : ""}`}>
         {SCENARIO_LABEL[scenario.kind]}
         {mostLikely ? " · najbardziej prawdopodobny" : ""}
       </p>
@@ -159,6 +166,7 @@ function ScenarioCard({ scenario, mostLikely }: { scenario: ReportScenario; most
         <strong className={scenario.change === "same" ? "text-muted" : "text-amber"}>{CHANGE_ARROW[scenario.change]}</strong>{" "}
         <span className={scenario.change === "same" ? "text-muted" : "text-amber"}>{CHANGE_LABEL[scenario.change]}</span> · {scenario.likelihood}
       </p>
+      <LikelihoodGauge value={scenario.likelihood} className="mt-1.5" />
       <p className="text-sm text-muted">{scenario.reason}</p>
       <p className="mt-2 text-base">{scenario.description}</p>
       {scenario.signals.length > 0 && (
@@ -213,7 +221,7 @@ function Report({ report }: { report: SituationReport }) {
           ))}
         </div>
       </Section>
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-4 md:grid-cols-2">
         <Panel anchor="aktorzy" title="Aktorzy i interesy">
           <ul className="grid gap-1 text-base">
             {report.actors.map((a) => (
@@ -289,23 +297,28 @@ function Contents({ items }: { items: readonly { anchor: string; title: string }
 
 export function ThreadPage({ id }: { id: string }) {
   const query = useQuery<ThreadResponse | null>({ queryKey: ["thread", id], queryFn: () => fetchThread(id) });
+  const all = useThreads();
+  const code = all.data ? threadCodes(all.data.threads).get(id) : undefined;
   if (query.isPending) return <Loading label="Otwieram Wątek" />;
   if (query.isError) return <LoadError what="Wątku" retry={query.refetch} />;
   if (!query.data) return <p className="text-critical">Nie ma takiego Wątku.</p>;
   const { thread, report, timeline } = query.data;
   const contents = report ? [...REPORT_CONTENTS, TIMELINE_CONTENTS] : [TIMELINE_CONTENTS];
   return (
-    <div className="grid gap-6">
+    <div className="grid gap-4">
       <div>
-        <p className="label">Wątek{thread.dormant ? " · uśpiony" : ""}</p>
+        <p className="label">
+          {code && <span className="data mr-2 text-amber">{code}</span>}
+          Wątek{thread.dormant ? " · uśpiony" : ""}
+        </p>
         <h1 className="font-display text-2xl font-semibold tracking-[0.02em]">{thread.name}</h1>
         <p className="mt-1 text-muted">
-          {thread.regions.map((r) => REGION_LABEL[r]).join(", ")} · {thread.eventCount} Zdarzeń · ostatnie <When iso={thread.lastEventAt} />
+          {thread.regions.map((r) => REGION_LABEL[r]).join(", ")} · <span className="data">{thread.eventCount}</span> Zdarzeń · ostatnie <When iso={thread.lastEventAt} />
         </p>
       </div>
-      <div className="grid items-start gap-6 lg:grid-cols-[11rem_minmax(0,1fr)]">
+      <div className="grid items-start gap-4 lg:grid-cols-[11rem_minmax(0,1fr)]">
         <Contents items={contents} />
-        <div className="grid min-w-0 gap-6">
+        <div className="grid min-w-0 gap-4">
           {report ? <Report report={report} /> : <p className="text-muted">Pierwszy Raport sytuacyjny powstanie w ciągu godziny.</p>}
           <Panel anchor={TIMELINE_CONTENTS.anchor} title="Oś czasu" aside="od najnowszych">
             <Timeline entries={timeline} label="Oś czasu" />
