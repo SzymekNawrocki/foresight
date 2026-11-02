@@ -1,27 +1,98 @@
 @import "tailwindcss";
-@import "@fontsource/ibm-plex-sans/400.css";
-@import "@fontsource/ibm-plex-sans/500.css";
-@import "@fontsource/ibm-plex-sans/600.css";
+/* Tylko łacina + latin-ext (polskie znaki): bez cyrylicy i wietnamskiego. */
+@import "@fontsource/barlow/latin-400.css";
+@import "@fontsource/barlow/latin-ext-400.css";
+@import "@fontsource/barlow/latin-500.css";
+@import "@fontsource/barlow/latin-ext-500.css";
+@import "@fontsource/barlow/latin-600.css";
+@import "@fontsource/barlow/latin-ext-600.css";
+@import "@fontsource/barlow-condensed/latin-500.css";
+@import "@fontsource/barlow-condensed/latin-ext-500.css";
+@import "@fontsource/barlow-condensed/latin-600.css";
+@import "@fontsource/barlow-condensed/latin-ext-600.css";
 @import "@fontsource-variable/jetbrains-mono";
 
-/* ADR 0011: grafit, ciepła biel, jeden akcent (mosiądz). Jeden kolor = jedno znaczenie:
-   coral = pilne/przełomowe i Spółka ↓, copper = istotne, sage = Spółka ↑ i łącze działa,
-   brass = „zmieniło się, spójrz tu” i nawigacja, szarości = bez zmian / czeka.
-   Kontrast tekstu ≥ 4,5:1 na każdej powierzchni (WCAG AA). */
+/* ADR 0013 „Konsola dowodzenia”: chłodna, prawie czarna szarość i jeden akcent — bursztyn.
+   Jeden kolor = jedno znaczenie: amber = ważne/aktywne/zmienione (też Waga 2 i focus),
+   critical = Waga 3 i Spółka ↓, positive = Spółka ↑ i łącze działa, szarości = bez zmian / czeka.
+   Komponenty używają TYLKO aliasów semantycznych; skala n-* jest wyłącznie dla tego pliku.
+   Kontrast tekstu ≥ 5:1 na każdej powierzchni (WCAG AA, sprawdzone 2026-11-02). */
 @theme {
-  --color-bg: #111317;
-  --color-surface: #181b21;
-  --color-raised: #20242b;
-  --color-line: #2e333b;
-  --color-fg: #e8e4da;
-  --color-dim: #aaa597;
-  --color-faint: #938f83;
-  --color-brass: #c9a45c;
-  --color-coral: #ef6b5b;
-  --color-copper: #e08a4a;
-  --color-sage: #7fbf8e;
-  --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --color-*: initial;
+  --color-transparent: transparent;
+  --color-current: currentColor;
+
+  --color-n-950: #0b0d0e;
+  --color-n-900: #111416;
+  --color-n-850: #181c1f;
+  --color-n-800: #1e2326;
+  --color-n-700: #2a3034;
+  --color-n-600: #434c52;
+  --color-n-500: #5d676d;
+  --color-n-400: #8a9499;
+  --color-n-300: #a3acb0;
+  --color-n-200: #c8cfd1;
+  --color-n-100: #e3e7e6;
+  --color-n-50: #f2f4f3;
+
+  --color-amber: #e8a33d;
+  --color-amber-strong: #f3b85c;
+  --color-amber-wash: #2a2113;
+  --color-critical: #f2665a;
+  --color-critical-wash: #2b1614;
+  --color-positive: #6fcf8a;
+  --color-positive-wash: #13251a;
+
+  --color-bg: var(--color-n-950);
+  --color-surface: var(--color-n-900);
+  --color-raised: var(--color-n-850);
+  --color-hover: var(--color-n-800);
+  --color-border: var(--color-n-700);
+  --color-border-strong: var(--color-n-600);
+  --color-fg: var(--color-n-100);
+  --color-muted: var(--color-n-300);
+  --color-faint: var(--color-n-400);
+  --color-ring: var(--color-amber);
+
+  /* Ścięcie zamiast promienia: przycisk / panel / mapa i okno. */
+  --cut-sm: 6px;
+  --cut-md: 10px;
+  --cut-lg: 16px;
+
+  /* 6 rozmiarów; grubości 400 / 500 / 600. */
+  --text-*: initial;
+  --text-xs: 12px;
+  --text-xs--line-height: 1.35;
+  --text-sm: 13px;
+  --text-sm--line-height: 1.4;
+  --text-base: 14px;
+  --text-base--line-height: 1.45;
+  --text-lg: 16px;
+  --text-lg--line-height: 1.35;
+  --text-xl: 20px;
+  --text-xl--line-height: 1.2;
+  --text-2xl: 28px;
+  --text-2xl--line-height: 1.1;
+
+  --font-sans: "Barlow", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Barlow Condensed", "Barlow", ui-sans-serif, sans-serif;
   --font-mono: "JetBrains Mono Variable", ui-monospace, monospace;
+
+  --shadow-*: initial;
+  --default-transition-duration: 150ms;
+  --default-transition-timing-function: cubic-bezier(0, 0, 0.2, 1);
+
+  --animate-pulse-marker: pulse-marker 2.4s ease-out infinite;
+  @keyframes pulse-marker {
+    0% {
+      transform: scale(1);
+      opacity: 0.7;
+    }
+    100% {
+      transform: scale(2.6);
+      opacity: 0;
+    }
+  }
 }
 
 @layer base {
@@ -29,30 +100,111 @@
     color-scheme: dark;
   }
   body {
-    @apply bg-bg font-sans text-fg antialiased;
-    font-size: 15px;
-    line-height: 1.55;
+    @apply bg-bg font-sans text-base text-fg antialiased;
   }
   a {
-    @apply text-fg underline-offset-4 hover:text-brass hover:underline;
+    @apply text-fg underline-offset-4 hover:text-amber hover:underline;
   }
   :focus-visible {
-    @apply rounded-sm outline-2 outline-offset-2 outline-brass;
+    @apply outline-2 outline-offset-2 outline-ring;
   }
 }
 
-/* Etykieta sekcji — jedyne miejsce na wielkie litery. */
-@utility label {
-  @apply text-[12px] font-medium tracking-[0.06em] text-dim uppercase;
+/* Ramka ze ściętymi narożnikami (lewy górny i prawy dolny). clip-path ucina obrys i outline,
+   więc ramkę rysują dwie warstwy: tło elementu w kolorze ramki, a ::before o 1 px w głąb
+   w kolorze wypełnienia. Focus pogrubia ramkę do 2 px w kolorze ring. Zmienne:
+   --cut (rozmiar ścięcia), --frame (kolor ramki), --fill (wypełnienie), --bw (grubość). */
+@utility frame {
+  --cut: var(--cut-md);
+  --frame: var(--color-border);
+  --fill: var(--color-surface);
+  --bw: 1px;
+  position: relative;
+  isolation: isolate;
+  background-color: var(--frame);
+  clip-path: polygon(var(--cut) 0, 100% 0, 100% calc(100% - var(--cut)), calc(100% - var(--cut)) 100%, 0 100%, 0 var(--cut));
+  transition-property: background-color, color;
+  &::before {
+    content: "";
+    position: absolute;
+    inset: var(--bw);
+    z-index: -1;
+    background-color: var(--fill);
+    clip-path: polygon(
+      calc(var(--cut) - var(--bw) * 0.41) 0,
+      100% 0,
+      100% calc(100% - var(--cut) + var(--bw) * 0.41),
+      calc(100% - var(--cut) + var(--bw) * 0.41) 100%,
+      0 100%,
+      0 calc(var(--cut) - var(--bw) * 0.41)
+    );
+    transition: background-color var(--default-transition-duration) var(--default-transition-timing-function);
+  }
+  &:focus-visible {
+    outline: none;
+    --frame: var(--color-ring);
+    --bw: 2px;
+  }
+}
+@utility frame-sm {
+  --cut: var(--cut-sm);
+}
+@utility frame-lg {
+  --cut: var(--cut-lg);
+}
+@utility frame-strong {
+  --frame: var(--color-border-strong);
+}
+@utility frame-accent {
+  --frame: var(--color-amber);
+}
+@utility frame-critical {
+  --frame: var(--color-critical);
+}
+@utility frame-raised {
+  --fill: var(--color-raised);
+}
+@utility frame-hover {
+  --fill: var(--color-hover);
+}
+@utility frame-bg {
+  --fill: var(--color-bg);
+}
+@utility frame-wash {
+  --fill: var(--color-amber-wash);
+}
+@utility frame-alarm {
+  --fill: var(--color-critical-wash);
 }
 
-/* Liczby, czasy, tickery i Źródła. */
+/* Etykieta panelu — jedyne miejsce na wielkie litery (nigdy treść). */
+@utility label {
+  @apply font-display text-xs font-semibold tracking-[0.08em] text-muted uppercase;
+}
+
+/* Liczby, czasy Z, tickery, kody Wątków i Źródła. */
 @utility data {
-  @apply font-mono text-[13px] tabular-nums;
+  @apply font-mono text-sm tabular-nums;
+}
+
+/* Klamry narożne panelu konsoli w dwóch rogach, które ścięcie zostawia. Na ::after, bo
+   ::before ramki to wypełnienie, a tło elementu — kolor ramki. */
+@utility brackets {
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+      linear-gradient(var(--color-faint), var(--color-faint)) top right / 10px 1px no-repeat,
+      linear-gradient(var(--color-faint), var(--color-faint)) top right / 1px 10px no-repeat,
+      linear-gradient(var(--color-faint), var(--color-faint)) bottom left / 10px 1px no-repeat,
+      linear-gradient(var(--color-faint), var(--color-faint)) bottom left / 1px 10px no-repeat;
+  }
 }
 
 @utility tag {
-  @apply inline-flex items-center rounded-full border border-line bg-raised px-2.5 py-0.5 text-[13px] text-fg no-underline hover:border-brass hover:text-brass hover:no-underline;
+  @apply inline-flex min-h-6 items-center border border-border bg-raised px-2 text-sm text-fg no-underline transition-colors hover:border-amber hover:text-amber hover:no-underline;
 }
 @utility tag-topic {
   @apply border-dashed;

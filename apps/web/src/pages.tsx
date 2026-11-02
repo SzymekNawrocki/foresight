@@ -9,10 +9,10 @@ export function useRecent() {
 export function NotFoundPage() {
   return (
     <div>
-      <p className="label text-coral">Błąd 404</p>
-      <h1 className="text-[28px] font-semibold">Brak takich akt</h1>
-      <p className="mt-1 text-dim">Ten adres nie prowadzi do żadnego Wątku ani widoku.</p>
-      <Link to="/" className="mt-3 inline-block text-brass">
+      <p className="label text-critical">Błąd 404</p>
+      <h1 className="font-display text-2xl font-semibold tracking-[0.02em]">Brak takich akt</h1>
+      <p className="mt-1 text-muted">Ten adres nie prowadzi do żadnego Wątku ani widoku.</p>
+      <Link to="/" className="mt-3 inline-block text-amber">
         ← Wróć na Radar
       </Link>
     </div>

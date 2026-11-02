@@ -2,15 +2,14 @@ import { cva, type VariantProps } from "class-variance-authority";
 import type { ComponentProps } from "react";
 import { cn } from "./cn.js";
 
-// The tone follows the colour semantics of ADR 0011; a word or icon always goes with it.
-const badgeVariants = cva("inline-flex items-center gap-1 rounded-full border px-2 py-px text-[12px] font-medium whitespace-nowrap", {
+// The tone follows the colour semantics of ADR 0013; a word or icon always goes with it.
+const badgeVariants = cva("inline-flex items-center gap-1 border px-1.5 font-display text-xs leading-5 font-semibold tracking-[0.06em] whitespace-nowrap uppercase", {
   variants: {
     tone: {
-      neutral: "border-line bg-raised text-dim",
-      brass: "border-brass/50 bg-brass/10 text-brass",
-      coral: "border-coral/50 bg-coral/10 text-coral",
-      copper: "border-copper/50 bg-copper/10 text-copper",
-      sage: "border-sage/50 bg-sage/10 text-sage",
+      neutral: "border-border bg-raised text-muted",
+      accent: "border-amber bg-amber-wash text-amber",
+      critical: "border-critical bg-critical-wash text-critical",
+      positive: "border-positive bg-positive-wash text-positive",
     },
   },
   defaultVariants: { tone: "neutral" },

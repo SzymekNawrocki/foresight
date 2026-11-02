@@ -21,9 +21,9 @@ function TopicBar({ counts }: { counts: Record<Topic, number> }) {
           key={t}
           to="/stream"
           search={{ topic: t }}
-          className="flex items-center gap-2 rounded-lg border border-line bg-surface px-3 py-2 no-underline hover:border-brass hover:no-underline"
+          className="flex items-center gap-2 frame px-3 py-2 no-underline hover:frame-accent hover:no-underline"
         >
-          <span>{TOPIC_LABEL[t]}</span> <span className={`data font-semibold ${counts[t] ? "text-brass" : "text-faint"}`}>{counts[t]}</span>
+          <span>{TOPIC_LABEL[t]}</span> <span className={`data font-semibold ${counts[t] ? "text-amber" : "text-faint"}`}>{counts[t]}</span>
         </Link>
       ))}
     </nav>
@@ -33,7 +33,7 @@ function TopicBar({ counts }: { counts: Record<Topic, number> }) {
 function EmptyDay({ events }: { events: readonly AnalyzedEvent[] }) {
   const fresh = freshness(events, new Date());
   return (
-    <p className="text-dim">
+    <p className="text-muted">
       {"W ostatnich 24 h nie ma Zdarzeń z Niszy. Worker analizuje nowe Zdarzenia co godzinę"}
       {fresh ? `; ${fresh.text}.` : "."}
     </p>
@@ -42,17 +42,17 @@ function EmptyDay({ events }: { events: readonly AnalyzedEvent[] }) {
 
 function MovedThread({ thread }: { thread: ListedThread }) {
   return (
-    <li className="border-b border-line py-2.5 last:border-b-0">
+    <li className="border-b border-border py-2.5 last:border-b-0">
       <div className="flex flex-wrap items-center gap-2">
         <Link to="/thread/$id" params={{ id: thread.id }} className="font-medium">
           {thread.name}
         </Link>
-        {thread.newEvents > 0 && <Badge tone="brass">{`+${thread.newEvents} nowe`}</Badge>}
+        {thread.newEvents > 0 && <Badge tone="accent">{`+${thread.newEvents} nowe`}</Badge>}
       </div>
-      <p className="text-[14px] text-dim">
+      <p className="text-base text-muted">
         {thread.lead ? (
           <>
-            <span className="text-brass">{CHANGE_ARROW[thread.lead.change]}</span>
+            <span className="text-amber">{CHANGE_ARROW[thread.lead.change]}</span>
             {` ${thread.lead.scenario} — ${thread.lead.likelihood} · `}
           </>
         ) : (
@@ -68,8 +68,8 @@ function MovedThread({ thread }: { thread: ListedThread }) {
 function MoveLine({ item }: { item: ThreadMove }) {
   const { move } = item;
   return (
-    <li className="border-b border-line py-2 text-[14px] last:border-b-0">
-      <span className="text-dim">
+    <li className="border-b border-border py-2 text-base last:border-b-0">
+      <span className="text-muted">
         <When iso={item.at} />
         {" · "}
       </span>
@@ -80,11 +80,11 @@ function MoveLine({ item }: { item: ThreadMove }) {
       {move.kind === "shift" ? (
         <>
           {`${move.scenario} — ${move.from} → `}
-          <strong className="font-medium text-brass">{move.to}</strong>
+          <strong className="font-medium text-amber">{move.to}</strong>
         </>
       ) : (
         <>
-          <span className="text-brass" aria-hidden>
+          <span className="text-amber" aria-hidden>
             ●{" "}
           </span>
           {`zapalił się sygnał „${move.text}” (${move.scenario})`}
@@ -100,9 +100,9 @@ function InboxShortcut() {
   const count = proposals.data?.proposals.length ?? 0;
   if (!token || count === 0) return null;
   return (
-    <Link to="/inbox" className="flex items-center justify-between gap-3 rounded-lg border border-brass/40 bg-brass/5 px-4 py-3 no-underline">
+    <Link to="/inbox" className="flex items-center justify-between gap-3 frame frame-accent frame-wash px-4 py-3 no-underline">
       <span>{`Nowe sytuacje czekają na decyzję: ${count}`}</span>
-      <span className="text-brass" aria-hidden>
+      <span className="text-amber" aria-hidden>
         →
       </span>
     </Link>
@@ -120,7 +120,7 @@ function ThreadsColumn() {
     <>
       <Panel title="Wątki w ruchu" aside="Nowe Zdarzenia od Raportu">
         {moved.length === 0 ? (
-          <p className="text-dim">Żaden Wątek nie dostał dziś nowych Zdarzeń.</p>
+          <p className="text-muted">Żaden Wątek nie dostał dziś nowych Zdarzeń.</p>
         ) : (
           <ul>
             {moved.map((t) => (
@@ -131,7 +131,7 @@ function ThreadsColumn() {
       </Panel>
       <Panel title="Ruchy · 24 h" aside="Prawdopodobieństwo i sygnały">
         {moves.length === 0 ? (
-          <p className="text-dim">Bez zmian w Raportach z ostatnich 24 h.</p>
+          <p className="text-muted">Bez zmian w Raportach z ostatnich 24 h.</p>
         ) : (
           <ul>
             {moves.map((m, i) => (

@@ -58,11 +58,11 @@ const toggle =
 function Count({ region, count, breakthrough }: { region: Region; count: number; breakthrough: boolean }) {
   return (
     <>
-      <span className="text-[11px] font-medium text-fg">{REGION_LABEL[region]}</span>
-      <span className={`data text-[12px] font-semibold ${count ? "text-brass" : "text-faint"}`}>{count}</span>
+      <span className="text-xs font-medium text-fg">{REGION_LABEL[region]}</span>
+      <span className={`data text-xs font-semibold ${count ? "text-amber" : "text-faint"}`}>{count}</span>
       {breakthrough && (
         <>
-          <Zap className="size-3 fill-coral text-coral" aria-hidden />
+          <Zap className="size-3 fill-critical text-critical" aria-hidden />
           <span className="sr-only">w tym Przełomowe</span>
         </>
       )}
@@ -71,10 +71,10 @@ function Count({ region, count, breakthrough }: { region: Region; count: number;
 }
 
 const pill =
-  "flex items-center gap-1.5 rounded-full border bg-bg/85 px-2 py-0.5 whitespace-nowrap backdrop-blur-sm hover:border-brass";
+  "flex items-center gap-1.5 border bg-bg px-2 py-0.5 whitespace-nowrap hover:border-amber";
 
 /**
- * Map of the Stream (#71): Regions tinted in brass by Event count, a coral mark where a
+ * Map of the Stream (#71): Regions tinted in amber by Event count, a critical mark where a
  * Breakthrough Event is. A click sets the Region filter, a second click clears it;
  * on small screens a select takes over from the labels.
  */
@@ -92,16 +92,16 @@ export function WorldMap({
     <div className="grid gap-3">
       <div className="relative mx-auto aspect-[2/1] h-[160px] max-w-full md:h-[240px]">
         <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} className="block size-full" role="img" aria-label="Mapa Regionów">
-          <path d={sphere} className="fill-bg stroke-line" />
-          <path d={graticule} className="fill-none stroke-line/50" strokeWidth={0.5} />
+          <path d={sphere} className="fill-bg stroke-border" />
+          <path d={graticule} className="fill-none stroke-raised" strokeWidth={0.5} />
           {shapes.map((s) => (
             <path
               key={s.name}
               d={s.d}
               data-region={s.region}
-              fill="var(--color-brass)"
+              fill="var(--color-amber)"
               fillOpacity={selected && selected !== s.region ? heat(counts[s.region]) / 3 : heat(counts[s.region])}
-              className="cursor-pointer stroke-line"
+              className="cursor-pointer stroke-border"
               strokeWidth={0.4}
               onClick={() => void navigate({ search: toggle(s.region) })}
             />
@@ -116,7 +116,7 @@ export function WorldMap({
                 key={region}
                 onClick={() => void navigate({ search: toggle(region) })}
                 aria-pressed={selected === region}
-                className={`absolute -translate-x-1/2 -translate-y-1/2 ${pill} ${selected === region ? "border-brass" : "border-line"}`}
+                className={`absolute -translate-x-1/2 -translate-y-1/2 ${pill} ${selected === region ? "border-amber" : "border-border"}`}
                 style={{ left: `${(x / WIDTH) * 100}%`, top: `${(y / HEIGHT) * 100}%` }}
               >
                 <Count region={region} count={counts[region]} breakthrough={breakthrough[region]} />
@@ -130,12 +130,12 @@ export function WorldMap({
           type="button"
           onClick={() => void navigate({ search: toggle("global") })}
           aria-pressed={selected === "global"}
-          className={`${pill} ${selected === "global" ? "border-brass" : "border-line"}`}
+          className={`${pill} ${selected === "global" ? "border-amber" : "border-border"}`}
         >
           <Count region="global" count={counts.global} breakthrough={breakthrough.global} />
         </button>
-        <label className="flex items-center gap-2 text-[14px] md:hidden">
-          <span className="text-dim">Region</span>
+        <label className="flex items-center gap-2 text-base md:hidden">
+          <span className="text-muted">Region</span>
           <select
             aria-label="Region"
             value={selected ?? ""}
@@ -143,7 +143,7 @@ export function WorldMap({
               const region = Region.safeParse(e.target.value);
               void navigate({ search: (prev: StreamSearch) => ({ ...prev, region: region.success ? region.data : undefined }) });
             }}
-            className="h-8 rounded-md border border-line bg-surface px-2"
+            className="h-11 border border-border-strong bg-bg px-2 hover:border-faint md:h-8"
           >
             <option value="">Wszystkie</option>
             {Region.options.map((r) => (
