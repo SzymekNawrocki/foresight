@@ -46,8 +46,8 @@ function Filters({ filter }: { filter: StreamSearch }) {
   const navigate = useNavigate({ from: "/stream" });
   const topics = topicsOf(filter.topic);
   return (
-    <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
-      <div className="flex flex-wrap items-center gap-2">
+    <div className="grid gap-3">
+      <div className="grid gap-2">
         <span className="label" id="filter-topics">
           Tematy
         </span>
@@ -67,7 +67,7 @@ function Filters({ filter }: { filter: StreamSearch }) {
           ))}
         </ToggleGroup>
       </div>
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="grid gap-2">
         <span className="label" id="filter-weight">
           Waga
         </span>
@@ -106,7 +106,7 @@ export function StreamPage({ filter }: { filter: StreamSearch }) {
   const recent = useRecent();
   const navigate = useNavigate({ from: "/stream" });
   return (
-    <div className="grid gap-6">
+    <div className="grid gap-4">
       <PageHeader title="Strumień" subtitle="Wszystkie Zdarzenia z Niszy z ostatnich 72 h. Filtruj mapą, Tematem i Wagą." />
       {recent.isPending ? (
         <Loading label="Ładuję Zdarzenia" />
@@ -117,12 +117,16 @@ export function StreamPage({ filter }: { filter: StreamSearch }) {
           const events = recent.data.events;
           const shown = events.filter((e) => matches(e, filter));
           return (
-            <>
-              <WorldMap {...mapCounts(events, filter)} selected={filter.region} />
-              <Filters filter={filter} />
+            <div className="grid items-start gap-4 xl:grid-cols-[24rem_minmax(0,1fr)]">
+              <aside aria-label="Filtry" className="grid gap-4 xl:sticky xl:top-4">
+                <WorldMap {...mapCounts(events, filter)} selected={filter.region} />
+                <Filters filter={filter} />
+              </aside>
+              <div className="grid min-w-0 gap-3">
               {filter.region && <RegionThreads region={filter.region} />}
-              <p className="data text-muted" aria-live="polite">
-                {eventsCount(shown.length)}
+              <p className="label flex items-center gap-2 border-b border-border pb-2 text-fg" aria-live="polite">
+                <span aria-hidden className="size-1.5 bg-amber" />
+                <span className="data normal-case">{eventsCount(shown.length)}</span>
               </p>
               {shown.length === 0 ? (
                 <div className="flex flex-wrap items-center gap-3 frame p-3">
@@ -132,7 +136,7 @@ export function StreamPage({ filter }: { filter: StreamSearch }) {
                   </Button>
                 </div>
               ) : (
-                <ol aria-label="Zdarzenia" className="grid gap-3">
+                <ol aria-label="Zdarzenia" className="grid gap-2">
                   {shown.map((e) => (
                     <li key={e.id}>
                       <EventCard event={e} compact />
@@ -140,7 +144,8 @@ export function StreamPage({ filter }: { filter: StreamSearch }) {
                   ))}
                 </ol>
               )}
-            </>
+              </div>
+            </div>
           );
         })()
       )}

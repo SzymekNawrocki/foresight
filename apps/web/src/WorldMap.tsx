@@ -25,8 +25,11 @@ function Count({ region, count, breakthrough }: { region: Region; count: number;
   );
 }
 
+const label = (region: Region, count: number, breakthrough: boolean) =>
+  `${REGION_LABEL[region]}: ${count}${breakthrough ? ", w tym Przełomowe" : ""}`;
+
 const pill =
-  "flex items-center gap-1.5 border bg-bg px-2 py-0.5 whitespace-nowrap hover:border-amber";
+  "flex min-h-6 items-center gap-1.5 border bg-bg px-2 py-0.5 whitespace-nowrap transition-colors hover:border-amber aria-pressed:bg-amber-wash";
 
 /**
  * Map of the Stream (#71): Regions tinted in amber by Event count, a critical mark where a
@@ -45,7 +48,7 @@ export function WorldMap({
   const navigate = useNavigate({ from: "/stream" });
   return (
     <div className="grid gap-3">
-      <div className="relative mx-auto aspect-[2/1] h-[160px] max-w-full md:h-[240px]">
+      <div className="frame frame-lg frame-bg brackets aspect-[2/1] w-full">
         <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} className="block size-full" role="img" aria-label="Mapa Regionów">
           <path d={sphere} className="fill-bg stroke-border" />
           <path d={graticule} className="fill-none stroke-raised" strokeWidth={0.5} />
@@ -71,6 +74,7 @@ export function WorldMap({
                 key={region}
                 onClick={() => void navigate({ search: toggle(region) })}
                 aria-pressed={selected === region}
+                aria-label={label(region, counts[region], breakthrough[region])}
                 className={`absolute -translate-x-1/2 -translate-y-1/2 ${pill} ${selected === region ? "border-amber" : "border-border"}`}
                 style={{ left: `${(x / WIDTH) * 100}%`, top: `${(y / HEIGHT) * 100}%` }}
               >
@@ -85,6 +89,7 @@ export function WorldMap({
           type="button"
           onClick={() => void navigate({ search: toggle("global") })}
           aria-pressed={selected === "global"}
+          aria-label={label("global", counts.global, breakthrough.global)}
           className={`${pill} ${selected === "global" ? "border-amber" : "border-border"}`}
         >
           <Count region="global" count={counts.global} breakthrough={breakthrough.global} />

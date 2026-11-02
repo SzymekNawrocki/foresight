@@ -11,6 +11,9 @@ const COMPANY_COLOR: Record<CompanyImpact["direction"], string> = { up: "text-po
 
 const WEIGHT_TONE: Record<Weight, "critical" | "accent" | "neutral"> = { 3: "critical", 2: "accent", 1: "neutral" };
 
+// A strip on the left edge repeats the Weight's colour, so a long log can be scanned; the Badge carries the word.
+const WEIGHT_STRIP: Record<Weight, string> = { 3: "bg-critical", 2: "bg-amber", 1: "bg-border-strong" };
+
 // Treść z RSS i od LLM jest niezaufana: React wstawia ją wyłącznie jako tekst,
 // a link przeszedł walidację https w schemacie.
 // Compact (the Stream): Actors, why it matters and Companies open on click.
@@ -19,7 +22,8 @@ export function EventCard({ event, compact = false }: { event: AnalyzedEvent; co
   const [open, setOpen] = useState(!compact);
   const detailsId = useId();
   return (
-    <article className="frame p-3 hover:frame-strong">
+    <article className="frame py-3 pr-3 pl-4 hover:frame-strong">
+      <span aria-hidden className={`absolute inset-y-3 left-1.5 w-0.5 ${analysis ? WEIGHT_STRIP[analysis.weight] : "bg-border"}`} />
       <header className="flex flex-wrap items-center gap-x-3 gap-y-1">
         {analysis ? (
           <Badge tone={WEIGHT_TONE[analysis.weight]}>{`Waga ${analysis.weight} · ${WEIGHT_LABEL[analysis.weight]}`}</Badge>
