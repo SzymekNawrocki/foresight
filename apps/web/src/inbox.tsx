@@ -2,7 +2,7 @@ import type { ProposalDecision, ProposalsResponse } from "@foresight/shared";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { decideProposal } from "./api.js";
-import { joinCandidates, type JoinCandidate } from "./intel.js";
+import { joinCandidates, type JoinCandidate, threadCodes } from "./intel.js";
 import { ACTOR_LABEL, REGION_LABEL, TOPIC_LABEL } from "./labels.js";
 import { LoadError, PageHeader } from "./panel.js";
 import { useSession } from "./session.js";
@@ -25,7 +25,7 @@ type ListedThread = NonNullable<ReturnType<typeof useThreads>["data"]>["threads"
 export function InboxPage() {
   const token = useSession();
   return (
-    <div className="grid gap-6">
+    <div className="grid gap-4">
       <PageHeader title="Skrzynka" subtitle="Nowe sytuacje zaproponowane przez AI: zacznij śledzić, dołącz do Wątku albo odrzuć." />
       {token ? <Inbox /> : <p className="text-muted">Skrzynka jest dostępna po zalogowaniu.</p>}
     </div>
@@ -114,7 +114,7 @@ function Inbox() {
       {list.length === 0 ? (
         <p className="text-muted">Skrzynka pusta. Nowe sytuacje pojawiają się po godzinnych przebiegach workera.</p>
       ) : (
-        <ul className="grid gap-4">
+        <ul className="grid gap-3">
           {list.map((proposal, index) => (
             <li key={proposal.thread.id}>
               <ProposalCard
@@ -136,7 +136,7 @@ function Inbox() {
       )}
       <div role="status" aria-label="Powiadomienie" className="fixed inset-x-4 bottom-4 z-20 flex justify-center">
         {rejected && (
-          <div className="flex items-center gap-3 frame frame-raised frame-strong px-4 py-2">
+          <div className="frame frame-sm frame-raised frame-strong flex items-center gap-3 py-1.5 pr-1.5 pl-4">
             <span>{`Odrzucono: ${rejected.proposal.thread.name}`}</span>
             <Button size="sm" variant="ghost" className="text-amber" onClick={undo}>
               Cofnij
@@ -169,8 +169,9 @@ function ProposalCard({
     <article
       className={`frame p-3 transition duration-200 ${leaving ? "-translate-y-1 opacity-0" : ""}`}
     >
+      <p className="label text-amber">Nowa sytuacja</p>
       <h3 className="text-lg font-medium">{thread.name}</h3>
-      <p className="mb-3 text-base text-muted">
+      <p className="data mb-3 text-xs text-muted">
         {`${thread.eventCount} Zdarzeń · ${regions} · zaproponowano `}
         <When iso={thread.createdAt} />
       </p>
@@ -180,8 +181,8 @@ function ProposalCard({
           {all ? "Pokaż mniej" : `Pokaż wszystkie (${timeline.length})`}
         </Button>
       )}
-      <div className="mt-4 flex flex-wrap gap-2">
-        <Button variant="primary" size="sm" disabled={busy || leaving} onClick={() => onDecide({ action: "accept" })}>
+      <div className="mt-3 flex flex-wrap gap-2 border-t border-border pt-3">
+        <Button variant="primary" size="sm" disabled={busy || leaving} aria-busy={busy} onClick={() => onDecide({ action: "accept" })}>
           Śledź jako nowy Wątek
         </Button>
         <JoinDialog
@@ -250,6 +251,12 @@ function JoinDialog({
   );
 }
 
+/** W-NN codes from the cached Threads list, the same ones the Radar and Threads show. */
+function useCodes() {
+  const threads = useThreads();
+  return threadCodes(threads.data?.threads ?? []);
+}
+
 function Candidates({
   label,
   hint,
@@ -261,6 +268,7 @@ function Candidates({
   candidates: JoinCandidate[];
   onJoin: (into: string) => void;
 }) {
+  const codes = useCodes();
   if (candidates.length === 0) return null;
   return (
     <div className="grid gap-1">
@@ -276,9 +284,12 @@ function Candidates({
               <button
                 type="button"
                 onClick={() => onJoin(thread.id)}
-                className="grid w-full border border-transparent px-3 py-2 text-left hover:border-border hover:bg-hover"
+                className="grid min-h-11 w-full border border-transparent px-3 py-2 text-left transition-colors hover:border-border-strong hover:bg-hover"
               >
-                <span className="font-medium">{thread.name}</span>
+                <span className="font-medium">
+                  {codes.get(thread.id) && <span className="data mr-2 text-xs text-faint">{codes.get(thread.id)}</span>}
+                  {thread.name}
+                </span>
                 <span className="text-sm text-muted">
                   {shared.length > 0 && <span className="text-amber">{`wspólne: ${shared.join(", ")} · `}</span>}
                   {`${thread.eventCount} Zdarzeń${thread.dormant ? " · uśpiony" : ""}`}

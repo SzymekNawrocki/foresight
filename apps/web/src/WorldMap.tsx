@@ -29,7 +29,7 @@ const label = (region: Region, count: number, breakthrough: boolean) =>
   `${REGION_LABEL[region]}: ${count}${breakthrough ? ", w tym Przełomowe" : ""}`;
 
 const pill =
-  "flex min-h-6 items-center gap-1.5 border bg-bg px-2 py-0.5 whitespace-nowrap transition-colors hover:border-amber aria-pressed:bg-amber-wash";
+  "flex min-h-11 items-center gap-1.5 border bg-bg md:min-h-6 px-2 py-0.5 whitespace-nowrap transition-colors hover:border-amber aria-pressed:bg-amber-wash";
 
 /**
  * Map of the Stream (#71): Regions tinted in amber by Event count, a critical mark where a
