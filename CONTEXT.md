@@ -88,10 +88,20 @@ _Avoid_: asset, rynek
 ## Widoki
 
 **Radar**:
-Ekran startowy (ADR 0011): co dziś ważne w Niszy i co nadaje się na post — pasek Tematów
-z liczbą Zdarzeń, najważniejsze Zdarzenia według Wagi, Wątki z Ruchem, Ruchy z 24 h i —
-dla właściciela — skrót do Skrzynki. Zastąpił Briefing.
+Ekran startowy (ADR 0011, wygląd ADR 0013): co dziś ważne w Niszy i co nadaje się na post — pasek
+Tematów z liczbą Zdarzeń, w centrum Teatr działań, najważniejsze Zdarzenia według Wagi, Wątki
+z Ruchem, Ruchy z 24 h i — dla właściciela — skrót do Skrzynki. Zastąpił Briefing.
 _Avoid_: Briefing, feed, strona główna, przegląd
+
+**Teatr działań**:
+Mapa w centrum Radaru (ADR 0013): Regiony podświetlone według Zdarzeń z Niszy z 24 h, puls nad
+Regionem z Przełomem i aktywne Wątki jako znaczniki z Kodem Wątku na linii od swojego Regionu.
+_Avoid_: mapa Strumienia (to filtr, nie teatr), dashboard
+
+**Kod Wątku**:
+Krótki stały kod `W-NN` nadawany w kolejności utworzenia Wątków (uśpione też się liczą), więc
+nie zmienia się, gdy inne Wątki zasypiają. Ten sam na Radarze, w Wątkach i w Skrzynce.
+_Avoid_: numer, id (id to 8 znaków hex w adresie)
 
 **Ruch**:
 Zmiana w Wątku warta uwagi: Scenariusz przesunął się na skali Prawdopodobieństwa albo zapalił
