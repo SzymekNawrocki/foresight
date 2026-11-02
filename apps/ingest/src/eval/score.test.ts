@@ -12,6 +12,7 @@ const dispatch: EvalDispatch = {
     { company: "PANW", direction: "uncertain" },
   ],
   weight: 2,
+  thread: { kind: "none" },
 };
 
 describe("scoreCase — niche case", () => {
@@ -36,6 +37,7 @@ describe("scoreCase — niche case", () => {
         { company: "NVDA", direction: "up" },
       ],
       weight: 1,
+      thread: { kind: "none" },
     });
 
     expect(score).toMatchObject({ passed: 1, total: 5 });
@@ -48,7 +50,7 @@ describe("scoreCase — niche case", () => {
   });
 
   it("fails when a niche Event is dropped", () => {
-    const score = scoreCase(expected, { niche: false, topics: [], companies: [], weight: 1 });
+    const score = scoreCase(expected, { niche: false, topics: [], companies: [], weight: 1, thread: { kind: "none" } });
 
     expect(score.passed).toBe(2); // no stray Company and no wrong direction — nothing was returned
     expect(score.misses[0]).toBe("niche: dropped a niche Event");
@@ -59,9 +61,34 @@ describe("scoreCase — niche case", () => {
   });
 });
 
+describe("scoreCase — Thread decision", () => {
+  const niche = { ...base, niche: true as const, topicsAny: ["cyber" as const], weight: [1, 3] as [1, 3] };
+
+  it("checks the attach to the named Thread", () => {
+    const expected = { ...niche, thread: { attach: "Ataki APT" } };
+
+    expect(scoreCase(expected, { ...dispatch, thread: { kind: "attach", name: "Ataki APT" } })).toMatchObject({ passed: 4, total: 4 });
+    expect(scoreCase(expected, { ...dispatch, thread: { kind: "attach", name: "Tajwan" } }).misses).toEqual([
+      "thread: expected attach to „Ataki APT” (got attach to „Tajwan”)",
+    ]);
+    expect(scoreCase(expected, dispatch).misses).toEqual(["thread: expected attach to „Ataki APT” (got none)"]);
+  });
+
+  it("fails a proposal made from a single fact", () => {
+    const expected = { ...niche, thread: "no-propose" as const };
+
+    expect(scoreCase(expected, dispatch)).toMatchObject({ passed: 4, total: 4 });
+    expect(scoreCase(expected, { ...dispatch, thread: { kind: "propose" } }).misses).toEqual(["thread: proposed a single fact"]);
+  });
+
+  it("counts the Thread check when there is no dispatch", () => {
+    expect(scoreCase({ ...niche, thread: "no-propose" }, undefined)).toMatchObject({ passed: 0, total: 4 });
+  });
+});
+
 describe("scoreCase — out-of-niche case", () => {
   it("passes when the Event is dropped", () => {
-    expect(scoreCase({ ...base, niche: false }, { niche: false, topics: [], companies: [], weight: 1 })).toEqual({
+    expect(scoreCase({ ...base, niche: false }, { niche: false, topics: [], companies: [], weight: 1, thread: { kind: "none" } })).toEqual({
       title: base.title,
       passed: 1,
       total: 1,
@@ -92,10 +119,17 @@ describe("fromVerdict", () => {
       topics: ["cyber"],
       companies: validAnalysis.companies,
       weight: 2,
+      thread: { kind: "none" },
     });
   });
 
+  it("names the Thread of an attach", () => {
+    const attached = { ...validAnalysis, thread: { kind: "attach" as const, threadId: "5eed0001" } };
+
+    expect(fromVerdict(attached, (id) => (id === "5eed0001" ? "Tajwan i TSMC" : undefined)).thread).toEqual({ kind: "attach", name: "Tajwan i TSMC" });
+  });
+
   it("reads an Event off the Niche as dropped", () => {
-    expect(fromVerdict({ niche: false })).toMatchObject({ niche: false, topics: [], companies: [] });
+    expect(fromVerdict({ niche: false })).toMatchObject({ niche: false, topics: [], companies: [], thread: { kind: "none" } });
   });
 });

@@ -2,9 +2,11 @@
 // Run it before and after a prompt change and put both scores in the PR (ADR 0009).
 // The key comes only from the environment, e.g. in PowerShell: $env:GROQ_API_KEY = "gsk_…"
 import { createHash } from "node:crypto";
-import type { Event, Verdict } from "@foresight/shared";
+import type { Event, Thread, Verdict } from "@foresight/shared";
 import { createPendingAnalysis } from "../analysis/pending.js";
 import { createTokenBudget, DAILY_TOKEN_LIMITS, InMemoryBudgetStore } from "../budget/budget.js";
+import { promptThreads } from "../threads/links.js";
+import { SEED_THREADS } from "../threads/seed.js";
 import { createGroqLlm } from "../llm/groq.js";
 import { CASES } from "./cases.js";
 import { fromVerdict, scoreCase } from "./score.js";
@@ -26,6 +28,20 @@ const events: Event[] = CASES.map((c) => ({
 }));
 const results = new Map<string, Verdict>();
 
+// The seed Threads, as the worker sends them, so cases can check the Thread decision (#79).
+const seeds: Thread[] = SEED_THREADS.map((seed, i) => ({
+  id: (0x5eed0000 + i).toString(16),
+  name: seed.name,
+  status: "active",
+  createdAt: now,
+  lastEventAt: now,
+  eventCount: 0,
+  newEvents: 0,
+  newWeight: 0,
+  regions: seed.regions,
+}));
+const nameOf = (id: string) => seeds.find((t) => t.id === id)?.name;
+
 // A failed call says why only in Groq's message; each distinct one is printed once.
 const httpErrors = new Set<string>();
 const onHttpError = (status: number, message: string) => {
@@ -43,6 +59,7 @@ const analysis = createPendingAnalysis({
     recent: async () => [],
   },
   llm: async () => createGroqLlm({ apiKey, onHttpError }),
+  threads: async () => promptThreads(seeds, new Date()),
   limit: events.length,
 });
 
@@ -51,7 +68,7 @@ const report = await analysis.analyzePending(budget);
 
 const scores = CASES.map((c, i) => {
   const analysis = results.get(events[i]?.id ?? "");
-  return scoreCase(c, analysis && fromVerdict(analysis));
+  return scoreCase(c, analysis && fromVerdict(analysis, nameOf));
 });
 for (const s of scores) {
   console.log(`${s.passed === s.total ? "PASS" : "FAIL"} ${s.passed}/${s.total}  ${s.title}`);
@@ -65,5 +82,9 @@ console.log(`\nChecks: ${passed}/${total} · cases fully right: ${scores.filter(
 const lost = CASES.filter((c, i) => c.niche && scores[i]?.misses.some((m) => m.startsWith("niche") || m === "no dispatch")).length;
 const leaked = CASES.filter((c, i) => !c.niche && scores[i]?.passed === 0).length;
 const nicheCount = CASES.filter((c) => c.niche).length;
+// Thread decisions on their own: the cases that name one (#79).
+const threadCases = CASES.flatMap((c, i) => (c.niche && c.thread ? [scores[i]] : []));
+const threadMissed = threadCases.filter((s) => !s || s.misses.some((m) => m.startsWith("thread") || m === "no dispatch")).length;
+console.log(`Thread decisions: ${threadCases.length - threadMissed}/${threadCases.length}`);
 console.log(`Niche gate: lost ${lost}/${nicheCount} niche · let in ${leaked}/${CASES.length - nicheCount} off-niche`);
 console.log(`Tokens: ${tokens} (${Math.round(tokens / events.length)} per Event) · run report: ${JSON.stringify(report)}`);

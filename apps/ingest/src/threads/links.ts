@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { type Analysis, type Event, isDormant, type SourceTier, type Thread, type TimelineEntry } from "@foresight/shared";
 import type { ActiveThread } from "../analysis/prompt.js";
+import { SEED_THREADS } from "./seed.js";
 import type { ThreadStore } from "./store.js";
 
 /** At most this many Threads go into the dispatch prompt (ADR 0008). */
@@ -41,12 +42,19 @@ function similarProposal(threads: Thread[], analysis: Analysis, at: string): Thr
 
 // Active Threads and New situations still waiting for the owner: attaching to a proposal keeps
 // five headlines about one story from opening five proposals. Most recent first, capped.
+// With only id and name the model attached too rarely (#79), so each Thread also carries its
+// Regions and Topics, and a seed Thread its scope.
 export function promptThreads(threads: Thread[], now: Date): ActiveThread[] {
   return threads
     .filter((t) => (t.status === "active" || t.status === "proposed") && !isDormant(t, now))
     .toSorted((a, b) => b.lastEventAt.localeCompare(a.lastEventAt))
     .slice(0, MAX_PROMPT_THREADS)
-    .map(({ id, name }) => ({ id, name }));
+    .map(({ id, name, regions, topics = [] }) => {
+      const seed = SEED_THREADS.find((s) => s.name === name);
+      return seed
+        ? { id, name, regions, topics: [...new Set([...topics, ...seed.topics])], scope: seed.scope }
+        : { id, name, regions, topics };
+    });
 }
 
 export function createThreadLinks({

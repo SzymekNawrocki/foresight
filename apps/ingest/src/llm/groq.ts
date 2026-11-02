@@ -12,7 +12,7 @@ export interface GroqOptions {
 const ENDPOINT = "https://api.groq.com/openai/v1/chat/completions";
 
 interface Completion {
-  choices?: { message?: { content?: unknown } }[];
+  choices?: { message?: { content?: unknown }; finish_reason?: unknown }[];
   usage?: { total_tokens?: unknown };
 }
 
@@ -72,6 +72,8 @@ export function createGroqLlm({ apiKey, fetch = globalThis.fetch, timeoutMs = 30
       const tokens = body.usage?.total_tokens;
       if (typeof tokens !== "number") return { ok: false, reason: "invalid" };
       const usage: TokenUsage = { model, tokens };
+      // Cut off at max_completion_tokens: the JSON is unfinished, and the fix is the cap, not the prompt.
+      if (body.choices?.[0]?.finish_reason === "length") return { ok: false, reason: "truncated", usage };
 
       try {
         const content = body.choices?.[0]?.message?.content;

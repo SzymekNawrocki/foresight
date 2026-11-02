@@ -4,8 +4,8 @@ import { applySeed, planSeed, SEED_THREADS, type SeedThread } from "./seed.js";
 import { InMemoryThreadStore } from "./store.js";
 
 const seeds: SeedThread[] = [
-  { name: "Wojna dronów: Rosja–Ukraina", regions: ["russia-eurasia", "europe"] },
-  { name: "Starlink i alternatywy dla Ukrainy", regions: ["europe"], reuse: "1b890b15" },
+  { name: "Wojna dronów: Rosja–Ukraina", regions: ["russia-eurasia", "europe"], topics: ["drones"], scope: "Drony." },
+  { name: "Starlink i alternatywy dla Ukrainy", regions: ["europe"], topics: ["space"], scope: "Starlink.", reuse: "1b890b15" },
 ];
 const ids = () => {
   let n = 0;

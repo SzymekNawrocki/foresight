@@ -15,6 +15,8 @@ interface NicheCase {
   weight: [min: 1 | 2 | 3, max: 1 | 2 | 3];
   /** Not scored yet; kept for the reader and for a later Region check. */
   regions?: Region[];
+  /** The Thread decision against the seed Threads (#79): attach to the one named, or anything but a proposal. */
+  thread?: { attach: string } | "no-propose";
 }
 
 /** Off the Niche, however close it looks: the dispatch must drop it. */
@@ -38,6 +40,7 @@ export const CASES: EvalCase[] = [
     topicsAny: ["drones"],
     companies: DRONES,
     weight: [2, 3],
+    thread: { attach: "Wojna dronów: Rosja–Ukraina" },
     regions: ["europe", "russia-eurasia"],
   },
   {
@@ -106,6 +109,7 @@ export const CASES: EvalCase[] = [
     topicsAny: ["space"],
     companies: { IRDM: "up", ETL: "up", SESG: "up", ASTS: "up", VSAT: "up", UFO: "up", RKLB: "any" },
     weight: [2, 3],
+    thread: { attach: "Starlink i alternatywy dla Ukrainy" },
     regions: ["russia-eurasia"],
   },
   {
@@ -115,6 +119,7 @@ export const CASES: EvalCase[] = [
     topicsAny: ["space"],
     companies: { RKLB: "any", PL: "any", UFO: "any", LMT: "up", NOC: "up", ITA: "up" },
     weight: [2, 3],
+    thread: { attach: "Militaryzacja kosmosu (USA, Chiny, Rosja)" },
   },
   {
     source: "the-record",
@@ -123,6 +128,7 @@ export const CASES: EvalCase[] = [
     topicsAny: ["cyber", "ai"],
     companies: { ...CYBER, MSFT: "any" },
     weight: [2, 3],
+    thread: { attach: "Ataki państwowych grup APT na infrastrukturę" },
     regions: ["asia-pacific"],
   },
   {
@@ -149,6 +155,7 @@ export const CASES: EvalCase[] = [
     topicsAny: ["drones", "defence-industry"],
     companies: { ...DRONES, KOG: "up" },
     weight: [2, 3],
+    thread: { attach: "Wyścig zbrojeń w Europie (kontrakty i zakupy)" },
     regions: ["europe"],
   },
   {
@@ -158,6 +165,7 @@ export const CASES: EvalCase[] = [
     topicsAny: ["defence-industry"],
     companies: { LMT: "up", ITA: "up", DFNS: "up", RTX: "any", NOC: "any" },
     weight: [2, 3],
+    thread: "no-propose",
     regions: ["north-america"],
   },
   {
@@ -168,6 +176,45 @@ export const CASES: EvalCase[] = [
     companies: { NVDA: "any", TSM: "any", ASML: "any", AMD: "any", MU: "any", "005930": "any", "0981": "any", SMH: "any" },
     weight: [2, 3],
     regions: ["asia-pacific"],
+  },
+
+  // Thread decisions seen in production on 2026-10-28 (#79)
+  {
+    source: "us-dod",
+    title: "Poland Selected to Host Historic PAC-3 Missile Maintenance Facility, Strengthening Allied Burden-Sharing and Transatlantic Security",
+    niche: true,
+    topicsAny: ["defence-industry"],
+    companies: { LMT: "up", RTX: "up", ITA: "up", DFNS: "up" },
+    weight: [1, 3],
+    regions: ["europe"],
+    thread: { attach: "Wyścig zbrojeń w Europie (kontrakty i zakupy)" },
+  },
+  {
+    source: "oilprice",
+    title: "45,000 Nvidia Blackwell GPUs Cleared for Kazakhstan Data Center",
+    niche: true,
+    topicsAny: ["chips", "ai"],
+    companies: { NVDA: "any", SMH: "any" },
+    weight: [1, 3],
+    regions: ["russia-eurasia"],
+    thread: { attach: "Kontrola eksportu chipów USA–Chiny" },
+  },
+  {
+    source: "breaking-defense",
+    title: "USAF should buy newly designed air refuelers to meet China threat: Report",
+    niche: true,
+    topicsAny: ["defence-industry"],
+    companies: { LMT: "any", RTX: "any", AIR: "any", ITA: "any", DFNS: "any" },
+    weight: [1, 2],
+    thread: "no-propose",
+  },
+  {
+    source: "breaking-defense",
+    title: "Cyprus to acquire new offshore patrol vessel with ‘advanced’ naval systems from Israel",
+    niche: true,
+    topicsAny: ["defence-industry"],
+    weight: [1, 2],
+    thread: "no-propose",
   },
 
   // Off the Niche — geo or markets without technology at the centre
