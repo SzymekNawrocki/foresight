@@ -8,7 +8,9 @@ Po starcie MVP grilling 2026-10-19 doprecyzował kierunek świata, Poziomy Źró
 Audyt 2026-10-22 zawęził produkt do niszy tech × geo × rynki
 ([ADR 0010](docs/adr/0010-tech-first-niche-radar.md)).
 Redesign UI 2026-10-28 (#71, [ADR 0011](docs/adr/0011-visual-system-graphite-and-brass.md)) zastąpił Briefing
-Radarem, a strony Regionów i Tematów — filtrami Strumienia.
+Radarem, a strony Regionów i Tematów — filtrami Strumienia. Redesign 2026-11-02 (#87,
+[ADR 0013](docs/adr/0013-visual-system-command-console.md)) zmienił wygląd na „Konsolę dowodzenia”:
+chłodna czerń, jeden akcent bursztyn, ścięte narożniki, mapa jako teatr działań w centrum Radaru.
 
 Appka jest **radarem tematów na stronę właściciela w jednej niszy**: technologia w centrum
 (cyber i hacking, drony, militarny kosmos, chipy, AI, zbrojeniówka), w tle gra państw, obok wpływ
@@ -57,9 +59,11 @@ na podstawie Zdarzeń, a Prawdopodobieństwo Scenariuszy przesuwa się na skali.
    Sygnał zapala się tylko z dowodem — id Zdarzenia ze Źródła A lub B (sprawdza kod); strzałkę
    i powód zmiany Prawdopodobieństwa liczy kod względem poprzedniej wersji. Każda wersja zostaje
    (dziennik sytuacji).
-5. **Widoki** (ADR 0011) — menu Radar · Wątki · Strumień · Skrzynka; w nagłówku świeżość danych.
-   - **Radar** (start): pasek Tematów z licznikami, do 8 najważniejszych Zdarzeń z 24 h (Waga,
-     potem czas), Wątki w ruchu, Ruchy · 24 h, skrót do Skrzynki dla właściciela.
+5. **Widoki** (ADR 0011, wygląd: ADR 0013) — menu Radar · Wątki · Strumień · Skrzynka; w nagłówku świeżość danych.
+   - **Radar** (start): pasek Tematów z licznikami, w centrum mapa-teatr działań (Regiony wg
+     Zdarzeń z 24 h, puls nad Przełomem, aktywne Wątki jako znaczniki z Kodem Wątku), do 8
+     najważniejszych Zdarzeń z 24 h (Waga, potem czas), Wątki w ruchu (podświetlają się na mapie),
+     Ruchy · 24 h, skrót do Skrzynki dla właściciela.
    - **Wątki**: siatka kart („+N nowe” najpierw), uśpione zwinięte; strona Wątku ze spisem treści
      i osią czasu.
    - **Strumień**: wszystkie Zdarzenia z Niszy z 72 h z mapą; Region, Tematy i Waga to filtry
@@ -294,6 +298,7 @@ strumienia.
 |---|---|---|
 | **12 Pętla i nisza** | Decyzje właściciela działają (POST przez CloudFront), meldunek v3 z bramką Niszy, 6 Tematów niszy i Wpływami na Spółki, ~8 Wątków startowych, łączenie podobnych Nowych sytuacji, widoki tylko z Niszy | Eval przepisany pod Niszę (trafność bramki: nic z niszy nie ginie, szum odpada), lista dozwolonych wartości w kodzie (Spółki), ordered behavior CloudFronta tylko dla tras właściciela |
 | **13 Źródła niszy** | Research Źródeł branżowych i oficjalnych dla cyber, obronności, kosmosu i chipów → akceptacja właściciela; mniej ogólnych serwisów | Zdrowie Źródeł (ile wpisów i ile w Niszy per Źródło w raporcie workera) |
+| **UI Konsola** (#87, zamknięty 2026-11-02) | ADR 0013: tokeny, ramki ze ściętymi narożnikami, Barlow; Radar z mapą-teatrem, Kody Wątków, wskaźnik Prawdopodobieństwa, Strumień z kolumną filtrów | Tylko `apps/web`; PR-y #88–#92 |
 | **14 Karty postów** | 3 Karty postów dziennie na Radarze; Wpływy na Spółki w Raporcie zamiast Klas aktywów | Wynik AI w nowej części tabeli `threads`, renderowany jako tekst; budżet tokenów dla Kart |
 
 Później: ceny przy Spółkach (#60) — czy rynek faktycznie zareagował.
