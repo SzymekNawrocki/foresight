@@ -27,7 +27,7 @@ export function InboxPage() {
   return (
     <div className="grid gap-6">
       <PageHeader title="Skrzynka" subtitle="Nowe sytuacje zaproponowane przez AI: zacznij śledzić, dołącz do Wątku albo odrzuć." />
-      {token ? <Inbox /> : <p className="text-dim">Skrzynka jest dostępna po zalogowaniu.</p>}
+      {token ? <Inbox /> : <p className="text-muted">Skrzynka jest dostępna po zalogowaniu.</p>}
     </div>
   );
 }
@@ -112,7 +112,7 @@ function Inbox() {
   return (
     <>
       {list.length === 0 ? (
-        <p className="text-dim">Skrzynka pusta. Nowe sytuacje pojawiają się po godzinnych przebiegach workera.</p>
+        <p className="text-muted">Skrzynka pusta. Nowe sytuacje pojawiają się po godzinnych przebiegach workera.</p>
       ) : (
         <ul className="grid gap-4">
           {list.map((proposal, index) => (
@@ -130,15 +130,15 @@ function Inbox() {
         </ul>
       )}
       {error && (
-        <p role="alert" className="text-coral">
+        <p role="alert" className="text-critical">
           {error}
         </p>
       )}
       <div role="status" aria-label="Powiadomienie" className="fixed inset-x-4 bottom-4 z-20 flex justify-center">
         {rejected && (
-          <div className="flex items-center gap-3 rounded-lg border border-line bg-raised px-4 py-2 shadow-2xl">
+          <div className="flex items-center gap-3 frame frame-raised frame-strong px-4 py-2">
             <span>{`Odrzucono: ${rejected.proposal.thread.name}`}</span>
-            <Button size="sm" variant="ghost" className="text-brass" onClick={undo}>
+            <Button size="sm" variant="ghost" className="text-amber" onClick={undo}>
               Cofnij
             </Button>
           </div>
@@ -167,10 +167,10 @@ function ProposalCard({
   const regions = thread.regions.map((r) => REGION_LABEL[r]).join(", ") || "bez Regionu";
   return (
     <article
-      className={`rounded-lg border border-line bg-surface p-4 transition duration-200 ${leaving ? "-translate-y-1 opacity-0" : ""}`}
+      className={`frame p-3 transition duration-200 ${leaving ? "-translate-y-1 opacity-0" : ""}`}
     >
-      <h3 className="text-[17px] font-medium">{thread.name}</h3>
-      <p className="mb-3 text-[14px] text-dim">
+      <h3 className="text-lg font-medium">{thread.name}</h3>
+      <p className="mb-3 text-base text-muted">
         {`${thread.eventCount} Zdarzeń · ${regions} · zaproponowano `}
         <When iso={thread.createdAt} />
       </p>
@@ -238,12 +238,12 @@ function JoinDialog({
           placeholder="Szukaj Wątku po nazwie"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          className="h-9 rounded-md border border-line bg-bg px-3 placeholder:text-faint"
+          className="h-11 border border-border-strong bg-bg px-3 placeholder:text-faint hover:border-faint md:h-9"
         />
         <div className="grid min-h-0 gap-3 overflow-y-auto">
           <Candidates label="Podobne" hint="wspólny Temat lub Aktor" candidates={suggested} onJoin={join} />
           <Candidates label="Pozostałe" candidates={others} onJoin={join} />
-          {suggested.length + others.length === 0 && <p className="text-dim">{`Żaden Wątek nie pasuje do „${query}”.`}</p>}
+          {suggested.length + others.length === 0 && <p className="text-muted">{`Żaden Wątek nie pasuje do „${query}”.`}</p>}
         </div>
       </div>
     </Dialog>
@@ -276,11 +276,11 @@ function Candidates({
               <button
                 type="button"
                 onClick={() => onJoin(thread.id)}
-                className="grid w-full rounded-md border border-transparent px-3 py-2 text-left hover:border-line hover:bg-raised"
+                className="grid w-full border border-transparent px-3 py-2 text-left hover:border-border hover:bg-hover"
               >
                 <span className="font-medium">{thread.name}</span>
-                <span className="text-[13px] text-dim">
-                  {shared.length > 0 && <span className="text-brass">{`wspólne: ${shared.join(", ")} · `}</span>}
+                <span className="text-sm text-muted">
+                  {shared.length > 0 && <span className="text-amber">{`wspólne: ${shared.join(", ")} · `}</span>}
                   {`${thread.eventCount} Zdarzeń${thread.dormant ? " · uśpiony" : ""}`}
                 </span>
               </button>

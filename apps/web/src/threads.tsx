@@ -11,9 +11,9 @@ import { When } from "./time.js";
 import { Badge } from "./ui/badge.js";
 import { Loading } from "./ui/skeleton.js";
 
-// A change of Likelihood is neither good nor bad: an arrow plus a word in brass, "changed, look here" (ADR 0011).
+// A change of Likelihood is neither good nor bad: an arrow plus a word in amber, "changed, look here" (ADR 0011).
 function Change({ change }: { change: ReportScenario["change"] }) {
-  return <span className={change === "same" ? "text-dim" : "text-brass"}>{`${CHANGE_ARROW[change]} ${CHANGE_LABEL[change]}`}</span>;
+  return <span className={change === "same" ? "text-muted" : "text-amber"}>{`${CHANGE_ARROW[change]} ${CHANGE_LABEL[change]}`}</span>;
 }
 
 export function useThreads() {
@@ -30,25 +30,25 @@ type ListedThread = ThreadsResponse["threads"][number];
 function ThreadCard({ thread }: { thread: ListedThread }) {
   const topics = (thread.topics ?? []).filter(isTopic);
   return (
-    <article className="flex h-full flex-col gap-2 rounded-lg border border-line bg-surface p-4">
+    <article className="flex h-full flex-col gap-2 frame p-3">
       <div className="flex flex-wrap items-start gap-2">
-        <h3 className="text-[17px] leading-snug font-medium">
+        <h3 className="text-lg leading-snug font-medium">
           <Link to="/thread/$id" params={{ id: thread.id }}>
             {thread.name}
           </Link>
         </h3>
         {thread.newEvents > 0 && (
-          <Badge tone="brass" className="ml-auto">
+          <Badge tone="accent" className="ml-auto">
             {`+${thread.newEvents} nowe`}
           </Badge>
         )}
       </div>
       {thread.lead ? (
-        <p className="text-[14px]">
+        <p className="text-base">
           {`Najbardziej prawdopodobne: ${thread.lead.scenario} — ${thread.lead.likelihood}`} · <Change change={thread.lead.change} />
         </p>
       ) : (
-        <p className="text-[14px] text-dim">Raport sytuacyjny w przygotowaniu</p>
+        <p className="text-base text-muted">Raport sytuacyjny w przygotowaniu</p>
       )}
       {topics.length > 0 && (
         <ul aria-label="Tematy" className="flex flex-wrap gap-1">
@@ -59,7 +59,7 @@ function ThreadCard({ thread }: { thread: ListedThread }) {
           ))}
         </ul>
       )}
-      <p className="mt-auto pt-1 text-[13px] text-dim">
+      <p className="mt-auto pt-1 text-sm text-muted">
         {thread.regions.map((r) => REGION_LABEL[r]).join(", ") || "bez Regionu"}
         {" · "}
         <span className="data">{thread.eventCount}</span>
@@ -99,17 +99,17 @@ export function ThreadsPage() {
             <>
               <Section title="Aktywne" aside="Zdarzenie w ostatnich 14 dniach · nowe od Raportu najpierw">
                 {active.length === 0 ? (
-                  <p className="text-dim">Brak aktywnych Wątków — propozycje czekają w Skrzynce.</p>
+                  <p className="text-muted">Brak aktywnych Wątków — propozycje czekają w Skrzynce.</p>
                 ) : (
                   <ThreadGrid threads={active} label="Wątki aktywne" />
                 )}
               </Section>
               {dormant.length > 0 && (
                 <details className="group">
-                  <summary className="flex w-fit cursor-pointer list-none items-center gap-1 rounded-md py-1 [&::-webkit-details-marker]:hidden">
-                    <ChevronRight aria-hidden className="size-4 text-dim transition-transform group-open:rotate-90 motion-reduce:transition-none" />
+                  <summary className="flex w-fit cursor-pointer list-none items-center gap-1 py-1 [&::-webkit-details-marker]:hidden">
+                    <ChevronRight aria-hidden className="size-4 text-muted transition-transform group-open:rotate-90 motion-reduce:transition-none" />
                     <span className="label text-fg">{`Uśpione · ${dormant.length}`}</span>
-                    <span className="ml-2 text-[13px] text-dim">bez Zdarzenia od 14 dni</span>
+                    <span className="ml-2 text-sm text-muted">bez Zdarzenia od 14 dni</span>
                   </summary>
                   <div className="mt-3">
                     <ThreadGrid threads={dormant} label="Wątki uśpione" />
@@ -125,22 +125,22 @@ export function ThreadsPage() {
 }
 
 // The dot on the timeline follows the colour semantics; the Weight is also written out next to it.
-const WEIGHT_DOT: Record<Weight, string> = { 1: "bg-faint", 2: "bg-copper", 3: "bg-coral" };
+const WEIGHT_DOT: Record<Weight, string> = { 1: "bg-faint", 2: "bg-amber", 3: "bg-critical" };
 
 export function Timeline({ entries, label }: { entries: TimelineEntry[]; label: string }) {
   return (
-    <ol aria-label={label} className="ml-1 grid gap-4 border-l border-line pl-5">
+    <ol aria-label={label} className="ml-1 grid gap-4 border-l border-border pl-5">
       {entries.map((entry) => (
         <li key={entry.eventId} className="relative">
           <span aria-hidden className={`absolute top-1.5 -left-[26px] size-2.5 rounded-full ring-4 ring-surface ${WEIGHT_DOT[entry.weight]}`} />
-          <span className="data text-[13px] text-dim">
+          <span className="data text-sm text-muted">
             <When iso={entry.publishedAt} /> · {entry.source} · Poziom {TIER_LABEL[entry.tier]} · Waga {entry.weight} ({WEIGHT_LABEL[entry.weight]})
           </span>
           <br />
           <a href={entry.url} target="_blank" rel="noopener noreferrer">
             {entry.title}
           </a>
-          <p className="text-[14px] text-dim">{entry.whyItMatters}</p>
+          <p className="text-base text-muted">{entry.whyItMatters}</p>
         </li>
       ))}
     </ol>
@@ -149,30 +149,30 @@ export function Timeline({ entries, label }: { entries: TimelineEntry[]; label: 
 
 function ScenarioCard({ scenario, mostLikely }: { scenario: ReportScenario; mostLikely: boolean }) {
   return (
-    <article className={`rounded-lg border bg-surface p-4 ${mostLikely ? "border-brass/60" : "border-line"}`}>
+    <article className={`frame p-3 ${mostLikely ? "frame-accent" : ""}`}>
       <p className="label">
         {SCENARIO_LABEL[scenario.kind]}
         {mostLikely ? " · najbardziej prawdopodobny" : ""}
       </p>
-      <h3 className="text-[17px] font-medium">{scenario.name}</h3>
+      <h3 className="text-lg font-medium">{scenario.name}</h3>
       <p className="mt-1">
-        <strong className={scenario.change === "same" ? "text-dim" : "text-brass"}>{CHANGE_ARROW[scenario.change]}</strong>{" "}
-        <span className={scenario.change === "same" ? "text-dim" : "text-brass"}>{CHANGE_LABEL[scenario.change]}</span> · {scenario.likelihood}
+        <strong className={scenario.change === "same" ? "text-muted" : "text-amber"}>{CHANGE_ARROW[scenario.change]}</strong>{" "}
+        <span className={scenario.change === "same" ? "text-muted" : "text-amber"}>{CHANGE_LABEL[scenario.change]}</span> · {scenario.likelihood}
       </p>
-      <p className="text-[13px] text-dim">{scenario.reason}</p>
-      <p className="mt-2 text-[14px]">{scenario.description}</p>
+      <p className="text-sm text-muted">{scenario.reason}</p>
+      <p className="mt-2 text-base">{scenario.description}</p>
       {scenario.signals.length > 0 && (
-        <ul className="mt-2 grid gap-1 border-t border-line pt-2" aria-label={`Sygnały: ${scenario.name}`}>
+        <ul className="mt-2 grid gap-1 border-t border-border pt-2" aria-label={`Sygnały: ${scenario.name}`}>
           {scenario.signals.map((s) => (
-            <li key={s.text} className="text-[14px]">
-              <span className={s.lit ? "text-brass" : "text-faint"}>{s.lit ? "● zapalony" : "○ czeka"}</span> {s.text}
+            <li key={s.text} className="text-base">
+              <span className={s.lit ? "text-amber" : "text-faint"}>{s.lit ? "● zapalony" : "○ czeka"}</span> {s.text}
               {s.evidence && (
                 <>
                   {" — dowód: "}
                   <a href={s.evidence.url} target="_blank" rel="noopener noreferrer">
                     {s.evidence.title}
                   </a>
-                  <span className="text-dim">{` (${s.evidence.source}, ${s.evidence.tier})`}</span>
+                  <span className="text-muted">{` (${s.evidence.source}, ${s.evidence.tier})`}</span>
                 </>
               )}
             </li>
@@ -204,7 +204,7 @@ function Report({ report }: { report: SituationReport }) {
         }
       >
         <p className="max-w-3xl">{report.state}</p>
-        <p className="mt-2 text-[14px] text-dim">Co się zmieniło: {report.whatChanged}</p>
+        <p className="mt-2 text-base text-muted">Co się zmieniło: {report.whatChanged}</p>
       </Panel>
       <Section anchor="scenariusze" title="Scenariusze" aside="Trzy drogi i sygnały, które je zapalają">
         <div className="grid gap-3 md:grid-cols-3">
@@ -215,24 +215,24 @@ function Report({ report }: { report: SituationReport }) {
       </Section>
       <div className="grid gap-6 md:grid-cols-2">
         <Panel anchor="aktorzy" title="Aktorzy i interesy">
-          <ul className="grid gap-1 text-[14px]">
+          <ul className="grid gap-1 text-base">
             {report.actors.map((a) => (
               <li key={a.name}>
-                <strong className="font-medium">{a.name}</strong> — <span className="text-dim">{a.interest}</span>
+                <strong className="font-medium">{a.name}</strong> — <span className="text-muted">{a.interest}</span>
               </li>
             ))}
           </ul>
         </Panel>
         <Panel anchor="rynki" title="Rynki i relacje">
-          <ul className="grid gap-1 text-[14px]">
+          <ul className="grid gap-1 text-base">
             {report.assets.map((a) => (
               <li key={a.name}>
                 <strong className="font-medium">{a.name}</strong> {a.direction === "up" ? "↑" : a.direction === "down" ? "↓" : "↕"}{" "}
-                <span className="text-dim">{a.why}</span>
+                <span className="text-muted">{a.why}</span>
               </li>
             ))}
           </ul>
-          <p className="mt-2 text-[14px]">{report.relations}</p>
+          <p className="mt-2 text-base">{report.relations}</p>
         </Panel>
       </div>
     </>
@@ -267,7 +267,7 @@ function Contents({ items }: { items: readonly { anchor: string; title: string }
   return (
     <nav
       aria-label="Spis treści"
-      className="sticky top-0 z-10 -mx-4 overflow-x-auto border-b border-line bg-bg/95 px-4 py-2 backdrop-blur lg:top-6 lg:mx-0 lg:border-0 lg:bg-transparent lg:p-0"
+      className="sticky top-0 z-10 -mx-4 overflow-x-auto border-b border-border bg-bg px-4 py-2 lg:top-6 lg:mx-0 lg:border-0 lg:bg-transparent lg:p-0"
     >
       <p className="label mb-2 hidden lg:block">Spis treści</p>
       <ol className="flex gap-1 lg:flex-col">
@@ -276,7 +276,7 @@ function Contents({ items }: { items: readonly { anchor: string; title: string }
             <a
               href={`#${anchor}`}
               aria-current={current === anchor ? "location" : undefined}
-              className="block rounded-md px-2 py-1 whitespace-nowrap text-dim no-underline hover:text-fg hover:no-underline aria-[current=location]:bg-brass/10 aria-[current=location]:text-brass lg:border-l-2 lg:border-transparent lg:rounded-none lg:aria-[current=location]:border-brass"
+              className="block px-2 py-1 whitespace-nowrap text-muted no-underline hover:text-fg hover:no-underline aria-[current=location]:bg-amber-wash aria-[current=location]:text-amber lg:border-l-2 lg:border-transparent lg:aria-[current=location]:border-amber"
             >
               {title}
             </a>
@@ -291,22 +291,22 @@ export function ThreadPage({ id }: { id: string }) {
   const query = useQuery<ThreadResponse | null>({ queryKey: ["thread", id], queryFn: () => fetchThread(id) });
   if (query.isPending) return <Loading label="Otwieram Wątek" />;
   if (query.isError) return <LoadError what="Wątku" retry={query.refetch} />;
-  if (!query.data) return <p className="text-coral">Nie ma takiego Wątku.</p>;
+  if (!query.data) return <p className="text-critical">Nie ma takiego Wątku.</p>;
   const { thread, report, timeline } = query.data;
   const contents = report ? [...REPORT_CONTENTS, TIMELINE_CONTENTS] : [TIMELINE_CONTENTS];
   return (
     <div className="grid gap-6">
       <div>
         <p className="label">Wątek{thread.dormant ? " · uśpiony" : ""}</p>
-        <h1 className="text-[28px] leading-tight font-semibold">{thread.name}</h1>
-        <p className="mt-1 text-dim">
+        <h1 className="font-display text-2xl font-semibold tracking-[0.02em]">{thread.name}</h1>
+        <p className="mt-1 text-muted">
           {thread.regions.map((r) => REGION_LABEL[r]).join(", ")} · {thread.eventCount} Zdarzeń · ostatnie <When iso={thread.lastEventAt} />
         </p>
       </div>
       <div className="grid items-start gap-6 lg:grid-cols-[11rem_minmax(0,1fr)]">
         <Contents items={contents} />
         <div className="grid min-w-0 gap-6">
-          {report ? <Report report={report} /> : <p className="text-dim">Pierwszy Raport sytuacyjny powstanie w ciągu godziny.</p>}
+          {report ? <Report report={report} /> : <p className="text-muted">Pierwszy Raport sytuacyjny powstanie w ciągu godziny.</p>}
           <Panel anchor={TIMELINE_CONTENTS.anchor} title="Oś czasu" aside="od najnowszych">
             <Timeline entries={timeline} label="Oś czasu" />
           </Panel>

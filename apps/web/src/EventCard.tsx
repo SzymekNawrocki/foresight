@@ -7,9 +7,9 @@ import { When } from "./time.js";
 import { Badge } from "./ui/badge.js";
 import { Button } from "./ui/button.js";
 
-const COMPANY_COLOR: Record<CompanyImpact["direction"], string> = { up: "text-sage", down: "text-coral", uncertain: "text-dim" };
+const COMPANY_COLOR: Record<CompanyImpact["direction"], string> = { up: "text-positive", down: "text-critical", uncertain: "text-muted" };
 
-const WEIGHT_TONE: Record<Weight, "coral" | "copper" | "neutral"> = { 3: "coral", 2: "copper", 1: "neutral" };
+const WEIGHT_TONE: Record<Weight, "critical" | "accent" | "neutral"> = { 3: "critical", 2: "accent", 1: "neutral" };
 
 // Treść z RSS i od LLM jest niezaufana: React wstawia ją wyłącznie jako tekst,
 // a link przeszedł walidację https w schemacie.
@@ -19,19 +19,19 @@ export function EventCard({ event, compact = false }: { event: AnalyzedEvent; co
   const [open, setOpen] = useState(!compact);
   const detailsId = useId();
   return (
-    <article className="rounded-lg border border-line bg-surface p-4 hover:border-faint">
+    <article className="frame p-3 hover:frame-strong">
       <header className="flex flex-wrap items-center gap-x-3 gap-y-1">
         {analysis ? (
           <Badge tone={WEIGHT_TONE[analysis.weight]}>{`Waga ${analysis.weight} · ${WEIGHT_LABEL[analysis.weight]}`}</Badge>
         ) : (
           <Badge>Analiza w kolejce</Badge>
         )}
-        <span className="data ml-auto text-dim">
+        <span className="data ml-auto text-muted">
           <span>{event.source}</span> · <When iso={event.publishedAt} />
         </span>
       </header>
 
-      <h3 className="mt-2 text-[17px] leading-snug font-medium">
+      <h3 className="mt-2 text-lg leading-snug font-medium">
         <a href={event.url} target="_blank" rel="noopener noreferrer">
           {event.title}
         </a>
@@ -75,7 +75,7 @@ export function EventCard({ event, compact = false }: { event: AnalyzedEvent; co
           {open && (
           <div id={detailsId}>
           {"actors" in analysis && analysis.actors.length > 0 && (
-            <ul className="mt-2 flex flex-wrap gap-x-3 text-[13px] text-dim" aria-label="Aktorzy">
+            <ul className="mt-2 flex flex-wrap gap-x-3 text-sm text-muted" aria-label="Aktorzy">
               {analysis.actors.map((a) => (
                 <li key={a}>{ACTOR_LABEL[a]}</li>
               ))}
@@ -83,22 +83,22 @@ export function EventCard({ event, compact = false }: { event: AnalyzedEvent; co
           )}
           <p className="mt-3 max-w-3xl">{analysis.whyItMatters}</p>
           {"companies" in analysis && analysis.companies.length > 0 && (
-            <ul className="mt-3 grid gap-1 border-t border-line pt-3" aria-label="Spółki">
+            <ul className="mt-3 grid gap-1 border-t border-border pt-3" aria-label="Spółki">
               {analysis.companies.map((c) => (
-                <li key={c.company} className="text-[14px]">
+                <li key={c.company} className="text-base">
                   <strong className="font-medium">
                     {`${COMPANY_NAME[c.company]} `}
-                    <span className="data text-dim">({c.company})</span>{" "}
+                    <span className="data text-muted">({c.company})</span>{" "}
                     <span className={COMPANY_COLOR[c.direction]}>{COMPANY_ARROW[c.direction]}</span>
                   </strong>{" "}
-                  <span className="text-dim">{c.mechanism}</span>
+                  <span className="text-muted">{c.mechanism}</span>
                 </li>
               ))}
             </ul>
           )}
           {/* Analizy sprzed plastra 10 miały Scenariusz przy każdym Zdarzeniu; nowe mają go w Raporcie Wątku. */}
           {"scenario" in analysis && (
-            <ul className="mt-3 grid gap-2 border-t border-line pt-3 md:grid-cols-2">
+            <ul className="mt-3 grid gap-2 border-t border-border pt-3 md:grid-cols-2">
               <BranchItem name="Eskalacja" branch={analysis.scenario.escalation} />
               <BranchItem name="Deeskalacja" branch={analysis.scenario.deescalation} />
             </ul>
@@ -113,12 +113,12 @@ export function EventCard({ event, compact = false }: { event: AnalyzedEvent; co
 
 function BranchItem({ name, branch }: { name: string; branch: Branch }) {
   return (
-    <li className="text-[14px]">
+    <li className="text-base">
       <strong className="block font-medium">
         {`${name}: ${branch.assetClass} `}
-        <span className="text-dim">{DIRECTION_ARROW[branch.direction]}</span>
+        <span className="text-muted">{DIRECTION_ARROW[branch.direction]}</span>
       </strong>
-      <span className="text-dim">{branch.path}</span>
+      <span className="text-muted">{branch.path}</span>
     </li>
   );
 }

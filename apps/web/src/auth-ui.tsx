@@ -34,7 +34,7 @@ export function AuthButton() {
 function OwnerBadge({ token }: { token: string }) {
   const me = useQuery({ queryKey: ["me", token], queryFn: fetchMe, retry: false });
   if (me.isPending) return null;
-  return me.isSuccess ? <Badge>Właściciel</Badge> : <Badge tone="coral">Sesja nieważna</Badge>;
+  return me.isSuccess ? <Badge>Właściciel</Badge> : <Badge tone="critical">Sesja nieważna</Badge>;
 }
 
 /** /auth/callback — Cognito odsyła tu kod; wymieniamy go na token i wracamy na Radar. */
@@ -53,5 +53,5 @@ export function AuthCallbackPage() {
       .catch(() => setError("Logowanie nie powiodło się. Spróbuj ponownie."));
   }, [config.data, navigate]);
 
-  return <p className={error ? "text-coral" : "text-dim"}>{error ?? "Weryfikuję tożsamość…"}</p>;
+  return <p className={error ? "text-critical" : "text-muted"}>{error ?? "Weryfikuję tożsamość…"}</p>;
 }

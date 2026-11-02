@@ -1,5 +1,7 @@
 # Visual system: graphite and brass on shadcn/ui with Base UI
 
+> Status: the visual part (colours, type, corners) is superseded by [ADR 0013](0013-visual-system-command-console.md).
+
 The first interface (#40) used an "intelligence dossier" style: near-black, alarm red, scanlines, a condensed uppercase font and a ticking UTC clock. It looked good but read badly. Red stood for urgent, active, link and focus all at once. 11–13 px uppercase text was tiring to read. Topic and Region pages took up the menu. After the Niche turn (ADR 0010) the owner opens Foresight to answer one question: what matters in the Niche today, and is it worth a post? The UI needs to answer that quietly. Decided in a design interview on 2026-10-24 (#71).
 
 Key decisions:

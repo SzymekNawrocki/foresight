@@ -15,8 +15,8 @@ function LinkStatus() {
   const [text, color] = health.isPending
     ? ["Łącze: sprawdzam", "bg-faint"]
     : health.isError
-      ? ["Łącze: zerwane", "bg-coral"]
-      : ["Łącze: aktywne", "bg-sage"];
+      ? ["Łącze: zerwane", "bg-critical"]
+      : ["Łącze: aktywne", "bg-positive"];
   return (
     <span className="flex items-center gap-1.5">
       <span className={`size-2 rounded-full ${color}`} aria-hidden />
@@ -31,7 +31,7 @@ function Freshness() {
   const fresh = recent.data ? freshness(recent.data.events, new Date()) : null;
   if (!fresh) return null;
   return (
-    <span className={`flex items-center gap-1.5 ${fresh.stale ? "text-coral" : ""}`}>
+    <span className={`flex items-center gap-1.5 ${fresh.stale ? "text-critical" : ""}`}>
       {fresh.stale && <TriangleAlert className="size-4" aria-hidden />}
       {fresh.text}
     </span>
@@ -39,8 +39,8 @@ function Freshness() {
 }
 
 const navLink =
-  "flex items-center gap-2 rounded-md px-3 py-1.5 text-[14px] font-medium text-dim no-underline hover:bg-raised hover:text-fg hover:no-underline";
-const navActive = { className: "bg-raised text-brass hover:text-brass" };
+  "flex min-h-11 items-center gap-2 px-3 py-1.5 font-display text-lg font-semibold tracking-[0.06em] uppercase text-muted md:min-h-0 no-underline hover:bg-hover hover:text-fg hover:no-underline";
+const navActive = { className: "bg-amber-wash text-amber hover:text-amber" };
 
 function NavItem({ to, exact, children }: { to: "/" | "/threads" | "/stream" | "/inbox"; exact?: boolean; children: ReactNode }) {
   return (
@@ -59,7 +59,7 @@ function InboxNavItem() {
   return (
     <NavItem to="/inbox">
       Skrzynka
-      {count > 0 && <span className="data rounded-full bg-brass px-1.5 text-[12px] leading-5 font-semibold text-bg">{count}</span>}
+      {count > 0 && <span className="data bg-amber px-1.5 text-xs leading-5 font-semibold text-bg">{count}</span>}
     </NavItem>
   );
 }
@@ -68,10 +68,10 @@ export function Shell() {
   return (
     <TooltipProvider>
       <div className="mx-auto min-h-screen max-w-7xl px-4 pb-16">
-        <header className="flex flex-wrap items-center gap-x-6 gap-y-3 border-b border-line py-4">
+        <header className="flex flex-wrap items-center gap-x-6 gap-y-3 border-b border-border py-3">
           <Link to="/" className="flex items-center gap-2 no-underline hover:no-underline">
-            <span className="size-2.5 rotate-45 bg-brass" aria-hidden />
-            <span className="text-[18px] font-semibold tracking-[0.06em] text-fg">FORESIGHT</span>
+            <span className="size-2.5 rotate-45 bg-amber" aria-hidden />
+            <span className="font-display text-xl font-semibold tracking-[0.12em] text-fg">FORESIGHT</span>
           </Link>
           <nav aria-label="Główne" className="flex flex-wrap gap-1">
             <NavItem to="/" exact>
@@ -81,18 +81,18 @@ export function Shell() {
             <NavItem to="/stream">Strumień</NavItem>
             <InboxNavItem />
           </nav>
-          <div className="ml-auto flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px] text-dim">
+          <div className="ml-auto flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted">
             <Freshness />
             <LinkStatus />
             <AuthButton />
           </div>
         </header>
 
-        <main className="pt-8">
+        <main className="pt-6">
           <Outlet />
         </main>
 
-        <footer className="mt-12 flex flex-wrap gap-x-6 gap-y-1 border-t border-line pt-3 text-[13px] text-dim">
+        <footer className="mt-12 flex flex-wrap gap-x-6 gap-y-1 border-t border-border pt-3 text-sm text-muted">
           <span>Analizy generuje AI na podstawie nagłówków; to nie jest porada inwestycyjna.</span>
         </footer>
       </div>

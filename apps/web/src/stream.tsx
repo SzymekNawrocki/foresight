@@ -121,12 +121,12 @@ export function StreamPage({ filter }: { filter: StreamSearch }) {
               <WorldMap {...mapCounts(events, filter)} selected={filter.region} />
               <Filters filter={filter} />
               {filter.region && <RegionThreads region={filter.region} />}
-              <p className="data text-dim" aria-live="polite">
+              <p className="data text-muted" aria-live="polite">
                 {eventsCount(shown.length)}
               </p>
               {shown.length === 0 ? (
-                <div className="flex flex-wrap items-center gap-3 rounded-lg border border-line bg-surface p-4">
-                  <p className="text-dim">Żadne Zdarzenie nie pasuje do filtrów.</p>
+                <div className="flex flex-wrap items-center gap-3 frame p-3">
+                  <p className="text-muted">Żadne Zdarzenie nie pasuje do filtrów.</p>
                   <Button size="sm" onClick={() => void navigate({ search: {} })}>
                     Wyczyść filtry
                   </Button>

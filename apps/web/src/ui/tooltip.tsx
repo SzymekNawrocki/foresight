@@ -10,7 +10,7 @@ export function Tooltip({ render, children, content }: { render: ReactElement; c
       <TooltipPrimitive.Trigger render={render}>{children}</TooltipPrimitive.Trigger>
       <TooltipPrimitive.Portal>
         <TooltipPrimitive.Positioner sideOffset={6}>
-          <TooltipPrimitive.Popup className="data rounded-md border border-line bg-raised px-2 py-1 text-fg shadow-lg">{content}</TooltipPrimitive.Popup>
+          <TooltipPrimitive.Popup className="data border border-border-strong bg-raised px-2 py-1 text-fg">{content}</TooltipPrimitive.Popup>
         </TooltipPrimitive.Positioner>
       </TooltipPrimitive.Portal>
     </TooltipPrimitive.Root>
