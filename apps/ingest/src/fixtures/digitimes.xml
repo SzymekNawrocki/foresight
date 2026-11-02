@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Trimmed from https://www.digitimes.com/rss/daily.xml on 2026-11-02: three items, title/link/date only. -->
+<rss version="2.0">
+  <channel>
+    <title>digitimes</title>
+    <item>
+      <title>Powerchip Investment Holding files suit over NT$13.6B share-buying bid</title>
+      <link>https://www.digitimes.com/news/a20261102PD234/acquisition-management-market.html</link>
+      <pubDate>Mon, 2 Nov 2026 10:14:42 GMT</pubDate>
+    </item>
+    <item>
+      <title>China's self-improving AI advances towards AGI, but Z.ai founder warns of limits and risks</title>
+      <link>https://www.digitimes.com/news/a20261102VL217/z.ai-agi-development-training-tsinghua-university.html</link>
+      <pubDate>Mon, 2 Nov 2026 09:29:04 GMT</pubDate>
+    </item>
+    <item>
+      <title>Taiwan aims to train 60,000 IC specialists by 2030</title>
+      <link>https://www.digitimes.com/news/a20261102PD235/taiwan-team-nstc-ieee-design.html</link>
+      <pubDate>Mon, 2 Nov 2026 09:13:23 GMT</pubDate>
+    </item>
+  </channel>
+</rss>

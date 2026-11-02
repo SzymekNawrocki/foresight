@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Trimmed from https://defensescoop.com/feed/ on 2026-11-02: three items, title/link/date only. -->
+<rss version="2.0">
+  <channel>
+    <title>defensescoop</title>
+    <item>
+      <title>How can we trust AI in national defense missions?</title>
+      <link>https://defensescoop.com/2026/10/30/how-can-we-trust-ai-in-national-defense-missions/</link>
+      <pubDate>Fri, 30 Oct 2026 16:00:00 +0000</pubDate>
+    </item>
+    <item>
+      <title>The missing puzzle piece in space superiority: Why it’s time for the U.S. government to prioritize VLEO</title>
+      <link>https://defensescoop.com/2026/10/30/space-superiority-us-government-vleo/</link>
+      <pubDate>Fri, 30 Oct 2026 13:00:00 +0000</pubDate>
+    </item>
+    <item>
+      <title>Army selects Lockheed Martin for billion-dollar Future Interceptor program</title>
+      <link>https://defensescoop.com/2026/10/29/army-selects-lockheed-martin-future-interceptor-program/</link>
+      <pubDate>Thu, 29 Oct 2026 19:08:00 +0000</pubDate>
+    </item>
+  </channel>
+</rss>

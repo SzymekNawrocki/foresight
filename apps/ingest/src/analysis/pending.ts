@@ -15,6 +15,8 @@ export type AnalysisReport =
       quarantined?: number;
       /** Of the analyzed and reused Events, how many were off the Niche (ADR 0010). */
       offNiche?: number;
+      /** Source health (slice 13): saved Events in and off the Niche per Source, reused ones included. */
+      sources?: Record<string, SourceTally>;
       /** Near-duplicates that took the Analysis of a recent Event, without a model call. */
       reused?: number;
       /** Analyses saved but not put on their Thread's timeline (the Event itself is fine). */
@@ -23,6 +25,11 @@ export type AnalysisReport =
       backlog?: number;
     }
   | { error: string; backlog?: number };
+
+export interface SourceTally {
+  niche: number;
+  offNiche: number;
+}
 
 export interface PendingAnalysis {
   /** Analyzes the newest pending Events within the token budget. Never throws. */
@@ -81,6 +88,8 @@ export function createPendingAnalysis({
   // An Event off the Niche is saved too, so it leaves the queue, but goes on no Thread.
   async function save(event: Event, verdict: Verdict, report: RunReport) {
     await queue.saveAnalysis(event.id, verdict);
+    const tally = (report.sources ??= {})[event.source] ??= { niche: 0, offNiche: 0 };
+    tally[verdict.niche ? "niche" : "offNiche"]++;
     if (!verdict.niche) {
       report.offNiche = (report.offNiche ?? 0) + 1;
       return;
