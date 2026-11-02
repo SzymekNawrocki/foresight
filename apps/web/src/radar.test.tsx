@@ -1,7 +1,7 @@
 import type { AnalyzedEvent, Thread } from "@foresight/shared";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createMemoryHistory, RouterProvider } from "@tanstack/react-router";
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createAppRouter } from "./router.js";
 
@@ -143,10 +143,25 @@ describe("Radar", () => {
     expect(screen.getByText("Żaden Wątek nie dostał dziś nowych Zdarzeń.")).toBeInTheDocument();
   });
 
-  it("has no map", async () => {
+  it("puts every active Thread on the theatre map with its code, and counts the Regions", async () => {
+    renderRadar([event(3, 1), event(1, 2)]);
+
+    expect(await screen.findByRole("img", { name: "Mapa Regionów i aktywnych Wątków" })).toBeInTheDocument();
+    const markers = within(screen.getByRole("list", { name: "Wątki na mapie" }));
+    expect(markers.getByRole("link", { name: `W-01 ${moved.name}` })).toHaveAttribute("href", "/thread/aaaa0001");
+    expect(markers.getByRole("link", { name: `W-02 ${quiet.name}` })).toBeInTheDocument();
+    const regions = within(screen.getByRole("group", { name: "Regiony" }));
+    expect(regions.getByRole("link", { name: "Europa: 2 w 24 h, w tym Przełomowe" })).toHaveAttribute("href", "/stream?region=europe");
+  });
+
+  it("lights a Thread on the map while it is hovered in the list", async () => {
     renderRadar([event(2, 1)]);
 
-    await screen.findByRole("heading", { name: "Radar", level: 1 });
-    expect(screen.queryByRole("img", { name: "Mapa Regionów" })).toBeNull();
+    const panel = within(await screen.findByRole("region", { name: /Wątki w ruchu/ }));
+    const marker = within(screen.getByRole("list", { name: "Wątki na mapie" })).getByRole("link", { name: `W-01 ${moved.name}` });
+    expect(marker).not.toHaveTextContent(moved.name);
+
+    fireEvent.mouseEnter(panel.getByRole("link", { name: moved.name }).closest("li") as HTMLElement);
+    expect(marker).toHaveTextContent(moved.name);
   });
 });

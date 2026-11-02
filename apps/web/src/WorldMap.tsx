@@ -1,54 +1,9 @@
 import { Region } from "@foresight/shared";
 import { useNavigate } from "@tanstack/react-router";
-import { geoCentroid, geoGraticule10, geoNaturalEarth1, geoPath } from "d3-geo";
-import type { Feature, FeatureCollection, Geometry } from "geojson";
-import { feature } from "topojson-client";
-import type { GeometryCollection, Topology } from "topojson-specification";
 import { Zap } from "lucide-react";
-import countries110m from "world-atlas/countries-110m.json";
-import { regionOfCountry } from "./intel.js";
 import type { StreamSearch } from "./filters.js";
+import { ANCHOR, graticule, HEIGHT, heat, MAP_REGIONS, projection, shapes, sphere, WIDTH } from "./geo.js";
 import { REGION_LABEL } from "./labels.js";
-
-const WIDTH = 960;
-const HEIGHT = 480;
-
-type Country = Feature<Geometry, { name: string }>;
-
-// Granice państw z Natural Earth (pakiet world-atlas, w bundlu) — bez zapytań do obcych serwerów.
-const topology = countries110m as unknown as Topology<{ countries: GeometryCollection<{ name: string }> }>;
-const world = feature(topology, topology.objects.countries) as FeatureCollection<Geometry, { name: string }>;
-const projection = geoNaturalEarth1().fitExtent(
-  [
-    [8, 8],
-    [WIDTH - 8, HEIGHT - 8],
-  ],
-  { type: "Sphere" },
-);
-const path = geoPath(projection);
-
-const shapes = world.features.flatMap((country: Country) => {
-  const region = regionOfCountry(country.properties.name, geoCentroid(country) as [number, number]);
-  const d = path(country);
-  return region && d ? [{ name: country.properties.name, region, d }] : [];
-});
-const graticule = path(geoGraticule10()) ?? "";
-const sphere = path({ type: "Sphere" }) ?? "";
-
-// Gdzie stoi etykieta Regionu: [długość, szerokość].
-const ANCHOR: Record<Exclude<Region, "global">, [number, number]> = {
-  "north-america": [-102, 47],
-  "latin-america": [-62, -14],
-  europe: [12, 50],
-  "russia-eurasia": [85, 58],
-  "middle-east": [46, 27],
-  africa: [20, 4],
-  "asia-pacific": [118, 12],
-};
-
-const heat = (count: number) => (count === 0 ? 0.05 : Math.min(0.18 + count * 0.08, 0.7));
-
-const REGIONS = Object.keys(ANCHOR) as (keyof typeof ANCHOR)[];
 
 /** Toggles the Region filter: a second click on the same Region clears it. */
 const toggle =
@@ -108,7 +63,7 @@ export function WorldMap({
           ))}
         </svg>
         <div role="group" aria-label="Regiony na mapie" className="hidden md:block">
-          {REGIONS.map((region) => {
+          {MAP_REGIONS.map((region) => {
             const [x, y] = projection(ANCHOR[region]) ?? [0, 0];
             return (
               <button
