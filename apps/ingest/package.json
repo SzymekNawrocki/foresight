@@ -13,11 +13,11 @@
     "eval": "tsx src/eval/run.ts"
   },
   "dependencies": {
-    "@aws-sdk/client-dynamodb": "~3.1158.0",
-    "@aws-sdk/client-ssm": "~3.1158.0",
-    "@aws-sdk/lib-dynamodb": "~3.1158.0",
+    "@aws-sdk/client-dynamodb": "~3.1161.0",
+    "@aws-sdk/client-ssm": "~3.1161.0",
+    "@aws-sdk/lib-dynamodb": "~3.1161.0",
     "@foresight/shared": "workspace:*",
-    "fast-xml-parser": "^5.11.1",
+    "fast-xml-parser": "^5.12.0",
     "zod": "^4.6.6"
   },
   "devDependencies": {
@@ -27,6 +27,6 @@
     "fflate": "^0.8.3",
     "tsx": "^4.23.15",
     "typescript": "~6.0.3",
-    "vitest": "^5.0.5"
+    "vitest": "^5.1.0"
   }
 }
